@@ -1,6 +1,6 @@
 module LineOffsets
   ( lineOffsets
-  , main
+  , offset
   ) where
     
 -- The lineOffsets parser returns the offsets of the lines fed to it
@@ -31,6 +31,14 @@ lineOffsets :: Parsec String () [Int]
 lineOffsets = do
   ls <- lineLens
   return $ take (length ls) $ scanl (+) 0 ls
+
+
+offset :: Parsec String [Int] Int
+offset = do
+  offsets <- getState
+  pos <- getPosition
+  return $ (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos)
+
 
 -- FIXME: no output!
 main :: IO ()
