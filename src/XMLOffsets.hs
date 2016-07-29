@@ -69,18 +69,17 @@ xmlNode :: Parsec String [Int] XML
 xmlNode = try emptyElementNode <|> try elementNode <|> try textNode
 
 
--- parseWithOffsets p fname s = do
---   case runParser lineOffsets () ("("++fname++":offsets)") s of
---     Left err -> do putStrLn "Error parsing line lengths:"
---                    print err
---     Right os -> case runParser xmlNode os fname s of
---                   Left e -> do putStrLn "Error parsing input:"
---                                print e
---                   Right r -> return r
-  
-
 main :: IO ()
 main = do
+  c <- getContents
+  case runParser xmlNode (lineOffsets' c) "(stdin)" c of
+    Left e -> do putStrLn "Error parsing input:"
+                 print e
+    Right r -> print r
+
+
+main' :: IO ()
+main' = do
   c <- getContents
   case runParser lineOffsets () "(offsets)" c of
     Left err -> do putStrLn "Error parsing line lengths:"
