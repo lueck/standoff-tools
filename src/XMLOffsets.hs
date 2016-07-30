@@ -1,11 +1,12 @@
 module XMLOffsets
   ( xmlNode
+  , xmlDocument
   ) where
 
 -- A simple xml parser that prints the positions of tags.  Usage:
 -- runhaskell xml1.hs < document.xml
 
-import Control.Applicative hiding ((<|>), many)
+--import Control.Applicative hiding ((<|>), many)
 import Text.Parsec
 --import Control.Monad.Identity (Identity)
 
@@ -16,63 +17,121 @@ type AttrVal  = String
 
 data Attribute = Attribute (AttrName, AttrVal) deriving (Show)
 
-data XML =  Element String [Attribute] Int Int Int Int [XML]
-          | EmptyElement String [Attribute] Int Int
-          | Decl String
-          | TextNode String
+data XML =  Element { name :: String
+                    , attributes ::  [Attribute]
+                    , startOpenTag :: Position
+                    , endOpenTag :: Position
+                    , startCloseTag :: Position
+                    , endCloseTag :: Position
+                    , content :: [XML] }
+          | EmptyElement { name :: String
+                         , attributes :: [Attribute]
+                         , startTag :: Position
+                         , endTag :: Position }
+          | XMLDecl { declaration :: String
+                 , start :: Position
+                 , end :: Position }
+          | TextNode { text :: String
+                     , start :: Position
+                     , end :: Position }
+          | Comment { text :: String
+                    , start :: Position
+                    , end :: Position }
           | SpaceNode
         deriving (Show)
 
 openTag :: Parsec String u String
 openTag = do
   char '<'
-  name <- many alphaNum
+  elName <- many alphaNum
   many space
   char '>'
-  return name
+  return elName
 
---closeTag :: Stream s m Char => String -> ParsecT s u m Char
-closeTag name = do
+closeTag :: String -> Parsec String [Int] Char
+closeTag elName = do
   string "</"
-  string name
-  many space
+  string elName
+  skipMany space
   char '>'
 
 elementNode :: Parsec String [Int] XML
 elementNode = do
-  openStartPos <- offset
-  name <- openTag
-  openEndPos <- offset
-  content <- many xmlNode
-  closeStartPos <- offset
-  closeTag name
-  closeEndPos <- offset
+  openStartPos <- getOffset 0
+  elName <- openTag
+  openEndPos <- getOffset (-1)
+  inner <- many xmlNode
+  closeStartPos <- getOffset 0
+  closeTag elName
+  closeEndPos <- getOffset (-1)
   -- Note: (-1) for the position of tags' ends, because the ending
   -- character was consumed by the parser. Follows, that when ever we
   -- calculate the length of a tag, it is _EndPos - _StartPos + 1
-  return $ Element name [] openStartPos (openEndPos - 1) closeStartPos (closeEndPos - 1) content
+  return $ Element elName [] openStartPos openEndPos closeStartPos closeEndPos inner
 
 emptyElementNode :: Parsec String [Int] XML
 emptyElementNode = do
-  startPos <- offset
+  startPos <- getOffset 0
   char '<'
-  name <- many alphaNum
+  elName <- many alphaNum
   many space
   string "/>"
-  endPos <- offset
-  return $ EmptyElement name [] startPos (endPos - 1)
+  endPos <- getOffset (-1)
+  return $ EmptyElement elName [] startPos endPos
+
+attribute :: Parsec String [Int] Attribute
+attribute = do
+  attrName <- many (noneOf "= />")  
+  spaces
+  char '='
+  spaces
+  char '"'
+  value <- many (noneOf ['"'])
+  char '"'
+  spaces
+  return $ Attribute (attrName, value)
 
 textNode :: Parsec String [Int] XML
-textNode = TextNode <$> many1 (noneOf "<")
+textNode = do
+  s <- getOffset 0
+  t <- many1 (noneOf "<")
+  e <- getOffset 0
+  return $ TextNode t s e
+
+comment :: Parsec String [Int] XML
+comment = do
+  startPos <- getOffset 0
+  string "<!--"
+  c <- manyTill anyChar (string "-->")
+  endPos <- getOffset (-1)
+  return $ Comment ("<!--"++c++"-->") startPos endPos
+
+-- XML declaration eg. <?xml version="1.0" encoding="UTF-8"?>
+xmlDecl :: Parsec String [Int] XML
+xmlDecl = do
+  s <- getOffset 0
+  string "<?xml"
+  decl <- many (noneOf "?>")
+  string "?>"
+  e <- getOffset 0
+  return $ XMLDecl decl s e
 
 xmlNode :: Parsec String [Int] XML
-xmlNode = try emptyElementNode <|> try elementNode <|> try textNode
+xmlNode = try emptyElementNode <|> try elementNode <|> try textNode <|> try comment
 
+xmlDocument :: Parsec String [Int] XML
+xmlDocument = do
+  skipMany space
+  --try xmlDecl
+  skipMany space
+  tree <- try emptyElementNode <|> try elementNode
+  skipMany space
+  return $ tree
 
 main :: IO ()
 main = do
   c <- getContents
-  case runParser xmlNode (lineOffsets' c) "(stdin)" c of
+  case runParser xmlDocument (lineOffsets' c) "(stdin)" c of
     Left e -> do putStrLn "Error parsing input:"
                  print e
     Right r -> print r

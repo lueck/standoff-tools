@@ -1,7 +1,8 @@
 module LineOffsets
   ( lineOffsets
   , lineOffsets'
-  , offset
+  , getOffset
+  , Position
   ) where
     
 -- The lineOffsets parser returns the offsets of the lines fed to it
@@ -24,6 +25,11 @@ module LineOffsets
 
 import Text.Parsec
 
+data Position = Position { offset :: Int
+                         , line :: Int
+                         , column :: Int
+                         } deriving (Show)
+
 lineLens :: Parsec String () [Int]
 lineLens = do
   l <- lineLen
@@ -44,11 +50,15 @@ lineOffsets = do
   return $ init $ scanl (+) 0 ls
 
 
-offset :: Parsec String [Int] Int
-offset = do
+getOffset :: Int -> Parsec String [Int] Position
+getOffset cor = do
   offsets <- getState
   pos <- getPosition
-  return $ (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos)
+  return $ Position { line = sourceLine pos
+                    , column = sourceColumn pos
+                    , offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor
+                    }
+
 
 offsetsFromString :: Int -> String -> [Int]
 offsetsFromString _ [] = []
