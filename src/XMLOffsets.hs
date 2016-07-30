@@ -44,7 +44,7 @@ openTag :: Parsec String u String
 openTag = do
   char '<'
   elName <- many alphaNum
-  many space
+  spaces
   char '>'
   return elName
 
@@ -73,22 +73,24 @@ emptyElementNode :: Parsec String [Int] XML
 emptyElementNode = do
   startPos <- getOffset 0
   char '<'
-  elName <- many alphaNum
-  many space
+  elName <- many1 alphaNum
+  attrs <- many attribute
+  spaces
   string "/>"
   endPos <- getOffset (-1)
-  return $ EmptyElement elName [] startPos endPos
+  return $ EmptyElement elName attrs startPos endPos
 
 attribute :: Parsec String [Int] Attribute
 attribute = do
-  attrName <- many (noneOf "= />")  
+  spaces
+  attrName <- many1 (noneOf "= />")  
   spaces
   char '='
   spaces
   char '"'
-  value <- many (noneOf ['"'])
+  value <- many1 (noneOf ['"'])
   char '"'
-  spaces
+  spaces -- Why is this needed?
   return $ Attribute (attrName, value)
 
 textNode :: Parsec String [Int] XML
