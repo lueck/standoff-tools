@@ -13,11 +13,9 @@ module XMLOffsets
   ) where
 
 -- A simple xml parser that prints the positions of tags.  Usage:
--- runhaskell xml1.hs < document.xml
+-- runhaskell XMLOffsets.hs < document.xml
 
---import Control.Applicative hiding ((<|>), many)
 import Text.Parsec
---import Control.Monad.Identity (Identity)
 
 import LineOffsets
 
@@ -37,9 +35,13 @@ data XML =  Element { name :: String
                          , attributes :: [Attribute]
                          , startTag :: Position
                          , endTag :: Position }
-          | XMLDecl { declaration :: String
-                 , start :: Position
-                 , end :: Position }
+          | XMLDeclaration { declaration :: [Attribute]
+                           , start :: Position
+                           , end :: Position }
+          | ProcessingInstruction { name :: String
+                                  , declaration :: [Attribute]
+                                  , start :: Position
+                                  , end :: Position }
           | TextNode { text :: String
                      , start :: Position
                      , end :: Position }
@@ -62,7 +64,8 @@ xmlSpanning (Element _ _ s _ _ e _) = (s, e)
 xmlSpanning (EmptyElement _ _ s e) = (s, e)
 xmlSpanning (TextNode _ s e) = (s, e)
 xmlSpanning (Comment _ s e) = (s, e)
-xmlSpanning (XMLDecl _ s e) = (s, e)
+xmlSpanning (XMLDeclaration _ s e) = (s, e)
+xmlSpanning (ProcessingInstruction _ _ s e) = (s, e)
 
 elementOpenTagPosition :: XML -> (Position, Position)
 elementOpenTagPosition (Element _ _ s e _ _ _) = (s, e)
@@ -83,7 +86,7 @@ openTag :: Parsec String [Int] (String, [Attribute])
 openTag = do
   char '<'
   elName <- many1 alphaNum
-  attrs <- many attributeNode
+  attrs <- many $ try attributeNode
   spaces
   char '>'
   return (elName, attrs)
@@ -114,7 +117,7 @@ emptyElementNode = do
   startPos <- getOffset 0
   char '<'
   elName <- many1 alphaNum
-  attrs <- many attributeNode
+  attrs <- many $ try attributeNode
   spaces
   string "/>"
   endPos <- getOffset (-1)
@@ -148,35 +151,58 @@ comment = do
   endPos <- getOffset (-1)
   return $ Comment ("<!--"++c++"-->") startPos endPos
 
--- XML declaration eg. <?xml version="1.0" encoding="UTF-8"?>
 xmlDecl :: Parsec String [Int] XML
 xmlDecl = do
   s <- getOffset 0
   string "<?xml"
-  decl <- many (noneOf "?>")
+  attrs <- many1 $ try attributeNode
+  spaces
   string "?>"
   e <- getOffset 0
-  return $ XMLDecl decl s e
+  return $ XMLDeclaration attrs s e
+
+processingInstruction :: Parsec String [Int] XML
+processingInstruction = do
+  s <- getOffset 0
+  string "<?"
+  t <- many1 alphaNum
+  attrs <- many1 $ try attributeNode
+  spaces
+  string "?>"
+  e <- getOffset 0
+  return $ ProcessingInstruction t attrs s e
+
+processingInstructionMaybeSpace :: Parsec String [Int] XML
+processingInstructionMaybeSpace = do
+  p <- processingInstruction
+  spaces
+  return p
 
 xmlNode :: Parsec String [Int] XML
 xmlNode = try emptyElementNode <|> try elementNode <|> try textNode <|> try comment
 
-xmlDocument :: Parsec String [Int] XML
+-- Parser for XML documents.
+-- FIXME: Arbitrary many comments are allowed beside the root element.
+xmlDocument :: Parsec String [Int] [XML]
 xmlDocument = do
   skipMany space
-  --try xmlDecl -- FIXME: parse optional xml declaration
+  decl <- optionMaybe $ try xmlDecl
+  skipMany space
+  pInstr <- many $ try processingInstructionMaybeSpace
   skipMany space
   tree <- try emptyElementNode <|> try elementNode
   skipMany space
-  return $ tree
+  return $ case decl of
+             Nothing -> pInstr++[tree]
+             Just (XMLDeclaration attrs s e) -> [(XMLDeclaration attrs s e)]++pInstr++[tree]
 
 
-parseString :: String -> String -> Either ParseError XML
+parseString :: String -> String -> Either ParseError [XML]
 parseString doc fname =
   runParser xmlDocument (lineOffsets' doc) fname doc 
 
 
-parseFile :: FilePath -> IO (Either ParseError XML)
+parseFile :: FilePath -> IO (Either ParseError [XML])
 parseFile fname = do
   c <- readFile fname
   return $ runParser xmlDocument (lineOffsets' c) fname c
