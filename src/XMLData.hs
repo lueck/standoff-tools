@@ -62,10 +62,3 @@ elementContent (Element _ _ _ _ _ _ c) = c
 
 textContent :: XML -> String
 textContent (TextNode t _ _) = t
-
--- Returns a list made from the tree.
-flatten :: [XML] -> [XML]
-flatten [] = []
-flatten ((Element n a so se sc ec inner):xs) =
-  (Element n a so se sc ec []) : flatten inner ++ flatten xs
-flatten (x:xs) = x : flatten xs

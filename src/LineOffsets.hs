@@ -3,6 +3,7 @@ module LineOffsets
   , lineOffsets'
   , getOffset
   , Position
+  , posOffset
   ) where
     
 -- The lineOffsets parser returns the offsets of the lines fed to it
@@ -29,6 +30,9 @@ data Position = Position { offset :: Int
                          , line :: Int
                          , column :: Int
                          } deriving (Show)
+
+posOffset :: Position -> Int
+posOffset (Position o _ _) = o
 
 lineLens :: Parsec String () [Int]
 lineLens = do
