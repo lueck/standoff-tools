@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<document>
+  <head/>
+  <body>
+    <lb class="hidden" />
+    < >
+    <p indent="noindent" class="bagel" >Paragraph with lore &#xfc;</p>
+  </body>
+</document>
