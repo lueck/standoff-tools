@@ -1,6 +1,7 @@
 module Internalize
   ( internalize
   , TagType
+  , serializeTag
   ) where
 
 import XMLData
@@ -41,21 +42,19 @@ resolveOverlapping (x:xs) (a:as)
 
 -- FIXME: add attribute to split annotations with information about split
 splitAnnotationAtOpenTag :: Annotation -> XML -> (Annotation, Annotation)
-splitAnnotationAtOpenTag (MarkupRange rid eid typ s1 e1 _) x =
-   ((MarkupRange rid eid typ s1 xso "")
-   , (MarkupRange rid eid typ (xeo-1) e1 ""))
+splitAnnotationAtOpenTag a x = splitMarkupRange a newAttrs splitEnd splitRestart
    where xOpenTagPos = elementOpenTagPosition x
-         xso = posOffset $ fst xOpenTagPos
-         xeo = posOffset $ snd xOpenTagPos
+         splitEnd = posOffset $ fst xOpenTagPos
+         splitRestart = (posOffset $ snd xOpenTagPos ) - 1
+         newAttrs = []
 
 -- FIXME: add attribute to split annotations with information about split
 splitAnnotationAtCloseTag :: Annotation -> XML -> (Annotation, Annotation)
-splitAnnotationAtCloseTag (MarkupRange rid eid typ s1 e1 _) x =
-   ((MarkupRange rid eid typ s1 xsc "")
-   , (MarkupRange rid eid typ (xec-1) e1 ""))
+splitAnnotationAtCloseTag a x = splitMarkupRange a newAttrs splitEnd splitRestart
    where xCloseTagPos = elementCloseTagPosition x
-         xsc = posOffset $ fst xCloseTagPos
-         xec = posOffset $ snd xCloseTagPos
+         splitEnd = posOffset $ fst xCloseTagPos
+         splitRestart = (posOffset $ snd xCloseTagPos) - 1
+         newAttrs = []
 
 -- Returns a list made from the tree.
 flatten :: [XML] -> [XML]
@@ -80,3 +79,26 @@ insertTags as slize (x:xs) idx =
                                             && ((rangeEndOffset a) > idx)) as))
   ++ (x : insertTags as slize xs (idx+1))
 
+-- simple serializer for an XML tag
+serializeTag :: TagType -> Annotation -> String
+serializeTag Open a = "<"
+                      ++ (rangeType a)
+                      ++ " elementId=\"" ++ (rangeElementId a) ++ "\""
+                      ++ " rangeId=\"" ++ (rangeRangeId a) ++ "\""
+                      ++ (concatMap (\attr -> (" " ++ (rangeAttributeName attr)
+                                               ++ "=\"" ++ (rangeAttributeValue attr)
+                                               ++ "\""))
+                           (rangeAttributes a))
+                      ++ ">"
+serializeTag Close a = "</"
+                       ++ (rangeType a)
+                       ++ ">"
+serializeTag Empty a = "<"
+                       ++ (rangeType a)
+                       ++ " elementId=\"" ++ (rangeElementId a) ++ "\""
+                       ++ " rangeId=\"" ++ (rangeRangeId a) ++ "\""
+                       ++ (concatMap (\attr -> (" " ++ (rangeAttributeName attr)
+                                                ++ "=\"" ++ (rangeAttributeValue attr)
+                                                ++ "\""))
+                            (rangeAttributes a))
+                       ++ ">"

@@ -59,6 +59,18 @@ elementCloseTagPosition (EmptyElement _ _ s e) = (s, e)
 
 elementContent :: XML -> [XML]
 elementContent (Element _ _ _ _ _ _ c) = c
+elementContent _ = []
+
+elementWithoutContent :: XML -> XML
+elementWithoutContent (Element n a so eo sc ec _) = Element n a so eo sc ec []
+elementWithoutContent x = x
 
 textContent :: XML -> String
 textContent (TextNode t _ _) = t
+
+-- Does the node given as argument need resolution?
+isTagP :: XML -> Bool
+isTagP (Element _ _ _ _ _ _ _) = True
+isTagP (EmptyElement _ _ _ _) = True
+isTagP _ = False
+
