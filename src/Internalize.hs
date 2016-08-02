@@ -1,13 +1,18 @@
-module Internalize where
+module Internalize
+  ( internalize
+  , TagType
+  ) where
 
 import XMLData
 import AnnotationData
 import LineOffsets
 
+data TagType = Open | Close | Empty deriving (Show)
 
 -- Internalize
-internalize :: String -> [XML] -> [Annotation] -> (Int -> Annotation -> String) -> String
-internalize doc xs as serializer = insertTags (resolveOverlapping (flatten xs) as) serializer doc 0
+internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> String) -> String
+internalize doc xs as serializer =
+  insertTags (resolveOverlapping (filter (isTagP) (flatten xs)) as) serializer doc 0
 
 -- Split Annotations depending on internalized XML. 
 resolveOverlapping :: [XML] -> [Annotation] -> [Annotation]
@@ -34,37 +39,44 @@ resolveOverlapping (x:xs) (a:as)
         leftSplit = splitAnnotationAtOpenTag a x
         rightSplit = splitAnnotationAtCloseTag a x
 
--- FIXME: add attribute to splitted annotations with information about split
+-- FIXME: add attribute to split annotations with information about split
 splitAnnotationAtOpenTag :: Annotation -> XML -> (Annotation, Annotation)
-splitAnnotationAtOpenTag (MarkupRange rid eid typ s1 e1 _) (Element _ _ so eo _ _ _) =
-   ((MarkupRange rid eid typ s1 (posOffset so) "")
-   , (MarkupRange rid eid typ ((posOffset eo)-1) e1 ""))
+splitAnnotationAtOpenTag (MarkupRange rid eid typ s1 e1 _) x =
+   ((MarkupRange rid eid typ s1 xso "")
+   , (MarkupRange rid eid typ (xeo-1) e1 ""))
+   where xOpenTagPos = elementOpenTagPosition x
+         xso = posOffset $ fst xOpenTagPos
+         xeo = posOffset $ snd xOpenTagPos
 
--- FIXME: add attribute to splitted annotations with information about split
+-- FIXME: add attribute to split annotations with information about split
 splitAnnotationAtCloseTag :: Annotation -> XML -> (Annotation, Annotation)
-splitAnnotationAtCloseTag (MarkupRange rid eid typ s1 e1 _) (Element _ _ _ _ sc ec _) =
-   ((MarkupRange rid eid typ s1 (posOffset sc) "")
-   , (MarkupRange rid eid typ ((posOffset ec)-1) e1 ""))
+splitAnnotationAtCloseTag (MarkupRange rid eid typ s1 e1 _) x =
+   ((MarkupRange rid eid typ s1 xsc "")
+   , (MarkupRange rid eid typ (xec-1) e1 ""))
+   where xCloseTagPos = elementCloseTagPosition x
+         xsc = posOffset $ fst xCloseTagPos
+         xec = posOffset $ snd xCloseTagPos
 
 -- Returns a list made from the tree.
 flatten :: [XML] -> [XML]
 flatten [] = []
-flatten ((Element n a so se sc ec inner):xs) =
-  (Element n a so se sc ec []) : flatten inner ++ flatten xs
-flatten (x:xs) = x : flatten xs
+flatten (x:xs) = (elementWithoutContent x) : (flatten $ elementContent x) ++ flatten xs
 
--- This actually does the job of internalizing.
-insertTags :: [Annotation] -> (Int -> Annotation -> String) -> String -> Int -> String
-insertTags as slize [] idx = concatMap (slize idx) $ filter (\a -> ((rangeStartOffset a) >= idx) || ((rangeEndOffset a) >= idx)) as
-insertTags as slize (x:xs) idx = (concatMap (slize idx) (filter (\a -> ((rangeStartOffset a) == idx) || ((rangeEndOffset a) == idx)) as)) ++ (x : insertTags as slize xs (idx+1))
-
--- FIXME: The serializer function takes an Integer and an Annotation
--- as arguments. The integer is an index, by which the serializer can
--- decide, whether to return an opening or a closing tag. -- This is
--- not good: 1) Makes it hard to write serializers. 2) There may be
--- situations, when the index does not equal start and end offsets,
--- e.g. see edge condition. All decision logic should be implemented
--- in insertTags, and the serializer should be called with
--- Start|Close|Empty instead of an integer index.
-
+-- This actually does the job of inserting tags.
+insertTags :: [Annotation] -> (TagType -> Annotation -> String) -> String -> Int -> String
+insertTags as slize [] idx =
+  concatMap (slize Empty) (filter (\a -> ((rangeStartOffset a) >= idx)
+                                         && ((rangeStartOffset a) == (rangeEndOffset a))) as)
+  ++ concatMap (slize Open) (filter (\a -> ((rangeStartOffset a) >= idx)
+                                           && ((rangeStartOffset a) < (rangeEndOffset a))) as)
+  ++ concatMap (slize Close) (filter (\a -> ((rangeStartOffset a) < idx)
+                                             && ((rangeEndOffset a) >= idx)) as)
+insertTags as slize (x:xs) idx =
+  (concatMap (slize Empty) (filter (\a -> ((rangeStartOffset a) == idx)
+                                          && ((rangeEndOffset a) == idx)) as))
+  ++ (concatMap (slize Close) (filter (\a -> ((rangeStartOffset a) < idx)
+                                             && ((rangeEndOffset a) == idx)) as))
+  ++ (concatMap (slize Open) (filter (\a -> ((rangeStartOffset a) == idx)
+                                            && ((rangeEndOffset a) > idx)) as))
+  ++ (x : insertTags as slize xs (idx+1))
 
