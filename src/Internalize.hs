@@ -13,7 +13,9 @@ data TagType = Open | Close | Empty deriving (Show)
 -- Internalize
 internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> String) -> String
 internalize doc xs as serializer =
-  insertTags (resolveOverlapping (filter (isTagP) (flatten xs)) as) serializer doc 0
+  insertTags (resolveOverlapping
+              (filter (isTagP) (flatten xs))
+              (filter isMarkupRangeP as)) serializer doc 0
 
 -- Split Annotations depending on internalized XML. 
 resolveOverlapping :: [XML] -> [Annotation] -> [Annotation]

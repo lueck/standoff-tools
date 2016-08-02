@@ -44,3 +44,8 @@ splitMarkupRange :: Annotation -> [RangeAttribute] -> Int -> Int -> (Annotation,
 splitMarkupRange (MarkupRange rid eid typ s e txt) attrs endFst startSnd =
   ((MarkupRange rid eid typ s endFst txt)
   ,(MarkupRange rid eid typ startSnd e txt))
+
+-- Predicate to be used by filters.
+isMarkupRangeP :: Annotation -> Bool
+isMarkupRangeP (MarkupRange _ _ _ _ _ _) = True
+isMarkupRangeP _ = False
