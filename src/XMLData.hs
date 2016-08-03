@@ -68,9 +68,10 @@ elementWithoutContent x = x
 textContent :: XML -> String
 textContent (TextNode t _ _) = t
 
--- Does the node given as argument need resolution?
-isTagP :: XML -> Bool
-isTagP (Element _ _ _ _ _ _ _) = True
-isTagP (EmptyElement _ _ _ _) = True
-isTagP _ = False
+-- Is the node an XML element? False for white space, text nodes,
+-- processing instructions, xml declarations, comments etc.
+isElementP :: XML -> Bool
+isElementP (Element _ _ _ _ _ _ _) = True
+isElementP (EmptyElement _ _ _ _) = True
+isElementP _ = False
 

@@ -12,36 +12,37 @@ data TagType = Open | Close | Empty deriving (Show)
 
 -- Internalize
 internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> String) -> String
-internalize doc xs as serializer =
-  insertTags (resolveOverlapping
-              (filter (isTagP) (flatten xs))
-              (filter isMarkupRangeP as)) serializer doc 1
+internalize doc xml annotations serializer =
+  insertTags (concatMap (resolveOverlapping elems) markupRanges) serializer doc 1
+  where elems = filter (isElementP) xml
+        markupRanges = filter isMarkupRangeP annotations
 
--- Split Annotations depending on internalized XML. 
-resolveOverlapping :: [XML] -> [Annotation] -> [Annotation]
-resolveOverlapping [] as = as
-resolveOverlapping _ [] = []
-resolveOverlapping (x:xs) (a:as)
-  -- Forward xml when
-  -- x contains a
-  | xStartOpen <= aStart && xEndClose >= aEnd = resolveOverlapping xs (a:as)
-  -- x is before a
-  | xEndClose <= aStart  = resolveOverlapping xs (a:as)
-  -- Forward annotations when
-  -- a contains x
-  | aStart <= xStartOpen && aEnd >= xEndClose = a : (resolveOverlapping (x:xs) as)
-  -- a is before x
-  | aEnd <= xStartOpen = a : resolveOverlapping (x:xs) as
-  -- Split annotation when
-  -- a left-overlaps x
-  | aStart < xStartOpen && aEnd < xEndClose = (fst leftSplit) : (resolveOverlapping (x:xs) ((snd leftSplit):as))
-  -- a right-overlaps x
-  | aStart > xStartOpen && aEnd > xEndClose = resolveOverlapping (x:xs) ((fst rightSplit):(snd rightSplit):as)
+-- Split Annotations depending on XML in source file. This function is
+-- the workhorse of markup internalization.
+resolveOverlapping :: [XML] -> Annotation -> [Annotation]
+resolveOverlapping [] a = [a]
+resolveOverlapping (x:xs) a
+  -- Forward xml vertically when x contains a
+  | xStartOpen <= aStart && xEndClose >= aEnd = resolveOverlapping xContent a
+  -- Forward xml horizontally when x is before a
+  | xEndClose <= aStart  = resolveOverlapping xs a
+  -- Split a when a right-overlaps x
+  | aStart > xStartOpen && aEnd > xEndClose = (resolveOverlapping xContent (fst rightSplit))
+                                              ++ (resolveOverlapping xs (snd rightSplit))
+  -- Split a when a left-overlaps x
+  | aStart < xStartOpen && aEnd < xEndClose = (fst leftSplit)
+                                              : (resolveOverlapping xContent (snd leftSplit))
+  -- Needn't progress if a contains x, because then xs are not
+  -- relevant and a contains the content of x, too.
+  | aStart <= xStartOpen && aEnd >= xEndClose = [a]
+  -- Needn't progress behind a.
+  | aEnd <= xStartOpen = [a]
   | otherwise = error "Could not resolve overlapping!"
   where aStart = rangeStartOffset a
         aEnd = rangeEndOffset a
         xStartOpen = (posOffset (fst (xmlSpanning x)))
         xEndClose = (posOffset (snd (xmlSpanning x)))
+        xContent = filter (isElementP) $ elementContent x
         leftSplit = splitAnnotationAtOpenTag a x
         rightSplit = splitAnnotationAtCloseTag a x
 
@@ -60,11 +61,6 @@ splitAnnotationAtCloseTag a x = splitMarkupRange a newAttrs splitEnd splitRestar
          splitEnd = posOffset $ fst xCloseTagPos
          splitRestart = (posOffset $ snd xCloseTagPos) + 1
          newAttrs = []
-
--- Returns a list made from the tree.
-flatten :: [XML] -> [XML]
-flatten [] = []
-flatten (x:xs) = (elementWithoutContent x) : (flatten $ elementContent x) ++ flatten xs
 
 -- This actually does the job of inserting tags.
 insertTags :: [Annotation] -> (TagType -> Annotation -> String) -> String -> Int -> String
