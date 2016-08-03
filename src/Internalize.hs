@@ -15,7 +15,7 @@ internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> Stri
 internalize doc xs as serializer =
   insertTags (resolveOverlapping
               (filter (isTagP) (flatten xs))
-              (filter isMarkupRangeP as)) serializer doc 0
+              (filter isMarkupRangeP as)) serializer doc 1
 
 -- Split Annotations depending on internalized XML. 
 resolveOverlapping :: [XML] -> [Annotation] -> [Annotation]
