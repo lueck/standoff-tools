@@ -34,7 +34,6 @@ escape = do
 
 nonEscape :: Parsec String () Char
 nonEscape = noneOf "\\\"\0\n\r\v\t\b\f"
---nonEscape = noneOf "\\\"\0\v\t\b\f"
 
 quoteChar :: Parsec String () String
 quoteChar = fmap return nonEscape <|> escape <|> (many1 space)
@@ -50,7 +49,7 @@ markupRange :: Parsec String () Annotation
 markupRange = do
   char '('
   spaces
-  id' <- uuid
+  elemId <- uuid
   spaces
   typ <- quoteString
   spaces
@@ -65,7 +64,7 @@ markupRange = do
   char ')'
   spaces
   return $ MarkupRange { rangeId = ""
-                       , elementId = id'
+                       , elementId = elemId
                        , markupType = typ
                        , startOffset = (read start)::Int
                        , endOffset = (read end)::Int
