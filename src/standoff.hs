@@ -58,7 +58,7 @@ internalize_ (dumpFile:xmlFile:_) = do
             Left errXml -> do putStrLn "Error parsing XML input:"
                               print errXml
             Right xml -> do
-              print $ internalize xmlContents xml dumped serializeTag
+              putStr $ internalize xmlContents xml dumped serializeTag
 
 
 main :: IO ()
