@@ -19,21 +19,24 @@ internalize doc xs as serializer =
 
 -- Split Annotations depending on internalized XML. 
 resolveOverlapping :: [XML] -> [Annotation] -> [Annotation]
-resolveOverlapping []  as = as
+resolveOverlapping [] as = as
 resolveOverlapping _ [] = []
 resolveOverlapping (x:xs) (a:as)
-  -- a contains x, where a is an annotation and x is internalized XML.
-  | aStart <= xStartOpen && aEnd >= xEndClose = a : (resolveOverlapping (x:xs) as)
+  -- Forward xml when
   -- x contains a
   | xStartOpen <= aStart && xEndClose >= aEnd = resolveOverlapping xs (a:as)
+  -- x is before a
+  | xEndClose <= aStart  = resolveOverlapping xs (a:as)
+  -- Forward annotations when
+  -- a contains x
+  | aStart <= xStartOpen && aEnd >= xEndClose = a : (resolveOverlapping (x:xs) as)
   -- a is before x
   | aEnd <= xStartOpen = a : resolveOverlapping (x:xs) as
-  -- a is after x
-  | aStart >= xEndClose = (resolveOverlapping (x:xs) as) ++ a:[]
+  -- Split annotation when
   -- a left-overlaps x
   | aStart < xStartOpen && aEnd < xEndClose = (fst leftSplit) : (resolveOverlapping (x:xs) ((snd leftSplit):as))
   -- a right-overlaps x
-  | aStart < xStartOpen && aEnd < xEndClose = resolveOverlapping (x:xs) ((fst rightSplit):(snd rightSplit):as)
+  | aStart > xStartOpen && aEnd > xEndClose = resolveOverlapping (x:xs) ((fst rightSplit):(snd rightSplit):as)
   | otherwise = error "Could not resolve overlapping!"
   where aStart = rangeStartOffset a
         aEnd = rangeEndOffset a
@@ -47,7 +50,7 @@ splitAnnotationAtOpenTag :: Annotation -> XML -> (Annotation, Annotation)
 splitAnnotationAtOpenTag a x = splitMarkupRange a newAttrs splitEnd splitRestart
    where xOpenTagPos = elementOpenTagPosition x
          splitEnd = posOffset $ fst xOpenTagPos
-         splitRestart = (posOffset $ snd xOpenTagPos ) - 1
+         splitRestart = (posOffset $ snd xOpenTagPos) + 1
          newAttrs = []
 
 -- FIXME: add attribute to split annotations with information about split
@@ -55,7 +58,7 @@ splitAnnotationAtCloseTag :: Annotation -> XML -> (Annotation, Annotation)
 splitAnnotationAtCloseTag a x = splitMarkupRange a newAttrs splitEnd splitRestart
    where xCloseTagPos = elementCloseTagPosition x
          splitEnd = posOffset $ fst xCloseTagPos
-         splitRestart = (posOffset $ snd xCloseTagPos) - 1
+         splitRestart = (posOffset $ snd xCloseTagPos) + 1
          newAttrs = []
 
 -- Returns a list made from the tree.
