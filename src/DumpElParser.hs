@@ -26,11 +26,25 @@ timeStamp = do
   t <- manyTill (digit <|> space) $ char ')'
   return t
 
+escape :: Parsec String () String
+escape = do
+  d <- char '\\'
+  c <- oneOf "\\\"\0\n\r\v\t\b\f"
+  return [d, c]
+
+nonEscape :: Parsec String () Char
+nonEscape = noneOf "\\\"\0\n\r\v\t\b\f"
+--nonEscape = noneOf "\\\"\0\v\t\b\f"
+
+quoteChar :: Parsec String () String
+quoteChar = fmap return nonEscape <|> escape <|> (many1 space)
+
 quoteString :: Parsec String () String
 quoteString = do
   char '"'
-  txt <- manyTill anyChar $ char '"'
-  return txt
+  s <- many $ try quoteChar
+  char '"'
+  return $ concat s
 
 markupRange :: Parsec String () Annotation
 markupRange = do
@@ -61,9 +75,11 @@ relation :: Parsec String () Annotation
 relation = do
   char '('
   spaces
+  relId <- uuid
+  spaces
   subj <- uuid
   spaces
-  pred <- quoteString
+  predicat <- quoteString
   spaces
   obj <- uuid
   spaces
@@ -73,8 +89,9 @@ relation = do
   spaces
   char ')'
   spaces
-  return $ Relation { subject = subj
-                    , predicate = pred
+  return $ Relation { relationId = relId
+                    , subject = subj
+                    , predicate = predicat
                     , object = obj }
 
 
