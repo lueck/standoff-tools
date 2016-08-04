@@ -126,12 +126,12 @@ resolveRangeOverlaps (x:xs) a
   | aEnd <= xStart = [a]
   | aStart <= xStart && aEnd >= xEnd = forward
   | aStart < xStart && aEnd < xEnd = (fst split) : (resolveRangeOverlaps (x:xs) (snd split))
-  | aStart > xStart = forward
+  | aStart >= xStart = forward
   | otherwise = error "Cannot resolve overlapping markup ranges."
   where aStart = rangeStartOffset a
         aEnd = rangeEndOffset a
         xStart = rangeStartOffset x
         xEnd = rangeEndOffset x
-        split = splitMarkupRange a newAttrs xStart (xStart+1)
+        split = splitMarkupRange a newAttrs xStart xStart
         newAttrs = []
         forward = resolveRangeOverlaps xs a
