@@ -1,5 +1,7 @@
 module TextRange where
 
+import Data.List
+
 type Position = Int
 
 -- A new instance of TextRange just has to define `start`, `end`,
@@ -30,3 +32,9 @@ class TextRange a where
           e = end x
   leftSplit x y = split x $ fst $ splitPoints y
   rightSplit x y = split x $ snd $ splitPoints y
+
+sortTextRanges :: (TextRange a) => [a] -> [a]
+sortTextRanges ranges = sortBy compareRanges ranges
+  where compareRanges x y
+          | start x == start y = end y `compare` end x
+          | otherwise = start x `compare` start y

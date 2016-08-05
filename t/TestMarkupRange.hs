@@ -26,3 +26,5 @@ test_leftOverlaps = assertEqual ((sampleRanges !! 1) <-< (sampleRanges !! 2)) Tr
 test_notLeftOverlaps = assertEqual ((sampleRanges !! 1) <-< (sampleRanges !! 3)) False
 test_rightOverlaps = assertEqual ((sampleRanges !! 2) >-> (sampleRanges !! 1)) True
 test_notRightOverlaps = assertEqual ((sampleRanges !! 1) >-> (sampleRanges !! 3)) False
+
+test_sort = assertEqual ["a1", "a2", "a4", "a3"] (map rangeRangeId $ sortTextRanges sampleRanges)
