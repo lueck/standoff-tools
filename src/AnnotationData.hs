@@ -1,6 +1,8 @@
 module AnnotationData
   where
 
+import TextRange
+
 data RangeAttribute = RangeAttribute { attrName :: String
                                      , attrValue :: String
                                      } deriving (Show)
@@ -22,6 +24,10 @@ data Annotation = MarkupRange { rangeId :: String
                            , predicate :: String
                            , object :: String }
                 deriving (Show)
+
+instance TextRange (Annotation) where
+  start (MarkupRange _ _ _ s _ _) = s
+  end (MarkupRange _ _ _ _ e _) = e
 
 rangeRangeId :: Annotation -> String
 rangeRangeId (MarkupRange rid _ _ _ _ _) = rid
