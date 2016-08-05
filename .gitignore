@@ -2,10 +2,13 @@
 *.[0-9]
 *.bak
 
+
 *.hi
 *.o
 *.
-
 src/standoff
 
 dist
+.HTF
+.cabal-sandbox
+cabal.sandbox.config
