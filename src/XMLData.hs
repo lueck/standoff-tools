@@ -1,6 +1,7 @@
 module XMLData where
 
 import LineOffsets
+import qualified TextRange as TR
 
 type AttrName = String
 type AttrVal  = String
@@ -32,6 +33,17 @@ data XML =  Element { name :: String
                    , start :: Position
                    , end :: Position }
          deriving (Show)
+
+myMapTuple :: (a -> b) -> (a, a) -> (b, b)
+myMapTuple f (a1, a2) = (f a1, f a2)
+
+instance TR.TextRange XML where
+  start x = posOffset $ fst $ xmlSpanning x
+  end x = posOffset $ snd $ xmlSpanning x
+  splitPoints x = ((so, eo), (sc, ec))
+    where (so, eo) = myMapTuple posOffset $ elementOpenTagPosition x
+          (sc, ec) = myMapTuple posOffset $ elementCloseTagPosition x
+  split _ = error "Cannot split internal markup"
 
 elementName :: XML -> String
 elementName (Element n _ _ _ _ _ _) = n
