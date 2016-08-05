@@ -8,10 +8,10 @@ type Position = Int
 -- `split` and maybe `splitPoints`.
 class TextRange a where
   (<<>>) :: a -> a -> Bool -- contains
-  (<-<) :: a -> a -> Bool -- left-overlaps
-  (>->) :: a -> a -> Bool -- right-overlaps
-  (<><) :: a -> a -> Bool -- before
-  (><>) :: a -> a -> Bool -- behind
+  leftOverlaps :: a -> a -> Bool -- left-overlaps
+  rightOverlaps :: a -> a -> Bool -- right-overlaps
+  before :: a -> a -> Bool -- before
+  behind :: a -> a -> Bool -- behind
   start :: a -> Position -- start position
   end :: a -> Position -- end position
   spans :: a -> (Position, Position) -- tuple of start and end position
@@ -21,10 +21,10 @@ class TextRange a where
   leftSplit :: a -> a -> (a, a)
   rightSplit :: a -> a -> (a, a)
   x <<>> y = (start x <= start y) && (end x >= end y)
-  x <-< y = (start x < start y) && (end x < end y)
-  x >-> y = (start x > start y) && (end x > end y)
-  x <>< y = (end x <= start y)
-  x ><> y = (start x >= end y)
+  leftOverlaps x y = (start x < start y) && (end x < end y) && (end x > start y) 
+  rightOverlaps x y = (start x > start y) && (end x > end y) && (start x < end y)
+  before x y = (end x <= start y)
+  behind x y = (start x >= end y)
   spans x = ((start x), (end x))
   len x = (end x) - (start x)
   splitPoints x = ((s, s), (e, e))
