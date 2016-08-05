@@ -2,7 +2,7 @@ module LineOffsets
   ( lineOffsets
   , lineOffsets'
   , getOffset
-  , Position
+  , Position (..)
   , posOffset
   ) where
     
