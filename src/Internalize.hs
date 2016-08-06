@@ -1,15 +1,12 @@
 module Internalize
   ( internalize
-  , TagType
-  , serializeTag
   ) where
 
 import XMLData
 import AnnotationData
 import LineOffsets
 import ResolveOverlapping
-
-data TagType = Open | Close | Empty deriving (Show)
+import TagSerializer
 
 -- Internalize
 internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> String) -> String
@@ -80,27 +77,3 @@ insertTags as slize (x:xs) idx =
   ++ (concatMap (slize Open) (filter (\a -> ((rangeStartOffset a) == idx)
                                             && ((rangeEndOffset a) > idx)) as))
   ++ (x : insertTags as slize xs (idx+1))
-
--- simple serializer for an XML tag
-serializeTag :: TagType -> Annotation -> String
-serializeTag Open a = "<"
-                      ++ (rangeType a)
-                      ++ " elementId=\"" ++ (rangeElementId a) ++ "\""
-                      ++ " rangeId=\"" ++ (rangeRangeId a) ++ "\""
-                      ++ (concatMap (\attr -> (" " ++ (rangeAttributeName attr)
-                                               ++ "=\"" ++ (rangeAttributeValue attr)
-                                               ++ "\""))
-                           (rangeAttributes a))
-                      ++ ">"
-serializeTag Close a = "</"
-                       ++ (rangeType a)
-                       ++ ">"
-serializeTag Empty a = "<"
-                       ++ (rangeType a)
-                       ++ " elementId=\"" ++ (rangeElementId a) ++ "\""
-                       ++ " rangeId=\"" ++ (rangeRangeId a) ++ "\""
-                       ++ (concatMap (\attr -> (" " ++ (rangeAttributeName attr)
-                                                ++ "=\"" ++ (rangeAttributeValue attr)
-                                                ++ "\""))
-                            (rangeAttributes a))
-                       ++ ">"

@@ -5,7 +5,8 @@ import qualified Text.Parsec as P
 import XMLOffsets (xmlDocument)
 import LineOffsets (lineOffsets', lineOffsets)
 import DumpElParser (elDump)
-import Internalize (internalize, serializeTag)
+import Internalize (internalize)
+import TagSerializer
 
 dispatch :: [(String, [String] -> IO ())]
 dispatch = [ ("offsets", offsets_)
@@ -58,7 +59,7 @@ internalize_ (dumpFile:xmlFile:_) = do
             Left errXml -> do putStrLn "Error parsing XML input:"
                               print errXml
             Right xml -> do
-              putStr $ internalize xmlContents xml dumped serializeTag
+              putStr $ internalize xmlContents xml dumped (serializeSpanTag "span")
 
 
 main :: IO ()
