@@ -4,11 +4,10 @@ module Internalize
   , serializeTag
   ) where
 
-import Data.List
-
 import XMLData
 import AnnotationData
 import LineOffsets
+import ResolveOverlapping
 
 data TagType = Open | Close | Empty deriving (Show)
 
@@ -17,7 +16,7 @@ internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> Stri
 internalize doc xml annotations serializer =
   insertTags (concatMap (resolveOverlapping elems) markupRanges) serializer doc 1
   where elems = filter (isElementP) xml
-        markupRanges = makeRangeTree annotations
+        markupRanges = makeQuasiTree $ filter isMarkupRangeP annotations
 
 -- Split Annotations depending on XML in source file. This function is
 -- the workhorse of markup internalization.
@@ -105,33 +104,3 @@ serializeTag Empty a = "<"
                                                 ++ "\""))
                             (rangeAttributes a))
                        ++ ">"
-
-compareRangeOffsets :: Annotation -> Annotation -> Ordering
-compareRangeOffsets a b
-  | aStart == bStart = aEnd `compare` bEnd
-  | otherwise = aStart `compare` bStart
-  where aStart = rangeStartOffset a
-        bStart = rangeStartOffset b
-        aEnd = rangeEndOffset a
-        bEnd = rangeEndOffset b
-
-makeRangeTree :: [Annotation] -> [Annotation]
-makeRangeTree annotations = concatMap (resolveRangeOverlaps sortedRanges) sortedRanges
-  where sortedRanges = sortBy compareRangeOffsets ranges
-        ranges = filter isMarkupRangeP annotations
-
-resolveRangeOverlaps :: [Annotation] -> Annotation -> [Annotation]
-resolveRangeOverlaps [] a = [a]
-resolveRangeOverlaps (x:xs) a
-  | aEnd <= xStart = [a]
-  | aStart <= xStart && aEnd >= xEnd = forward
-  | aStart < xStart && aEnd < xEnd = (fst split) : (resolveRangeOverlaps (x:xs) (snd split))
-  | aStart >= xStart = forward
-  | otherwise = error "Cannot resolve overlapping markup ranges."
-  where aStart = rangeStartOffset a
-        aEnd = rangeEndOffset a
-        xStart = rangeStartOffset x
-        xEnd = rangeEndOffset x
-        split = splitMarkupRange a newAttrs xStart xStart
-        newAttrs = []
-        forward = resolveRangeOverlaps xs a

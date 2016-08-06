@@ -29,7 +29,8 @@ instance TextRange (Annotation) where
   start (MarkupRange _ _ _ s _ _) = s
   end (MarkupRange _ _ _ _ e _) = e
   split (MarkupRange rid eid typ s1 e2 txt) (e1, s2)
-    = ((MarkupRange rid eid typ s1 e1 txt), (MarkupRange rid eid typ s2 e2 txt))
+    = ( (MarkupRange rid eid typ s1 e1 txt)
+      , (MarkupRange rid eid typ s2 e2 txt))
 
 rangeRangeId :: Annotation -> String
 rangeRangeId (MarkupRange rid _ _ _ _ _) = rid
@@ -50,9 +51,9 @@ rangeAttributes :: Annotation -> [RangeAttribute]
 rangeAttributes (MarkupRange _ _ _ _ _ _) = []
 
 splitMarkupRange :: Annotation -> [RangeAttribute] -> Int -> Int -> (Annotation, Annotation)
-splitMarkupRange (MarkupRange rid eid typ s e txt) attrs endFst startSnd =
-  ((MarkupRange rid eid typ s endFst txt)
-  ,(MarkupRange rid eid typ startSnd e txt))
+splitMarkupRange (MarkupRange rid eid typ s1 e2 txt) _ e1 s2 =
+  ( (MarkupRange rid eid typ s1 e1 txt)
+  , (MarkupRange rid eid typ s2 e2 txt))
 
 -- Predicate to be used by filters.
 isMarkupRangeP :: Annotation -> Bool
