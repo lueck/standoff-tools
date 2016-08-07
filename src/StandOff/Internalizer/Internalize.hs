@@ -4,9 +4,9 @@ module StandOff.Internalizer.Internalize
 
 import StandOff.Data.XML
 import StandOff.Data.Annotation
+import StandOff.Data.Tag
 import StandOff.XML.LineOffsets
 import StandOff.Internalizer.ResolveOverlapping
-import StandOff.Internalizer.TagSerializer
 
 -- Internalize
 internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> String) -> String

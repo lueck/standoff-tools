@@ -1,8 +1,7 @@
-module StandOff.Internalizer.TagSerializer where
+module StandOff.XML.TagSerializer where
 
 import StandOff.Data.Annotation
-
-data TagType = Open | Close | Empty deriving (Show)
+import StandOff.Data.Tag
 
 -- simple serializer for an XML tag. Only ok, if the range type does
 -- not contain a namespace.

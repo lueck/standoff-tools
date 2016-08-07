@@ -6,7 +6,7 @@ import StandOff.XML.NodeOffsets (xmlDocument)
 import StandOff.XML.LineOffsets (lineOffsets', lineOffsets)
 import StandOff.ELisp.DumpFile (elDump)
 import StandOff.Internalizer.Internalize (internalize)
-import StandOff.Internalizer.TagSerializer
+import StandOff.XML.TagSerializer
 
 dispatch :: [(String, [String] -> IO ())]
 dispatch = [ ("offsets", offsets_)
