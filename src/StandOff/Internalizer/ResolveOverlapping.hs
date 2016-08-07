@@ -1,6 +1,6 @@
-module ResolveOverlapping where
+module StandOff.Internalizer.ResolveOverlapping where
 
-import TextRange
+import StandOff.Data.TextRange
 
 makeQuasiTree :: (TextRange a) => [a] -> [a]
 makeQuasiTree as = sortTextRanges $ makeQuasiTree' sorted

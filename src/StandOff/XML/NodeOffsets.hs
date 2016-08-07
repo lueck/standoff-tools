@@ -1,4 +1,4 @@
-module XMLOffsets
+module StandOff.XML.NodeOffsets
   ( parseString
   , parseFile
   , xmlDocument
@@ -9,8 +9,8 @@ module XMLOffsets
 
 import Text.Parsec
 
-import LineOffsets
-import XMLData
+import StandOff.XML.LineOffsets
+import StandOff.Data.XML
 
 openTag :: Parsec String [Int] (String, [Attribute])
 openTag = do

@@ -1,6 +1,6 @@
-module TagSerializer where
+module StandOff.Internalizer.TagSerializer where
 
-import AnnotationData
+import StandOff.Data.Annotation
 
 data TagType = Open | Close | Empty deriving (Show)
 

@@ -2,11 +2,11 @@ import System.Environment
 import System.IO
 import qualified Text.Parsec as P
 
-import XMLOffsets (xmlDocument)
-import LineOffsets (lineOffsets', lineOffsets)
-import DumpElParser (elDump)
-import Internalize (internalize)
-import TagSerializer
+import StandOff.XML.NodeOffsets (xmlDocument)
+import StandOff.XML.LineOffsets (lineOffsets', lineOffsets)
+import StandOff.ELisp.DumpFile (elDump)
+import StandOff.Internalizer.Internalize (internalize)
+import StandOff.Internalizer.TagSerializer
 
 dispatch :: [(String, [String] -> IO ())]
 dispatch = [ ("offsets", offsets_)

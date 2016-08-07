@@ -1,7 +1,7 @@
-module XMLData where
+module StandOff.Data.XML where
 
-import LineOffsets
-import qualified TextRange as TR
+import StandOff.XML.LineOffsets
+import qualified StandOff.Data.TextRange as TR
 
 type AttrName = String
 type AttrVal  = String

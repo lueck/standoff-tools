@@ -1,4 +1,4 @@
-module LineOffsets
+module StandOff.XML.LineOffsets
   ( lineOffsets
   , lineOffsets'
   , getOffset

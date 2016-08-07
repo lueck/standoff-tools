@@ -1,7 +1,7 @@
-module AnnotationData
+module StandOff.Data.Annotation
   where
 
-import TextRange
+import StandOff.Data.TextRange
 
 data RangeAttribute = RangeAttribute { attrName :: String
                                      , attrValue :: String

@@ -1,12 +1,12 @@
-module Internalize
+module StandOff.Internalizer.Internalize
   ( internalize
   ) where
 
-import XMLData
-import AnnotationData
-import LineOffsets
-import ResolveOverlapping
-import TagSerializer
+import StandOff.Data.XML
+import StandOff.Data.Annotation
+import StandOff.XML.LineOffsets
+import StandOff.Internalizer.ResolveOverlapping
+import StandOff.Internalizer.TagSerializer
 
 -- Internalize
 internalize :: String -> [XML] -> [Annotation] -> (TagType -> Annotation -> String) -> String

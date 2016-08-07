@@ -1,9 +1,9 @@
-module DumpElParser
+module StandOff.ELisp.DumpFile
   where
 
 import Text.Parsec
 
-import AnnotationData
+import StandOff.Data.Annotation
 
 uuid :: Parsec String () String
 uuid = do

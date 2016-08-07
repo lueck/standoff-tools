@@ -1,4 +1,4 @@
-module TextRange where
+module StandOff.Data.TextRange where
 
 import Data.List
 

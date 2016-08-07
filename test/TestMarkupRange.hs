@@ -3,9 +3,9 @@ module TestMarkupRange (htf_thisModulesTests) where
 
 import Test.Framework
 
-import AnnotationData
-import TextRange
-import ResolveOverlapping
+import StandOff.Data.Annotation
+import StandOff.Data.TextRange
+import StandOff.Internalizer.ResolveOverlapping
 
 sampleRanges = [(MarkupRange "a1" "m1" "root" 1 100 "")
                , (MarkupRange "a2" "m2" "div" 1 20 "")

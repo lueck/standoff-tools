@@ -3,10 +3,10 @@ module TestTextRange (htf_thisModulesTests) where
 
 import Test.Framework
 
-import TextRange
-import AnnotationData
-import XMLData
-import LineOffsets as L
+import StandOff.Data.TextRange
+import StandOff.Data.Annotation
+import StandOff.Data.XML
+import StandOff.XML.LineOffsets as L
 
 sampleRanges = [ (MarkupRange "a1" "m1" "root" 1 100 "")
                , (MarkupRange "a2" "m2" "div" 1 20 "")

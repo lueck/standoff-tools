@@ -14,14 +14,14 @@ extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:   TextRange
-                   , LineOffsets
-                   , XMLData
-                   , XMLOffsets
-                   , AnnotationData
-                   , DumpElParser
-                   , Internalize
-                   , TagSerializer
+  exposed-modules:   StandOff.Data.TextRange
+                   , StandOff.Data.XML
+                   , StandOff.XML.LineOffsets
+                   , StandOff.XML.NodeOffsets
+                   , StandOff.Data.Annotation
+                   , StandOff.ELisp.DumpFile
+                   , StandOff.Internalizer.Internalize
+                   , StandOff.Internalizer.TagSerializer
   -- other-modules:       
   -- other-extensions:    
   build-depends:     base >=4.6 && <4.7, parsec >=3.1 && <3.2
@@ -40,6 +40,6 @@ Test-Suite test-main
   main-is:           TestMain.hs
   build-depends:     base >=4.6 && <4.7, parsec >=3.1 && <3.2
   build-depends:     HTF >=0.10.1
-  hs-source-dirs:    t, src
+  hs-source-dirs:    test, src
   default-language:  Haskell2010
   
