@@ -2,6 +2,7 @@ module StandOff.Data.XML where
 
 import StandOff.XML.LineOffsets
 import qualified StandOff.Data.TextRange as TR
+import StandOff.Data.Tree
 
 type AttrName = String
 type AttrVal  = String
@@ -44,6 +45,9 @@ instance TR.TextRange XML where
     where (so, eo) = myMapTuple posOffset $ elementOpenTagPosition x
           (sc, ec) = myMapTuple posOffset $ elementCloseTagPosition x
   split _ = error "Cannot split internal markup"
+
+instance Tree XML where
+  contents x = elementContent x
 
 elementName :: XML -> String
 elementName (Element n _ _ _ _ _ _) = n

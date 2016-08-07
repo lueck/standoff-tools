@@ -15,6 +15,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:   StandOff.Data.TextRange
+                   , StandOff.Data.Tree
                    , StandOff.Data.XML
                    , StandOff.XML.LineOffsets
                    , StandOff.XML.NodeOffsets
