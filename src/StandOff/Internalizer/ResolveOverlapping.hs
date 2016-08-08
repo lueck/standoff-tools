@@ -36,18 +36,16 @@ merge (x:xs) a
   -- Forward xml horizontally when x is before a
   | end x <= start a = (merge xs a)
   -- Split a when a right-overlaps x. FIXME: && start a < end a
-  | start a > start x && end a > end x = (merge (contents x)
-                                           (fst rightSplit'))
-                                         ++ (merge xs (snd rightSplit'))
+  | start a > start x && end a > end x && start a < end x =
+    (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
   -- Split a when a left-overlaps x. FIXME: && end a > start x
-  | start a < start x && end a < end x = (fst leftSplit')
-                                         : (merge (contents x)
-                                             (snd leftSplit'))
+  | start a < start x && end a < end x && end a > start x =
+    (fst leftSplit') : (merge (contents x) (snd leftSplit'))
   -- Needn't progress if a contains x, because then xs are not
   -- relevant and a contains the content of x, too.
-  | start a <= start x && end a >= end x  = [a]
+  | start a <= start x && end a >= end x  = merge xs a
   -- Needn't progress behind a.
-  | end a <= start a = [a]
+  | end a <= start x = [a]
   | otherwise = error "Could not resolve overlapping!"
   where rightSplit' = split a $ snd $ splitPoints'
         leftSplit' = split a $ fst $ splitPoints'

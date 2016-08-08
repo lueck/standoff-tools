@@ -6,6 +6,7 @@ import Test.Framework.BlackBoxTest
 import {-@ HTF_TESTS @-} TestMarkupRange
 import {-@ HTF_TESTS @-} TestTextRange
 import {-@ HTF_TESTS @-} TestTagSerializer
+import {-@ HTF_TESTS @-} TestInternalizer
 
 main = htfMain htf_importedTests
 
