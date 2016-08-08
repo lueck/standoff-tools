@@ -2,9 +2,7 @@
 module TestInternalizer (htf_thisModulesTests) where
 
 import Test.Framework
-import Data.List
 
-import StandOff.Internalizer.Internalize
 import StandOff.Internalizer.ResolveOverlapping
 import StandOff.Data.TextRange
 
@@ -48,3 +46,16 @@ test_internalizeLeftRightOverlapping = do
   assertEqual 3 (length resolved)
   assertEqual [(235, 236), (241,270), (274, 282)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 235 282)
+
+
+external = [ (mRng "a1" "m1" "root" 1 100)
+           , (mRng "a2" "m2" "div" 1 20)
+           , (mRng "a3" "m3" "div" 15 40)
+           , (mRng "a4" "m4" "span" 5 7)
+           ]
+
+-- test makeQuasiTree
+test_quasiTree = do
+  assertEqual 5 (length tree)
+  assertEqual [(1,100), (1,15), (5,7), (15,40), (15,20)] (map spans tree)
+  where tree = makeQuasiTree external

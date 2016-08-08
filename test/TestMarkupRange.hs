@@ -5,12 +5,13 @@ import Test.Framework
 
 import StandOff.Data.Annotation
 import StandOff.Data.TextRange
-import StandOff.Internalizer.ResolveOverlapping
 
-sampleRanges = [(MarkupRange "a1" "m1" "root" 1 100 "")
-               , (MarkupRange "a2" "m2" "div" 1 20 "")
-               , (MarkupRange "a3" "m3" "div" 15 40 "")
-               , (MarkupRange "a4" "m4" "span" 5 7 "")
+import TestSetup
+
+sampleRanges = [ (mRng "a1" "m1" "root" 1 100)
+               , (mRng "a2" "m2" "div" 1 20)
+               , (mRng "a3" "m3" "div" 15 40)
+               , (mRng "a4" "m4" "span" 5 7)
                ]
 
 test_start = assertEqual 1 (start (sampleRanges !! 0))
@@ -39,8 +40,3 @@ test_split = do
   where fstPart = fst splits
         sndPart = snd splits
         splits = leftSplit (sampleRanges !! 1) (sampleRanges !! 2)
-
-test_quasiTree = do
-  assertEqual 5 (length tree)
-  assertEqual [(1,100), (1,15), (5,7), (15,40), (15,20)] (map spans tree)
-  where tree = makeQuasiTree sampleRanges
