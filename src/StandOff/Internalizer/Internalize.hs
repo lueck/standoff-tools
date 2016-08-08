@@ -15,7 +15,10 @@ internalize doc internal external serializer =
 
 -- This actually does the job of inserting tags. We have to revert the
 -- list of closing tags for a position, as long as we deal with list
--- (quasi-tree) of annotations instead of trees.
+-- (quasi-tree) of annotations instead of trees. With the list it is
+-- really not performant, because we have to keep the list (at least
+-- behind the close-tag) and filter it for each char of the
+-- document. A real tree would improve performance, maybe.
 insertTags :: (TextRange a) => [a] -> (TagType -> a -> String) -> String -> Int -> String
 insertTags as slize [] idx =
   concatMap (slize Empty) (filter (\a -> ((start a) >= idx)
