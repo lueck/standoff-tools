@@ -7,6 +7,8 @@ import StandOff.XML.LineOffsets (lineOffsets', lineOffsets)
 import StandOff.ELisp.DumpFile (elDump)
 import StandOff.Internalizer.Internalize (internalize)
 import StandOff.XML.TagSerializer
+import StandOff.Data.Annotation (isMarkupRangeP)
+import StandOff.Data.XML (isElementP)
 
 dispatch :: [(String, [String] -> IO ())]
 dispatch = [ ("offsets", offsets_)
@@ -59,7 +61,11 @@ internalize_ (dumpFile:xmlFile:_) = do
             Left errXml -> do putStrLn "Error parsing XML input:"
                               print errXml
             Right xml -> do
-              putStr $ internalize xmlContents xml dumped (serializeSpanTag "span")
+              putStr (internalize
+                       xmlContents
+                       (filter isElementP xml)
+                       (filter isMarkupRangeP dumped)
+                       (serializeSpanTag "span"))
 
 
 main :: IO ()
