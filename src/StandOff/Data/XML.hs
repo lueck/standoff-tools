@@ -47,7 +47,7 @@ instance TR.TextRange XML where
   split _ = error "Cannot split internal markup"
 
 instance Tree XML where
-  contents x = elementContent x
+  contents x = filter isElementP $ elementContent x
 
 elementName :: XML -> String
 elementName (Element n _ _ _ _ _ _) = n
