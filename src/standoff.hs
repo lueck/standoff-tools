@@ -65,7 +65,7 @@ internalize_ (dumpFile:xmlFile:_) = do
                        xmlContents
                        (filter isElementP xml)
                        (filter isMarkupRangeP dumped)
-                       (serializeSpanTag "span"))
+                       (serializeNsTag "annot"))
 
 
 main :: IO ()
