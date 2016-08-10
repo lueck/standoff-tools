@@ -1,6 +1,6 @@
 module StandOff.XML.TagSerializer where
 
-import Data.List.Split
+import Data.List
 
 import StandOff.Data.Annotation
 import StandOff.Data.Tag
@@ -19,20 +19,11 @@ serializeAttributes a =
 -- here ("http://arb.org/schema/", "Concept") or
 -- ("http://arb.org/schema#", "Concept").
 splitNamespaceName :: Annotation -> (String, String)
-splitNamespaceName a = (namespace, name)
-  where namespace = (foldl1 (\x acc -> x ++ "/" ++ acc) $ init theSplit) ++ theSplitter
-        name = last theSplit
-        splitOnSlash = splitOn "/" typ
-        splitOnHash = splitOn "#" typ
-        splitOnHashP = lengthSplitOnHash < (length (tail splitOnSlash)) && lengthSplitOnHash /= 0
-        theSplit
-          | splitOnHashP = splitOnHash
-          | otherwise = splitOnSlash
-        theSplitter
-          | splitOnHashP = "#"
-          | otherwise = "/"
-        typ = rangeType a
-        lengthSplitOnHash = (length (tail splitOnHash))
+splitNamespaceName a = splitAt splitPos typ
+  where typ = rangeType a
+        splitPos = (max
+                    (maximum $ 0 : elemIndices '/' typ)
+                    (maximum $ 0 : elemIndices '#' typ)) + 1
 
 -- simple serializer for an XML tag. Only okay, if the range type does
 -- not contain a namespace.
