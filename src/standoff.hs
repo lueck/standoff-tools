@@ -8,7 +8,7 @@ import StandOff.XML.LineOffsets (lineOffsets)
 import StandOff.ELisp.DumpFile (elDump)
 import StandOff.Internalizer.Internalize (internalize)
 import StandOff.XML.TagSerializer
-import StandOff.Data.Annotation (isMarkupRangeP, makeAttributiveRanges)
+import StandOff.Data.Annotation (makeAttributiveRanges)
 import StandOff.Data.XML (isElementP)
 
 data Serializer = Simple
