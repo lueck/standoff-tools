@@ -1,5 +1,6 @@
-import System.Environment
+{-# LANGUAGE CPP #-}
 import System.IO
+import Options.Applicative
 import qualified Text.Parsec as P
 
 import StandOff.XML.NodeOffsets (xmlDocument)
@@ -10,15 +11,49 @@ import StandOff.XML.TagSerializer
 import StandOff.Data.Annotation (isMarkupRangeP)
 import StandOff.Data.XML (isElementP)
 
-dispatch :: [(String, [String] -> IO ())]
-dispatch = [ ("offsets", offsets_)
-           , ("offsets_", offsets__)
-           , ("dumped", parseElisp)
-           , ("internalize", internalize_)
-           ]
+data Serializer = Simple | RDF | AnnoNamespace
 
-offsets_ :: [String] -> IO ()
-offsets_ (fileName:_) = do
+data Options = Options
+  { optCommand :: Command
+  } deriving (Eq, Show) 
+
+data Command = Offsets String
+  | Dumped String
+  | Internalize { dumpFile :: String
+                , xmlFile :: String
+                --, serializer :: (TagType -> Annotation -> String)
+                } deriving (Eq, Show)
+
+offsets_ :: Parser Command
+offsets_ = Offsets <$> argument str (metavar "FILE")
+
+dumped_ :: Parser Command
+dumped_ = Dumped <$> argument str (metavar "FILE")
+
+-- simpleSerializer :: Parser (TagType -> Annotation -> String)
+-- simpleSerializer = 
+
+internalize_ :: Parser Command
+internalize_ = Internalize
+  <$> argument str (metavar "DUMPFILE")
+  <*> argument str (metavar "XMLFILE")
+  -- <$> simpleSerializer <|> namespaceSerializer <|> rdfSerializer
+  
+command_ :: Parser Command
+command_ = subparser
+  ( command "offsets"
+    (info offsets_
+      (progDesc "Parse line offsets"))
+    <> command "dumped"
+    (info dumped_
+      (progDesc "Parse emacs lisp dump file"))
+    <> command "internalize"
+    (info internalize_
+      (progDesc "Internalize external markup"))
+  )
+
+run :: Command -> IO ()
+run (Offsets fileName) = do
   c <- readFile fileName
   case P.runParser lineOffsets () fileName c of
     Left err -> do putStrLn "Error parsing line lengths:"
@@ -27,26 +62,13 @@ offsets_ (fileName:_) = do
                   Left e -> do putStrLn "Error parsing input:"
                                print e
                   Right r -> print r
-
--- lineOffsets' is nice, but it eats up all the stack
-offsets__ :: [String] -> IO ()
-offsets__ (fileName:_) = do
+run (Dumped fileName) = do
   c <- readFile fileName
-  case P.runParser xmlDocument (lineOffsets' c) fileName c of
-    Left e -> do putStrLn "Error parsing XML input:"
-                 print e
-    Right r -> print r
-
-parseElisp :: [String] -> IO ()
-parseElisp (dumpFile:_) = do
-  c <- readFile dumpFile
-  case P.runParser elDump () dumpFile c of
+  case P.runParser elDump () fileName c of
     Left e -> do putStrLn "Error parsing elisp dump file:"
                  print e
     Right r -> print r
-
-internalize_ :: [String] -> IO ()
-internalize_ (dumpFile:xmlFile:_) = do
+run (Internalize dumpFile xmlFile) = do
   dumpContents <- readFile dumpFile
   case P.runParser elDump () dumpFile dumpContents of
     Left errDump -> do putStrLn "Error parsing elisp dump file:"
@@ -65,11 +87,10 @@ internalize_ (dumpFile:xmlFile:_) = do
                        xmlContents
                        (filter isElementP xml)
                        (filter isMarkupRangeP dumped)
-                       (serializeNsTag "annot"))
+                       serializeTag )
 
+opts :: ParserInfo Command
+opts = info (command_ <**> helper) idm
 
 main :: IO ()
-main = do
-  (command:args) <- getArgs
-  let (Just action) = lookup command dispatch
-  action args
+main = execParser opts >>= run
