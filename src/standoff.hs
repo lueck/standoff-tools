@@ -11,7 +11,10 @@ import StandOff.XML.TagSerializer
 import StandOff.Data.Annotation (isMarkupRangeP)
 import StandOff.Data.XML (isElementP)
 
-data Serializer = Simple | RDF | AnnoNamespace
+data Serializer = Simple
+  | RDF String
+  | Namespace String
+  deriving (Eq, Show)
 
 data Options = Options
   { optCommand :: Command
@@ -19,10 +22,8 @@ data Options = Options
 
 data Command = Offsets String
   | Dumped String
-  | Internalize { dumpFile :: String
-                , xmlFile :: String
-                --, serializer :: (TagType -> Annotation -> String)
-                } deriving (Eq, Show)
+  | Internalize Serializer String String
+  deriving (Eq, Show)
 
 offsets_ :: Parser Command
 offsets_ = Offsets <$> argument str (metavar "FILE")
@@ -30,14 +31,29 @@ offsets_ = Offsets <$> argument str (metavar "FILE")
 dumped_ :: Parser Command
 dumped_ = Dumped <$> argument str (metavar "FILE")
 
--- simpleSerializer :: Parser (TagType -> Annotation -> String)
--- simpleSerializer = 
+serializer_ :: Parser Serializer
+serializer_ = simpleSerializer_ <|> namespaceSerializer_ <|> rdfSerializer_
+
+simpleSerializer_ :: Parser Serializer
+simpleSerializer_ = flag' Simple (short 's' <> long "simple" <> help "Simple serializer only usefull for tags without namespaces.")
+
+namespaceSerializer_ :: Parser Serializer
+namespaceSerializer_ =
+  Namespace <$> strOption ( short 'p'
+                            <> long "prefix"
+                            <> help "Serialize namespaces for each markup tag using PREFIX.")
+
+rdfSerializer_ :: Parser Serializer
+rdfSerializer_ =
+  RDF <$> strOption ( short 'r'
+                      <> long "rdf"
+                      <> help "Serialize markup tags into elements of type ELEMENT writing the markup type as an \'rdf:a\'-attribute.")
 
 internalize_ :: Parser Command
 internalize_ = Internalize
-  <$> argument str (metavar "DUMPFILE")
+  <$> serializer_
+  <*> argument str (metavar "DUMPFILE")
   <*> argument str (metavar "XMLFILE")
-  -- <$> simpleSerializer <|> namespaceSerializer <|> rdfSerializer
   
 command_ :: Parser Command
 command_ = subparser
@@ -68,7 +84,7 @@ run (Dumped fileName) = do
     Left e -> do putStrLn "Error parsing elisp dump file:"
                  print e
     Right r -> print r
-run (Internalize dumpFile xmlFile) = do
+run (Internalize slizer dumpFile xmlFile) = do
   dumpContents <- readFile dumpFile
   case P.runParser elDump () dumpFile dumpContents of
     Left errDump -> do putStrLn "Error parsing elisp dump file:"
@@ -87,7 +103,11 @@ run (Internalize dumpFile xmlFile) = do
                        xmlContents
                        (filter isElementP xml)
                        (filter isMarkupRangeP dumped)
-                       serializeTag )
+                       slizer')
+  where slizer' = case slizer of
+                    Simple -> serializeTag
+                    RDF elName -> serializeSpanTag elName
+                    Namespace prefix -> serializeNsTag prefix
 
 opts :: ParserInfo Command
 opts = info (command_ <**> helper) idm
