@@ -2,6 +2,7 @@ module StandOff.ELisp.DumpFile
   where
 
 import Text.Parsec
+import qualified Data.Map as Map
 
 import StandOff.Data.Annotation
 
@@ -75,7 +76,8 @@ markupRange = do
                        , markupType = typ
                        , startOffset = (read start)::Int
                        , endOffset = (read end)::Int
-                       , text = txt }
+                       , text = txt
+                       , attributes = Map.empty }
 
 markupRanges :: Parsec String () [Annotation]
 markupRanges = do

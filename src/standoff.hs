@@ -4,11 +4,11 @@ import Options.Applicative
 import qualified Text.Parsec as P
 
 import StandOff.XML.NodeOffsets (xmlDocument)
-import StandOff.XML.LineOffsets (lineOffsets', lineOffsets)
+import StandOff.XML.LineOffsets (lineOffsets)
 import StandOff.ELisp.DumpFile (elDump)
 import StandOff.Internalizer.Internalize (internalize)
 import StandOff.XML.TagSerializer
-import StandOff.Data.Annotation (isMarkupRangeP)
+import StandOff.Data.Annotation (isMarkupRangeP, makeAttributiveRanges)
 import StandOff.Data.XML (isElementP)
 
 data Serializer = Simple
@@ -102,12 +102,13 @@ run (Internalize slizer dumpFile xmlFile) = do
               putStr (internalize
                        xmlContents
                        (filter isElementP xml)
-                       (filter isMarkupRangeP dumped)
+                       (makeAttributiveRanges dumped)
                        slizer')
   where slizer' = case slizer of
                     Simple -> serializeTag
-                    RDF elName -> serializeSpanTag elName
-                    Namespace prefix -> serializeNsTag prefix
+                    -- FIXME: define tag serializers for attributes and options
+                    RDF elName -> serializeSpanTag serializeAttributes elName
+                    Namespace prefix -> serializeNsTag serializeAttributes prefix
 
 opts :: ParserInfo Command
 opts = info (command_ <**> helper) idm

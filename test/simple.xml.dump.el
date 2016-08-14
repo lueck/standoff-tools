@@ -4,7 +4,7 @@
     id=\"i9\"> At vero eos et accusam et justo" (22448 14541 262530 871000) "Christian Lück") ("6d101465-bfb2-4034-916e-f6d0c3d733f5" "c" 899 970 "aliquyam erat, <em id=\"i8\">sed diam voluptua.</em><span
     id=\"i9\"> At" (22448 21785 61939 977000) "Christian Lück"))))
 
-(setq standoff-relations-read-function-dumped (quote nil))
+(setq standoff-relations-read-function-dumped (quote (("b7e5c556-951c-4e80-b8d5-9fe2fdb7b3cc" "83a40128-051d-4c09-810a-665b97f98814" "repetition" "6d101465-bfb2-4034-916e-f6d0c3d733f5" (22448 59584 776922 999000) "Christian Lück"))))
 
 (setq standoff-literals-read-function-dumped (quote nil))
 
