@@ -45,6 +45,13 @@ quoteString = do
   char '"'
   return $ concat s
 
+nil :: Parsec String () [Annotation]
+nil = do
+  spaces
+  string "nil"
+  spaces
+  return []
+
 markupRange :: Parsec String () Annotation
 markupRange = do
   char '('
@@ -70,6 +77,16 @@ markupRange = do
                        , endOffset = (read end)::Int
                        , text = txt }
 
+markupRanges :: Parsec String () [Annotation]
+markupRanges = do
+  spaces
+  char '('
+  spaces
+  rs <- many markupRange
+  spaces
+  char ')'
+  return rs
+
 relation :: Parsec String () Annotation
 relation = do
   char '('
@@ -93,18 +110,28 @@ relation = do
                     , predicate = predicat
                     , object = obj }
 
+relations :: Parsec String () [Annotation]
+relations = do
+  spaces
+  char '('
+  rels <- many relation
+  char ')'
+  spaces
+  return rels
 
 elDump :: Parsec String () [Annotation]
 elDump = do
   spaces
-  string "(setq standoff-markup-read-function-dumped (quote ("
-  ranges <- manyTill markupRange $ string ")))"
-  -- FIXME: parse relations etc., too.
+  string "(setq standoff-markup-read-function-dumped (quote"
+  ranges <- try markupRanges <|> try nil
+  string "))"
   spaces
-  string "(setq standoff-relations-read-function-dumped (quote ("
-  relations <- manyTill relation $ string ")))"
+  string "(setq standoff-relations-read-function-dumped (quote"
+  rels <- try relations <|> try nil
+  string "))"
+  -- FIXME: parse literal predicates etc., too.
   skipMany anyChar
-  return $ ranges++relations
+  return $ ranges++rels
 
 
 parseDumpString :: String -> String -> Either ParseError [Annotation]
