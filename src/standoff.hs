@@ -4,12 +4,12 @@ import Options.Applicative
 import qualified Text.Parsec as P
 
 import StandOff.XML.NodeOffsets (xmlDocument)
-import StandOff.XML.LineOffsets (lineOffsets)
+import StandOff.XML.LineOffsets (lineOffsets, Position, posOffset)
 import StandOff.ELisp.DumpFile (elDump)
 import StandOff.Internalizer.Internalize (internalize)
 import StandOff.XML.TagSerializer
 import StandOff.Data.Annotation (makeAttributiveRanges)
-import StandOff.Data.XML (isElementP)
+import StandOff.Data.XML (XML, isXMLDeclarationP, isElementP, xmlSpanning)
 
 data Serializer = Simple
   | RDF String
@@ -22,7 +22,7 @@ data Options = Options
 
 data Command = Offsets String
   | Dumped String
-  | Internalize Serializer String String
+  | Internalize Serializer (Maybe String) String String
   deriving (Eq, Show)
 
 offsets_ :: Parser Command
@@ -52,6 +52,9 @@ rdfSerializer_ =
 internalize_ :: Parser Command
 internalize_ = Internalize
   <$> serializer_
+  <*> optional (strOption ( short 'i'
+                             <> long "processing-instruction"
+                             <> help "Insert a processing instruction into the result."))
   <*> argument str (metavar "DUMPFILE")
   <*> argument str (metavar "XMLFILE")
   
@@ -84,7 +87,7 @@ run (Dumped fileName) = do
     Left e -> do putStrLn "Error parsing elisp dump file:"
                  print e
     Right r -> print r
-run (Internalize slizer dumpFile xmlFile) = do
+run (Internalize slizer procInstr dumpFile xmlFile) = do
   dumpContents <- readFile dumpFile
   case P.runParser elDump () dumpFile dumpContents of
     Left errDump -> do putStrLn "Error parsing elisp dump file:"
@@ -99,16 +102,25 @@ run (Internalize slizer dumpFile xmlFile) = do
             Left errXml -> do putStrLn "Error parsing XML input:"
                               print errXml
             Right xml -> do
-              putStr (internalize
-                       xmlContents
-                       (filter isElementP xml)
-                       (makeAttributiveRanges dumped)
-                       slizer')
+              putStr (insertAt
+                       (internalize
+                         xmlContents
+                         (filter isElementP xml)
+                         (makeAttributiveRanges dumped)
+                         slizer')
+                       procInstr
+                       (behindXMLDeclOrTop xml))
   where slizer' = case slizer of
                     Simple -> serializeTag
                     -- FIXME: define tag serializers for attributes and options
                     RDF elName -> serializeSpanTag serializeAttributes elName
                     Namespace prefix -> serializeNsTag serializeAttributes prefix
+        insertAt s (Just new) pos = (take pos s) ++ new ++ "\n" ++ (drop (pos) s)
+        insertAt s Nothing _ = s
+        behindXMLDeclOrTop xml
+          | length decl == 1 = posOffset $ snd $ xmlSpanning $ head decl
+          | otherwise = 0
+          where decl = filter isXMLDeclarationP xml
 
 opts :: ParserInfo Command
 opts = info (command_ <**> helper) idm

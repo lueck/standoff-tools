@@ -53,6 +53,18 @@ emptyElementNode = do
   endPos <- getOffset (-1)
   return $ EmptyElement elName attrs startPos endPos
 
+escape :: Parsec String [Int] String
+escape = do
+  d <- char '\\'
+  c <- oneOf "\\\"\0\n\r\v\t\b\f"
+  return [d, c]
+
+nonEscape :: Parsec String [Int] Char
+nonEscape = noneOf "\\\"\0\n\r\v\t\b\f"
+
+quoteChar :: Parsec String [Int] String
+quoteChar = fmap return nonEscape <|> escape <|> (many1 space)
+
 attributeNode :: Parsec String [Int] Attribute
 attributeNode = do
   spaces
@@ -61,10 +73,10 @@ attributeNode = do
   char '='
   spaces
   char '"'
-  value <- many1 (noneOf ['"'])
+  value <- many $ try quoteChar
   char '"'
   spaces -- Why is this needed?
-  return $ Attribute (attrName, value)
+  return $ Attribute (attrName, (concat value))
 
 textNode :: Parsec String [Int] XML
 textNode = do

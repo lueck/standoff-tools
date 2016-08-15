@@ -91,3 +91,6 @@ isElementP (Element _ _ _ _ _ _ _) = True
 isElementP (EmptyElement _ _ _ _) = True
 isElementP _ = False
 
+isXMLDeclarationP :: XML -> Bool
+isXMLDeclarationP (XMLDeclaration _ _ _) = True
+isXMLDeclarationP _ = False
