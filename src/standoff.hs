@@ -115,10 +115,10 @@ run (Internalize slizer procInstr dumpFile xmlFile) = do
                     -- FIXME: define tag serializers for attributes and options
                     RDF elName -> serializeSpanTag serializeAttributes elName
                     Namespace prefix -> serializeNsTag serializeAttributes prefix
-        insertAt s (Just new) pos = (take pos s) ++ new ++ "\n" ++ (drop (pos) s)
+        insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
         insertAt s Nothing _ = s
         behindXMLDeclOrTop xml
-          | length decl == 1 = posOffset $ snd $ xmlSpanning $ head decl
+          | length decl == 1 = (posOffset $ snd $ xmlSpanning $ head decl) - 1
           | otherwise = 0
           where decl = filter isXMLDeclarationP xml
 
