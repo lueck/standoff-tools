@@ -1,8 +1,9 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, FlexibleContexts #-}
 import System.IO
 import Options.Applicative
 import Data.Monoid ((<>))
 import qualified Text.Parsec as P
+import Data.Functor.Identity (Identity)
 
 import StandOff.XML.NodeOffsets (xmlDocument)
 import StandOff.XML.LineOffsets (lineOffsets, Position, posOffset)
@@ -72,48 +73,36 @@ command_ = subparser
       (progDesc "Internalize external markup"))
   )
 
-parseGeneric err p s fName contents = do
-  case P.runParser p s fName contents of
+parseGeneric :: (Monad m, P.Stream s Identity t) => String -> P.Parsec s u a -> u -> P.SourceName -> s -> m a
+parseGeneric err parser state fName contents = do
+  case P.runParser parser state fName contents of
     Left e -> fail (err ++ " (" ++ fName ++ ") : " ++ (show e))
     Right r -> return r
 
 run :: Command -> IO ()
 run (Offsets fileName) = do
   c <- readFile fileName
-  case P.runParser lineOffsets () fileName c of
-    Left err -> do putStrLn "Error parsing line lengths:"
-                   print err
-    Right os -> case P.runParser xmlDocument os fileName c of
-                  Left e -> do putStrLn "Error parsing input:"
-                               print e
-                  Right r -> print r
+  offsets <- parseGeneric "Error parsing line lengths" lineOffsets () fileName c
+  offsets' <- parseGeneric "Error parsing XML input" xmlDocument offsets fileName c
+  print offsets'
 run (Dumped fileName) = do
   c <- readFile fileName
   annotations <- parseGeneric "Error parsing elisp dump file" elDump () fileName c
   print annotations
 run (Internalize slizer procInstr dumpFile xmlFile) = do
   dumpContents <- readFile dumpFile
-  case P.runParser elDump () dumpFile dumpContents of
-    Left errDump -> do putStrLn "Error parsing elisp dump file:"
-                       print errDump
-    Right dumped -> do
-      xmlContents <- readFile xmlFile
-      case P.runParser lineOffsets () xmlFile xmlContents of
-        Left errLines -> do putStrLn "Error parsing line lengths:"
-                            print errLines
-        Right lOffsets -> do
-          case P.runParser xmlDocument lOffsets xmlFile xmlContents of
-            Left errXml -> do putStrLn "Error parsing XML input:"
-                              print errXml
-            Right xml -> do
-              putStr (insertAt
-                       (internalize
-                         xmlContents
-                         (filter isElementP xml)
-                         (makeAttributiveRanges dumped)
-                         slizer')
-                       procInstr
-                       (behindXMLDeclOrTop xml))
+  dumped <- parseGeneric "Error parsing elisp dump file" elDump () dumpFile dumpContents
+  xmlContents <- readFile xmlFile
+  lOffsets <- parseGeneric "Error parsing line lengths" lineOffsets () xmlFile xmlContents
+  xml <- parseGeneric "Error parsing XML input" xmlDocument lOffsets xmlFile xmlContents
+  putStr (insertAt
+           (internalize
+             xmlContents
+             (filter isElementP xml)
+             (makeAttributiveRanges dumped)
+             slizer')
+           procInstr
+           (behindXMLDeclOrTop xml))
   where slizer' = case slizer of
                     Simple -> serializeTag
                     -- FIXME: define tag serializers for attributes and options

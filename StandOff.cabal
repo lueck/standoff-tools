@@ -39,7 +39,9 @@ Executable standoff
                    , containers >= 0.5.0.0
                    , parsec >=3.1 && <3.2
                    , uuid >= 1.3.11
-  build-depends:     directory >= 1.2.0.1, optparse-applicative >= 0.12.1.0
+  build-depends:     directory >= 1.2.0.1
+                   , optparse-applicative >= 0.12.1.0
+                   , transformers
   hs-source-dirs:    src
   default-language:  Haskell2010
 
