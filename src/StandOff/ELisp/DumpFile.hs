@@ -1,25 +1,22 @@
+{-# LANGUAGE OverloadedStrings #-}
 module StandOff.ELisp.DumpFile
   where
 
 import Text.Parsec
 import qualified Data.Map as Map
+import Data.UUID (UUID, fromString)
+import Data.UUID.V4 (nextRandom)
 
 import StandOff.Data.Annotation
 
-uuid :: Parsec String () String
+uuid :: Parsec String () UUID
 uuid = do
   char '"'
-  p1 <- count 8 $ oneOf $ ['a'..'h']++['0'..'9']
-  char '-'
-  p2 <- count 4 $ oneOf $ ['a'..'h']++['0'..'9']
-  char '-'
-  p3 <- count 4 $ oneOf $ ['a'..'h']++['0'..'9']
-  char '-'
-  p4 <- count 4 $ oneOf $ ['a'..'h']++['0'..'9']
-  char '-'
-  p5 <- count 12 $ oneOf $ ['a'..'h']++['0'..'9']
+  hyphened <- count 36 $ oneOf $ '-':['a'..'h']++['0'..'9']
   char '"'
-  return $ p1++p2++p3++p4++p5
+  case fromString(hyphened) of
+    Just valid -> return valid
+    Nothing -> error $ "Not a valid UUID: " ++ hyphened
 
 timeStamp :: Parsec String () String
 timeStamp = do
@@ -71,7 +68,7 @@ markupRange = do
   spaces
   char ')'
   spaces
-  return $ MarkupRange { rangeId = ""
+  return $ MarkupRange { rangeId = Nothing
                        , elementId = elemId
                        , markupType = typ
                        , startOffset = (read start)::Int

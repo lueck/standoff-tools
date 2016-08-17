@@ -2,19 +2,21 @@ module StandOff.Data.Annotation
   where
 
 import qualified Data.Map as Map
+import Data.UUID (UUID)
+
 import StandOff.Data.TextRange
 
-data Annotation = MarkupRange { rangeId :: String
-                              , elementId :: String
+data Annotation = MarkupRange { rangeId :: Maybe UUID
+                              , elementId :: UUID
                               , markupType :: String
                               , startOffset :: Int
                               , endOffset :: Int
                               , text :: String
                               , attributes :: Map.Map String [String] }
-                | Relation { relationId :: String
-                           ,  subject :: String
+                | Relation { relationId :: UUID
+                           , subject :: UUID
                            , predicate :: String
-                           , object :: String }
+                           , object :: UUID }
                 deriving (Show)
 
 instance TextRange (Annotation) where
@@ -25,10 +27,10 @@ instance TextRange (Annotation) where
       , (MarkupRange rid eid typ s2 e2 txt attrs))
       -- FIXME: add attributes with info about split
 
-rangeRangeId :: Annotation -> String
+rangeRangeId :: Annotation -> Maybe UUID
 rangeRangeId (MarkupRange rid _ _ _ _ _ _) = rid
 
-rangeElementId :: Annotation -> String
+rangeElementId :: Annotation -> UUID
 rangeElementId (MarkupRange _ eid _ _ _ _ _) = eid
 
 rangeType :: Annotation -> String
@@ -63,17 +65,4 @@ insertAttributeWith (MarkupRange rid eid typ s e txt attrs) (k, v) =
 insertAttributeWith a _ = a
 
 makeAttributiveRanges :: [Annotation] -> [Annotation]
-makeAttributiveRanges as =
-  map (\range -> (foldl
-                   (\acc attr -> (insertAttributeWith acc) attr)
-                   range
-                   (mkAttrs range))) ranges
-  where ranges = filter isMarkupRangeP as
-        relations = Map.fromListWith (++) $ map (\(Relation _ sub prd obj) -> (sub, [(prd, obj)])) $ filter isRelationP as
-        -- for a given range only relations are relevant where
-        -- Relation.subject==range.elementId
-        relevantRelations (MarkupRange _ eid _ _ _ _ _) =
-          case Map.lookup eid relations of
-            Just rs -> rs
-            Nothing -> []
-        mkAttrs r = relevantRelations r
+makeAttributiveRanges as = as

@@ -1,6 +1,7 @@
 module TestSetup where
 
 import Data.Map as Map
+import Data.UUID (UUID, fromString, toString)
 
 import StandOff.Data.Annotation as A
 import StandOff.Data.XML as X
@@ -19,9 +20,18 @@ elm n s e c = (Element { name = n
                        , content = c })
   where openTagLength = 2 + (length n)
 
+testUUID = "00000000-0000-0000-0000-000000000000"
+
+mkTestUUID :: String -> UUID
+mkTestUUID start =
+  case fromString strUuid of
+    Nothing -> error ("Invalid UUID: " ++ strUuid)
+    (Just u) -> u
+  where strUuid = start ++ (drop (length start) testUUID)
+
 mRng :: String -> String -> String -> Int -> Int -> A.Annotation
-mRng rid mid typ s e = (A.MarkupRange { A.rangeId = rid
-                                      , A.elementId = mid
+mRng rid mid typ s e = (A.MarkupRange { A.rangeId = Just $ mkTestUUID rid
+                                      , A.elementId = mkTestUUID mid
                                       , A.markupType = typ
                                       , A.startOffset = s
                                       , A.endOffset = e

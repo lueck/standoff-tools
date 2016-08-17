@@ -2,17 +2,20 @@ module StandOff.XML.TagSerializer where
 
 import Data.List
 import qualified Data.Map as Map
+import Data.UUID (toString)
 
 import StandOff.Data.Annotation
 import StandOff.Data.Tag
 
 serializeAttributes :: Annotation -> String
 serializeAttributes a =
-  " elementId=\"" ++ (rangeElementId a) ++ "\""
-  ++ " rangeId=\"" ++ (rangeRangeId a) ++ "\""
+  " elementId=\"" ++ (toString (rangeElementId a)) ++ "\""
+  ++ " rangeId=\"" ++ (emptyStringWhenNothing (fmap toString (rangeRangeId a))) ++ "\""
   ++ (foldl (\acc (k, v) -> acc ++ " " ++ k ++ "=\"" ++ (intercalate " " v) ++ "\"")
        ""
        (Map.toList $ rangeAttributes a))
+  where emptyStringWhenNothing Nothing = ""
+        emptyStringWhenNothing (Just s) = s
 
 -- Split http://arb.org/schema/Concept or
 -- http://arb.org/schema#Concept to a tuple of namespace and name,

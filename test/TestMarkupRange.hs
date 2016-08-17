@@ -2,16 +2,17 @@
 module TestMarkupRange (htf_thisModulesTests) where
 
 import Test.Framework
+import Data.UUID (toString)
 
 import StandOff.Data.Annotation
 import StandOff.Data.TextRange
 
 import TestSetup
 
-sampleRanges = [ (mRng "a1" "m1" "root" 1 100)
-               , (mRng "a2" "m2" "div" 1 20)
-               , (mRng "a3" "m3" "div" 15 40)
-               , (mRng "a4" "m4" "span" 5 7)
+sampleRanges = [ (mRng "a1" "e1" "root" 1 100)
+               , (mRng "a2" "e2" "div" 1 20)
+               , (mRng "a3" "e3" "div" 15 40)
+               , (mRng "a4" "e4" "span" 5 7)
                ]
 
 test_start = assertEqual 1 (start (sampleRanges !! 0))
@@ -29,7 +30,8 @@ test_notLeftOverlaps = assertEqual ((sampleRanges !! 1) `leftOverlaps` (sampleRa
 test_rightOverlaps = assertEqual ((sampleRanges !! 2) `rightOverlaps` (sampleRanges !! 1)) True
 test_notRightOverlaps = assertEqual ((sampleRanges !! 1) `rightOverlaps` (sampleRanges !! 3)) False
 
-test_sort = assertEqual ["a1", "a2", "a4", "a3"] (map rangeRangeId $ sortTextRanges sampleRanges)
+test_sort = assertEqual ["e1", "e2", "e4", "e3"]
+            (map (take 2 . toString . rangeElementId) $ sortTextRanges sampleRanges)
 
 test_split = do
   assertEqual (1, 15) (spans fstPart)
