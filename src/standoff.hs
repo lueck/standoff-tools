@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 import System.IO
 import Options.Applicative
+import Data.Monoid ((<>))
 import qualified Text.Parsec as P
 
 import StandOff.XML.NodeOffsets (xmlDocument)
