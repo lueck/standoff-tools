@@ -65,4 +65,5 @@ insertAttributeWith (MarkupRange rid eid typ s e txt attrs) (k, v) =
 insertAttributeWith a _ = a
 
 makeAttributiveRanges :: [Annotation] -> [Annotation]
-makeAttributiveRanges as = as
+makeAttributiveRanges as = ranges
+  where ranges = filter isMarkupRangeP as
