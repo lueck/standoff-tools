@@ -20,8 +20,8 @@ elm n s e c = (Element { name = n
                        , content = c })
   where openTagLength = 2 + (length n)
 
+-- For easy setup of (uu)ids for unit tests:
 testUUID = "00000000-0000-0000-0000-000000000000"
-
 mkTestUUID :: String -> UUID
 mkTestUUID start =
   case fromString strUuid of
