@@ -72,6 +72,11 @@ command_ = subparser
       (progDesc "Internalize external markup"))
   )
 
+parseGeneric err p s fName contents = do
+  case P.runParser p s fName contents of
+    Left e -> fail (err ++ " (" ++ fName ++ ") : " ++ (show e))
+    Right r -> return r
+
 run :: Command -> IO ()
 run (Offsets fileName) = do
   c <- readFile fileName
@@ -84,10 +89,8 @@ run (Offsets fileName) = do
                   Right r -> print r
 run (Dumped fileName) = do
   c <- readFile fileName
-  case P.runParser elDump () fileName c of
-    Left e -> do putStrLn "Error parsing elisp dump file:"
-                 print e
-    Right r -> print r
+  annotations <- parseGeneric "Error parsing elisp dump file" elDump () fileName c
+  print annotations
 run (Internalize slizer procInstr dumpFile xmlFile) = do
   dumpContents <- readFile dumpFile
   case P.runParser elDump () dumpFile dumpContents of
