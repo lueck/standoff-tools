@@ -1,8 +1,13 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module StandOff.Data.Annotation
   where
 
 import qualified Data.Map as Map
+import GHC.Generics
 import Data.UUID (UUID)
+import Data.Aeson
+import Data.UUID.Aeson
 
 import StandOff.Data.TextRange
 
@@ -17,7 +22,7 @@ data Annotation = MarkupRange { rangeId :: Maybe UUID
                            , subject :: UUID
                            , predicate :: String
                            , object :: UUID }
-                deriving (Show)
+                deriving (Show, Generic)
 
 instance TextRange (Annotation) where
   start (MarkupRange _ _ _ s _ _ _) = s
@@ -26,6 +31,10 @@ instance TextRange (Annotation) where
     = ( (MarkupRange rid eid typ s1 e1 txt attrs)
       , (MarkupRange rid eid typ s2 e2 txt attrs))
       -- FIXME: add attributes with info about split
+
+instance ToJSON Annotation where
+  toEncoding = genericToEncoding defaultOptions
+
 
 rangeRangeId :: Annotation -> Maybe UUID
 rangeRangeId (MarkupRange rid _ _ _ _ _ _) = rid
@@ -55,6 +64,9 @@ isMarkupRangeP _ = False
 isRelationP :: Annotation -> Bool
 isRelationP (Relation _ _ _ _) = True
 isRelationP _ = False
+
+isPredicateP :: Annotation -> Bool
+isPredicateP _ = False
 
 
 -- handling attributes

@@ -4,14 +4,28 @@ import Options.Applicative
 import Data.Monoid ((<>))
 import qualified Text.Parsec as P
 import Data.Functor.Identity (Identity)
+import Data.Aeson (encode, toJSON)
+import qualified Data.ByteString.Lazy as B
+import Language.Haskell.TH.Ppr (bytesToString)
 
 import StandOff.XML.NodeOffsets (xmlDocument)
 import StandOff.XML.LineOffsets (lineOffsets, Position, posOffset)
 import StandOff.ELisp.DumpFile (elDump)
 import StandOff.Internalizer.Internalize (internalize)
 import StandOff.XML.TagSerializer
-import StandOff.Data.Annotation (makeAttributiveRanges)
+import StandOff.Data.Annotation (makeAttributiveRanges, isMarkupRangeP, isRelationP, isPredicateP)
 import StandOff.Data.XML (XML, isXMLDeclarationP, isElementP, xmlSpanning)
+
+data OutputFormat = Raw
+  | Json
+  deriving (Eq, Show)
+
+data AnnotationTypes = AllAnnotations
+  | Ranges
+  | Relations
+  | Predicates
+  | ButRanges
+  deriving (Eq, Show)
 
 data Serializer = Simple
   | RDF String
@@ -23,15 +37,45 @@ data Options = Options
   } deriving (Eq, Show) 
 
 data Command = Offsets String
-  | Dumped String
+  | Dumped (Maybe OutputFormat) (Maybe AnnotationTypes) String
   | Internalize Serializer (Maybe String) String String
   deriving (Eq, Show)
+
+rawOutput_ :: Parser OutputFormat
+rawOutput_ = flag' Raw (short 'w' <> long "raw-output" <> help "Raw output format")
+
+jsonOutput_ :: Parser OutputFormat
+jsonOutput_ = flag' Json (short 'j' <> long "json-output" <> help "JSON output format")
+
+outputFormat_ :: Parser OutputFormat
+outputFormat_ = rawOutput_ <|> jsonOutput_
+
+allAnnotations_ :: Parser AnnotationTypes
+allAnnotations_ = flag' AllAnnotations (short 'a' <> long "all-annotations" <> help "Parse all annotation types dumped in the elisp dump file.")
+
+rangeAnnotations_ :: Parser AnnotationTypes
+rangeAnnotations_ = flag' Ranges (short 'r' <> long "range-annotations" <> help "Parse only range annotation types dumped in the elisp dump file.")
+
+relationAnnotations_ :: Parser AnnotationTypes
+relationAnnotations_ = flag' Relations (short 'l' <> long "relation-annotations" <> help "Parse only relation annotation types dumped in the elisp dump file.")
+
+predicateAnnotations_ :: Parser AnnotationTypes
+predicateAnnotations_ = flag' Predicates (short 'r' <> long "predicate-annotations" <> help "Parse only predicate annotation types dumped in the elisp dump file.")
+
+butRangeAnnotations_ :: Parser AnnotationTypes
+butRangeAnnotations_ = flag' ButRanges (short 'R' <> long "but-range-annotations" <> help "Parse all non-range annotation types (i.e. relations and predicates) dumped in the elisp dump file.")
+
+annotationTypes_ :: Parser AnnotationTypes
+annotationTypes_ = rangeAnnotations_ <|> relationAnnotations_ <|> predicateAnnotations_ <|> butRangeAnnotations_
 
 offsets_ :: Parser Command
 offsets_ = Offsets <$> argument str (metavar "FILE")
 
 dumped_ :: Parser Command
-dumped_ = Dumped <$> argument str (metavar "FILE")
+dumped_ = Dumped
+  <$> optional outputFormat_
+  <*> optional annotationTypes_
+  <*> argument str (metavar "FILE")
 
 serializer_ :: Parser Serializer
 serializer_ = simpleSerializer_ <|> namespaceSerializer_ <|> rdfSerializer_
@@ -85,10 +129,20 @@ run (Offsets fileName) = do
   offsets <- parseGeneric "Error parsing line lengths" lineOffsets () fileName c
   offsets' <- parseGeneric "Error parsing XML input" xmlDocument offsets fileName c
   print offsets'
-run (Dumped fileName) = do
+run (Dumped oFormat aTypes fileName) = do
   c <- readFile fileName
   annotations <- parseGeneric "Error parsing elisp dump file" elDump () fileName c
-  print annotations
+  putStr $ formatter $ filter annotationsFilter annotations
+  where formatter = case oFormat of
+          Just Json -> bytesToString . B.unpack . encode
+          otherwise -> show
+        annotationsFilter = case aTypes of
+          Just Ranges -> isMarkupRangeP
+          Just Relations -> isRelationP
+          Just Predicates -> isPredicateP
+          Just ButRanges -> isRelationP -- FIXME: as soon as we have Predicates
+          otherwise -> isAnnotationP
+        isAnnotationP _ = True
 run (Internalize slizer procInstr dumpFile xmlFile) = do
   dumpContents <- readFile dumpFile
   dumped <- parseGeneric "Error parsing elisp dump file" elDump () dumpFile dumpContents

@@ -3,6 +3,9 @@ module TestMarkupRange (htf_thisModulesTests) where
 
 import Test.Framework
 import Data.UUID (toString)
+import Data.Aeson (encode, toJSON)
+import qualified Data.ByteString.Lazy as B
+import Language.Haskell.TH.Ppr (bytesToString)
 
 import StandOff.Data.Annotation
 import StandOff.Data.TextRange
@@ -42,3 +45,6 @@ test_split = do
   where fstPart = fst splits
         sndPart = snd splits
         splits = leftSplit (sampleRanges !! 1) (sampleRanges !! 2)
+
+test_tojson = assertEqual "{\"rangeId\":\"a2000000-0000-0000-0000-000000000000\",\"tag\":\"MarkupRange\",\"startOffset\":1,\"text\":\"\",\"attributes\":{},\"endOffset\":20,\"markupType\":\"div\",\"elementId\":\"e2000000-0000-0000-0000-000000000000\"}" encoded
+  where encoded = bytesToString . B.unpack . encode $ toJSON (sampleRanges !! 1)
