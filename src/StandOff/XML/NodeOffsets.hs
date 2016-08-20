@@ -8,9 +8,14 @@ module StandOff.XML.NodeOffsets
 -- runhaskell XMLOffsets.hs < document.xml
 
 import Text.Parsec
+import Data.Char (isAlphaNum)
 
 import StandOff.XML.LineOffsets
 import StandOff.Data.XML
+
+isTagNameCharP :: Char -> Bool
+isTagNameCharP '-' = True
+isTagNameCharP c = isAlphaNum c
 
 openTag :: Parsec String [Int] (String, [Attribute])
 openTag = do
@@ -107,7 +112,7 @@ processingInstruction :: Parsec String [Int] XML
 processingInstruction = do
   s <- getOffset 0
   string "<?"
-  t <- many1 alphaNum
+  t <- many1 $ satisfy isTagNameCharP
   attrs <- many1 $ try attributeNode
   spaces
   string "?>"
