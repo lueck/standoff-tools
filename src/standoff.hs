@@ -32,7 +32,7 @@ data AnnotationTypes = AllAnnotations
 data TagSerializer = Simple
   | Namespace String
   | Span String String
-  | TEI String
+  | TEI
   deriving (Eq, Show)
 
 data AttrSerializer = AttrSerializer String String
@@ -116,9 +116,10 @@ simpleSerializer_ = flag' Simple (short 's' <> long "simple" <> help "Serialize 
 
 namespaceSerializer_ :: Parser TagSerializer
 namespaceSerializer_ =
-  Namespace <$> strOption ( short 'p'
+  Namespace <$> strOption ( metavar "PREFIX"
+                            <> short 'p'
                             <> long "prefix"
-                            <> help "Serialize tags using the markup type as tag name. The name is prefixed with a general PREFIX, the namespace of which is defined on every internalized tag. So, using this tag internalizer every internalized tag starts like this: <PREFIX:localname xmlns:PREFIX='...' ...>. Be careful not to break namespace definitions of the xml tree in source file." -- PREFIX defaults to \"adhoc\"."
+                            <> help "Serialize tags using the markup type as tag name. The name is prefixed with a general PREFIX, the namespace of which is defined on every internalized tag. So, using this tag internalizer every internalized tag starts like this: <PREFIX:localname xmlns:PREFIX='...' ...>. Be careful not to break namespace definitions of the xml tree in source file. Is it valid xml when the namespace, which is connected to a prefix, is changed while a so-prefixed elment is still open?" -- PREFIX defaults to \"adhoc\"."
                             -- <> value "adhoc"
                           )
 
@@ -134,9 +135,9 @@ spanSerializer_ = Span
 
 teiSerializer_ :: Parser TagSerializer
 teiSerializer_ =
-  TEI <$> strOption ( short 't'
-                      <> long "tei"
-                      <> help "Conveniance for \"-n span rendition\". This seems to be working good for TEI P5 source files.")
+  flag' TEI ( short 't'
+              <> long "tei"
+              <> help "Conveniance for \"-n span rendition\". This seems to be working good for TEI P5 source files.")
 
 internalize_ :: Parser Command
 internalize_ = Internalize
@@ -159,7 +160,8 @@ command_ = subparser
     (info (internalize_ <**> helper)
       (fullDesc <>
        progDesc "Internalize external annotations given in DUMPFILE into SOURCE. DUMPFILE must be generated (or must look like it's been generated) with GNU Emacs' standoff-mode. SOURCE must be a valid XML file, at least it must contain a root node. There are options on how the internalizer should serialize markup ranges, its type information, IDs etc. By default only markup ranges are internalized, but not relations." <>
-       header "standoff internalize - internalize standoff markup into an xml file."))
+       header "standoff internalize - internalize standoff markup into an xml file." <>
+       footer "Roadmap: A serializer which takes a map of prefixes is about to be implemented."))
     <> command "offsets"
     (info (offsets_ <**> helper)
       (fullDesc <>
@@ -216,7 +218,7 @@ run (Internalize
                        Simple -> serializeTag (idAttrSlizer Nothing LocalName) 
                        Namespace prefix -> serializeNsTag (idAttrSlizer Nothing LocalName) prefix
                        Span elName typeAttr -> serializeSpanTag (idAttrSlizer (Just typeAttr) LocalName) elName
-                       TEI _ -> serializeSpanTag (idAttrSlizer (Just "rendition") LocalName) "span" 
+                       TEI -> serializeSpanTag (idAttrSlizer (Just "rendition") LocalName) "span" 
         insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
         insertAt s Nothing _ = s
         behindXMLDeclOrTop xml
