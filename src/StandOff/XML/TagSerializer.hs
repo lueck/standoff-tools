@@ -1,71 +1,62 @@
 module StandOff.XML.TagSerializer where
 
 import Data.List
-import qualified Data.Map as Map
-import Data.UUID (toString)
 
 import StandOff.Data.Annotation
 import StandOff.Data.Tag
-
-serializeAttributes :: Annotation -> String
-serializeAttributes a =
-  " elementId=\"" ++ (toString (rangeElementId a)) ++ "\""
-  ++ " rangeId=\"" ++ (emptyStringWhenNothing (fmap toString (rangeRangeId a))) ++ "\""
-  ++ (foldl (\acc (k, v) -> acc ++ " " ++ k ++ "=\"" ++ (intercalate " " v) ++ "\"")
-       ""
-       (Map.toList $ rangeAttributes a))
-  where emptyStringWhenNothing Nothing = ""
-        emptyStringWhenNothing (Just s) = s
 
 -- Split http://arb.org/schema/Concept or
 -- http://arb.org/schema#Concept to a tuple of namespace and name,
 -- here ("http://arb.org/schema/", "Concept") or
 -- ("http://arb.org/schema#", "Concept").
-splitNamespaceName :: Annotation -> (String, String)
-splitNamespaceName a = splitAt splitPos typ
-  where typ = rangeType a
-        splitPos = (max
-                    (maximum $ 0 : elemIndices '/' typ)
-                    (maximum $ 0 : elemIndices '#' typ)) + 1
+splitNamespaceName :: String -> (String, String)
+splitNamespaceName name = splitAt splitPos name
+  where splitPos = (max
+                    (maximum $ 0 : elemIndices '/' name)
+                    (maximum $ 0 : elemIndices '#' name)) + 1
+
+nsNameValueSerializer :: NSNameValueSerializer -> String -> String
+nsNameValueSerializer FullName name = name
+nsNameValueSerializer LocalName name = snd $ splitNamespaceName name
 
 -- Simple serializer for an XML tag. Suitable only, if range types and
 -- relation predicates don't have a namespace.
-serializeTag :: TagType -> Annotation -> String
-serializeTag Open a
-  = "<" ++ (rangeType a) ++ (serializeAttributes a) ++ ">"
-serializeTag Close a
+serializeTag :: (Annotation -> String) -> TagType -> Annotation -> String
+serializeTag slizer Open a
+  = "<" ++ (rangeType a) ++ (slizer a) ++ ">"
+serializeTag slizer Close a
   = "</" ++ (rangeType a) ++ ">"
-serializeTag Empty a
-  = "<" ++ (rangeType a) ++ (serializeAttributes a) ++ "/>"
+serializeTag slizer Empty a
+  = "<" ++ (rangeType a) ++ (slizer a) ++ "/>"
 
--- A serializer that creates tags of a chosen tagName and writes the
--- type into an rdf:a-attribute.
+-- A serializer that creates tags always with the same tag-name. This
+-- tag name is passed as a parameter. The serialization of the type
+-- and range-id and element-id are left to attribute-serializer which
+-- is passed as a curried function.
 serializeSpanTag :: (Annotation -> String) -> String -> TagType -> Annotation -> String
 serializeSpanTag slizeAttrs tagName Open a
   = "<" ++ tagName
-    ++ " rdf:a=\"" ++ (rangeType a) ++ "\""
     ++ slizeAttrs a
     ++ ">"
 serializeSpanTag _ tagName Close _
   = "</" ++ tagName ++ ">"
 serializeSpanTag slizeAttrs tagName Empty a
   = "<" ++ tagName
-    ++ " rdf:a=\"" ++ (rangeType a) ++ "\""
     ++ slizeAttrs a
     ++ "/>"
 
 serializeNsTag :: (Annotation -> String) -> String -> TagType -> Annotation -> String
 serializeNsTag slizeAttrs prefix Open a =
   "<" ++ prefix ++ ":" ++ (snd qName)
-  ++ " xmlns:annot=\"" ++ (fst qName) ++ "\""
+  ++ " xmlns:" ++ prefix ++ "=\"" ++ (fst qName) ++ "\""
   ++ slizeAttrs a
   ++ ">"
-  where qName = splitNamespaceName a
+  where qName = splitNamespaceName $ rangeType a
 serializeNsTag _ prefix Close a =
-  "</" ++ prefix ++ ":" ++ (snd $ splitNamespaceName a) ++ ">"
+  "</" ++ prefix ++ ":" ++ (snd $ splitNamespaceName $ rangeType a) ++ ">"
 serializeNsTag slizeAttrs prefix Empty a =
   "<" ++ prefix ++ ":" ++ (snd qName)
-  ++ " xmlns:annot=\"" ++ (fst qName) ++ "\""
+  ++ " xmlns:" ++ prefix ++ "=\"" ++ (fst qName) ++ "\""
   ++ slizeAttrs a
   ++ "/>"
-  where qName = splitNamespaceName a
+  where qName = splitNamespaceName $ rangeType a
