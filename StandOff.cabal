@@ -1,17 +1,31 @@
 name:                StandOff
-version:             0.1.0.0
+version:             0.0.1.0
 synopsis:            Tools for managing stand-off markup.
--- description:         
 homepage:            https://github.com/lueck/standoff-tools/
 license:             GPL-3
 license-file:        LICENSE
 author:              Christian Lück
 maintainer:          christian.lueck@ruhr-uni-bochum.de
--- copyright:           
+copyright:           Christian Lück, 2016
 category:            Text
 build-type:          Simple
 extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
+
+description:
+                     standoff-tools offers a library and a command
+                     line program for handling standoff annotations
+                     produced with standoff-mode a tagger for GNU
+                     Emacs. While standoff-mode produces external
+                     markup that references text ranges of the source
+                     file by character offsets, standoff-tools offers
+                     a command to internalize such stand-off markup
+                     into the source file. The source file must be
+                     valid XML file, e.g. TEI P5.
+
+                     The library that can be reused for internalizing
+                     any external markup, that references the source
+                     with character offsets.
 
 library
   exposed-modules:   StandOff.Data.TextRange
@@ -69,4 +83,3 @@ Test-Suite test-main
                    , template-haskell
   hs-source-dirs:    test, src
   default-language:  Haskell2010
-  
