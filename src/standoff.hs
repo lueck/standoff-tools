@@ -29,10 +29,13 @@ data AnnotationTypes = AllAnnotations
   | ButRanges
   deriving (Eq, Show)
 
-data Serializer = Simple
-  | RDF String
+data TagSerializer = Simple
   | Namespace String
+  | Span String String
   | TEI String
+  deriving (Eq, Show)
+
+data AttrSerializer = AttrSerializer String String
   deriving (Eq, Show)
 
 data Options = Options
@@ -41,7 +44,7 @@ data Options = Options
 
 data Command = Offsets String
   | Dumped (Maybe OutputFormat) (Maybe AnnotationTypes) String
-  | Internalize Serializer (Maybe String) String String
+  | Internalize TagSerializer AttrSerializer (Maybe String) String String
   deriving (Eq, Show)
 
 rawOutput_ :: Parser OutputFormat
@@ -92,33 +95,53 @@ dumped_ = Dumped
   <*> optional annotationTypes_
   <*> argument str (metavar "FILE")
 
-serializer_ :: Parser Serializer
-serializer_ = simpleSerializer_ <|> namespaceSerializer_ <|> rdfSerializer_ <|> teiSerializer_
+attrSerializer_ :: Parser AttrSerializer
+attrSerializer_ = AttrSerializer
+  <$> strOption ( short 'r'
+                  <> long "range-id"
+                  <> help "Attribute name for markup range IDs. Defaults to \"rid\"."
+                  <> value "rid"
+                )
+  <*> strOption ( short 'e'
+                  <> long "element-id"
+                  <> help "Attribute name for markup element IDs. Defaults to \"eid\"."
+                  <> value "eid"
+                )
 
-simpleSerializer_ :: Parser Serializer
-simpleSerializer_ = flag' Simple (short 's' <> long "simple" <> help "Simple serializer only usefull for tags without namespaces.")
+tagSerializer_ :: Parser TagSerializer
+tagSerializer_ = simpleSerializer_ <|> namespaceSerializer_ <|> spanSerializer_ <|> teiSerializer_
 
-namespaceSerializer_ :: Parser Serializer
+simpleSerializer_ :: Parser TagSerializer
+simpleSerializer_ = flag' Simple (short 's' <> long "simple" <> help "Serialize tags with a very simple serializer that uses the markup type as tag name. This is only usefull for markup types without namespaces.")
+
+namespaceSerializer_ :: Parser TagSerializer
 namespaceSerializer_ =
   Namespace <$> strOption ( short 'p'
                             <> long "prefix"
-                            <> help "Serialize namespaces for each markup tag using PREFIX.")
+                            <> help "Serialize tags using the markup type as tag name. The name is prefixed with a general PREFIX, the namespace of which is defined on every internalized tag. So, using this tag internalizer every internalized tag starts like this: <PREFIX:localname xmlns:PREFIX='...' ...>. Be careful not to break namespace definitions of the xml tree in source file." -- PREFIX defaults to \"adhoc\"."
+                            -- <> value "adhoc"
+                          )
 
-rdfSerializer_ :: Parser Serializer
-rdfSerializer_ =
-  RDF <$> strOption ( short 'r'
-                      <> long "rdf"
-                      <> help "Serialize markup tags into elements of type ELEMENT writing the markup type as an \'rdf:a\'-attribute.")
+spanSerializer_ :: Parser TagSerializer
+spanSerializer_ = Span
+  <$> strOption ( metavar "ELEMENT TYPE-ATTR"
+                  <> short 'n'
+                  <> long "span"
+                  <> help "Serialize tags into elements of name ELEMENT. The markup type is written to the attribute named TYPE-ATTR. " --  ELEMENT defaults to \"span\" in the default namespace. TYPE-ATTR defaults to \"rendition\"."
+                  -- <> value "span"
+                )
+  <*> argument str ( metavar "")
 
-teiSerializer_ :: Parser Serializer
+teiSerializer_ :: Parser TagSerializer
 teiSerializer_ =
   TEI <$> strOption ( short 't'
                       <> long "tei"
-                      <> help "Serialize markup tags into elements of type ELEMENT writing the markup type (local name) as a rendition-attribute.")
+                      <> help "Conveniance for \"-n span rendition\". This seems to be working good for TEI P5 source files.")
 
 internalize_ :: Parser Command
 internalize_ = Internalize
-  <$> serializer_
+  <$> tagSerializer_
+  <*> attrSerializer_
   <*> optional (strOption ( short 'i'
                              <> long "processing-instruction"
                              <> help "Insert a processing instruction into the result."))
@@ -170,7 +193,12 @@ run (Dumped oFormat aTypes fileName) = do
           Just ButRanges -> isRelationP -- FIXME: as soon as we have Predicates
           otherwise -> isAnnotationP
         isAnnotationP _ = True
-run (Internalize slizer procInstr dumpFile xmlFile) = do
+run (Internalize
+     tagSlizer
+     (AttrSerializer rangeIdAttr elementIdAttr )
+     procInstr
+     dumpFile
+     xmlFile) = do
   dumpContents <- readFile dumpFile
   dumped <- parseGeneric "Error parsing elisp dump file" elDump () dumpFile dumpContents
   xmlContents <- readFile xmlFile
@@ -181,26 +209,21 @@ run (Internalize slizer procInstr dumpFile xmlFile) = do
              xmlContents
              (filter isElementP xml)
              (makeAttributiveRanges dumped)
-             slizer')
+             tagSlizer')
            procInstr
            (behindXMLDeclOrTop xml))
-  where slizer' = case slizer of
-                    Simple -> serializeTag serializeAttributes'
-                    -- FIXME: define tag serializers for attributes and options
-                    RDF elName -> serializeSpanTag serializeAttributes' elName
-                    Namespace prefix -> serializeNsTag serializeAttributes' prefix
-                    TEI elName -> serializeSpanTag teiAttributes elName 
+  where tagSlizer' = case tagSlizer of
+                       Simple -> serializeTag (idAttrSlizer Nothing LocalName) 
+                       Namespace prefix -> serializeNsTag (idAttrSlizer Nothing LocalName) prefix
+                       Span elName typeAttr -> serializeSpanTag (idAttrSlizer (Just typeAttr) LocalName) elName
+                       TEI _ -> serializeSpanTag (idAttrSlizer (Just "rendition") LocalName) "span" 
         insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
         insertAt s Nothing _ = s
         behindXMLDeclOrTop xml
           | length decl == 1 = (posOffset $ snd $ xmlSpanning $ head decl) - 1
           | otherwise = 0
           where decl = filter isXMLDeclarationP xml
-        teiAttributes = (serializeAttributes
-                          (Just "id")
-                          (Just "eid")
-                          (Just "rendition")
-                          LocalName)
+        idAttrSlizer = (serializeAttributes (Just rangeIdAttr) (Just elementIdAttr))
 
 opts :: ParserInfo Command
 opts = info
