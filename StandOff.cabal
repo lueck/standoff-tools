@@ -24,6 +24,7 @@ library
                    , StandOff.Internalizer.Internalize
                    , StandOff.Data.Tag
                    , StandOff.XML.TagSerializer
+                   , StandOff.XML.AttributeSerializer
   -- other-modules:       
   -- other-extensions:    
   build-depends:     base >=4.6 && <4.7
