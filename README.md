@@ -130,7 +130,7 @@ Available options:
 Roadmap: A serializer which takes a map of prefixes is about to be implemented.
 </code></pre>
 
-## Displaying annotations and relations in a browser ##
+## Visualizing annotations and relations in a browser ##
 
 `standoff-tools` comes with some scripts that make it easy to display
 annotations and relations between annotated text ranges in a
@@ -189,6 +189,6 @@ in `arrows.js` to `drawArcRelation` or to `drawStraightRelation`.
   + write parsed dump file to a relational database
 - parse node offsets of tag soup
 
-# Licence #
+# License #
 
-GPL V3
+[GPL V3](http://www.gnu.org/licenses/gpl-3.0.txt)
