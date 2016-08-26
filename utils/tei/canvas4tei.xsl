@@ -17,6 +17,8 @@
 
   <xsl:output method="xml"/>
 
+  <xsl:param name="standoffCSS" select="concat($filePrefix,'/css/standoff.css')"/>
+
   <xsl:template match="/" name="htmlShell" priority="99">
     <html>
       <xsl:call-template name="htmlHead"/>
@@ -25,8 +27,7 @@
 	  <xsl:call-template name="teibpToolbox"/>
 	  <xsl:call-template name="standoffInfobox"/>
 	</xsl:if>
-	<canvas id="canvas" style="position:absolute; float:left;
-				   border: 1px solid red;"><br/></canvas>
+	<canvas id="canvas" style="position:absolute; float:left;"><br/></canvas>
 	<div id="tei_wrapper" style="z-index:20000;">
 	  <xsl:apply-templates/>
 	</div>
@@ -51,6 +52,21 @@
       <div id="standoffInfobox"/>
     </div>
   </xsl:template>
-  
+
+  <xsl:template name="htmlHead">
+    <head>
+      <meta charset="UTF-8"/>
+      <script src="{$lessJS}"></script>
+      <link id="maincss" rel="stylesheet" type="text/css" href="{$teibpCSS}"/>
+      <link id="customcss" rel="stylesheet" type="text/css" href="{$customCSS}"/>
+      <link id="standoffcss" rel="stylesheet" type="text/css" href="{$standoffCSS}"/>
+      <xsl:call-template name="tagUsage2style"/>
+      <xsl:call-template name="rendition2style"/>
+      <title><!-- don't leave empty. --></title>
+      <xsl:if test="$includeAnalytics = true()">
+	<xsl:call-template name="analytics"/>
+      </xsl:if>
+    </head>
+  </xsl:template>
 
 </xsl:stylesheet>
