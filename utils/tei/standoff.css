@@ -1,0 +1,29 @@
+#standoffInfoboxWrapper {
+  left: 56em;
+  top: 225px;
+  position: fixed;
+  font-size: 70%;
+  margin-right: 1em;
+  padding: 1em;
+  border-radius: 15px;
+  border: 1px solid #AAA;
+  background: #FAFAFA;
+  font-family: Arvo, Verdana, sans-serif;
+  text-align: justify;
+  -webkit-box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.25);
+  -moz-box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.25);
+  width: 12em;
+}
+
+#standoffInfoboxWrapper h1 {
+  font-weight: bold;
+  font-size: 115%;
+  margin-top: 0;
+  margin-bottom: .5em;
+  border-bottom: 1px solid #AAA;
+}
+
+.standoff-uuid {
+    white-space: nowrap;
+}
