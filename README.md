@@ -147,8 +147,14 @@ your clone of `TEI Boilerplate`:
   [`jQuery`](https://jquery.com/) and javascript for drawing relations
   between annotated text spans.
 
-- `arrows.js`: javascript that draws relations between annotated text
-  spans.
+- `jannotation.js`: javascript library for drawing relations.
+
+- `static.js`: javascript that loads static content from
+  `relations.json` (see below) and calls the drawing functions form
+  `jannotation.js`.
+
+You should also put `standoff.css` into the `dist/css` directory of
+your clone of `TEI Boilerplate`.
 
 To generate internalized markup run `standoff internalize` like this
 and copy it's output into the `contents` directory of your boilerplate
@@ -170,16 +176,17 @@ The resulting `relations.json` have to be present in the `contents`
 directory, too. It has to be that file name, which is hard-coded in
 `arrows.js`. If you have a `custom.css` like explained in the docs of
 TEI Boilerplate, your annotations get colored and semantic relations
-may look like this: ![Demo of Arc Relations](utils/tei/sample.png)
+may look like in the screenshot below. When you move your mouse over a
+relation, you will see details in the info box on the left:
+![Demo of Arc Relations](utils/tei/sample.png)
 
 As you can see in the sample, the drawing of semantic relations
 suffers from the html-box-model of inline elements which span multiple
 lines. Proposals on how to improve the drawing of relations are
 welcome.
 
-Note: There are currently two functions for drawing relations, one for
-straight lines, one for arcs. Set the function-pointer `drawRelation`
-in `arrows.js` to `drawArcRelation` or to `drawStraightRelation`.
+Note that the canvas for drawing semantic relations is limited to a
+height of 32.000 pixels at the moment.
 
 # Roadmap #
 
