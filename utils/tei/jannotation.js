@@ -1,12 +1,24 @@
 $.jCanvas.extend({
-    name: 'drawRelation',
-    type: 'relation',
+    name: 'drawQuadraticRelation',
+    type: 'quadraticRelation',
     props: {
+	id: '',
 	subject: '',
 	predicate: '',
 	object: '',
 	dx: 0,
 	dy: 0,
+	layer: true,
+	mouseover: function(layer) {
+	    $(this).animateLayer(layer, {
+		strokeWidth: 4,
+	    });
+	},
+	mouseout: function(layer) {
+	    $(this).animateLayer(layer, {
+		strokeWidth: 2,
+	    });
+	},
     },
     fn: function (ctx, p) {
 	// enable layer transformations
@@ -29,9 +41,9 @@ $.jCanvas.extend({
 	    // radius
 	    r = 0.5 * ls * (1/q),
 	    // center
-	    cx = (0.5 * (ax + bx)) + (r/q * 0.5 * (by - ay) / ls),
-	    cy = (0.5 * (ay + by)) + (r/q * 0.5 * (ax - bx) / ls);
-	$.jCanvas.draw(this, ctx, {
+	    cx = (0.5 * (ax + bx)) + (r/q * 0.5 * (ay - by) / ls),
+	    cy = (0.5 * (ay + by)) + (r/q * 0.5 * (bx - ax) / ls);
+	$(this).draw({
 	    type: "quadratic",
 	    strokeStyle: '#000',
 	    strokeWidth: 2,
@@ -41,7 +53,10 @@ $.jCanvas.extend({
 	    arrowAngle: 60,
 	    x1: ax, y1: ay,
 	    cx1: cx, cy1: cy,
-	    x2: bx, y2: by
+	    x2: bx, y2: by,
+	    layer: p.layer,
+	    mouseover: p.mouseover,
+	    mouseout: p.mouseout,
 	});
 	// enable jCanvas events
 	$.jCanvas.detectEvents(this, ctx, p);
@@ -73,10 +88,10 @@ function drawRelations (canvasId, relations) {
 	    // center
 	    cx = (0.5 * (ax + bx)) + (r/q * 0.5 * (ay - by) / ls),
 	    cy = (0.5 * (ay + by)) + (r/q * 0.5 * (bx - ax) / ls);
-	console.log("start: (" + ax );//", " + ay + ") end: (" + bx + ", " + by + ")" );
+	console.log("start: (" + ax + ", " + ay + ") end: (" + bx + ", " + by + ")" );
 	canvas.draw({
 	    type: "quadratic",
-	    strokeStyle: '#000',
+	    strokeStyle: '#333',
 	    strokeWidth: 2,
 	    rounded: true,
 	    endArrow: true,
@@ -84,7 +99,48 @@ function drawRelations (canvasId, relations) {
 	    arrowAngle: 60,
 	    x1: ax, y1: ay,
 	    cx1: cx, cy1: cy,
-	    x2: bx, y2: by
+	    x2: bx, y2: by,
+	    layer: true,
+	    mouseover: function(layer) {
+		showAnnotationInfo(rel);
+		$(this).animateLayer(layer, {
+		    strokeWidth: 4,
+		}, 125);
+	    },
+	    mouseout: function(layer) {
+		showAnnotationInfo(null);
+		$(this).animateLayer(layer, {
+		    strokeWidth: 2,
+		}, 125);
+	    },
 	});
     });
 }
+
+function showAnnotationInfo (obj) {
+    if (obj == null) {
+	$('#standoffInfobox').html("");
+    } else {
+	console.log(obj.tag);
+	switch (obj.tag) {
+	case 'Relation':
+	    $('#standoffInfobox').html(
+		"<h3>Relation:</h3><dl>" +
+		    "<dt>ID:</dt><dd class='standoff-uuid'>" + obj.relationId + "</dd>" +
+		    "<dt>Subject:</dt>" +
+		    "<dd class='standoff-uuid'>" + obj.subject + "</dd>" +
+		    "<dd>" + $("[eid|='"+obj.subject+"']").html() + "</dd>" +
+		    "<dt>Predicate:</dt>" +
+		    "<dd class='standoff-iri'>" + obj.predicate + "</dd>" +
+		    "<dt>Object:</dt>" +
+		    "<dd class='standoff-uuid'>" + obj.object + "</dd>" +
+		    "<dd>" + $("[eid|='"+obj.object+"']").html() + "</dd>" +
+		    "</dl>"
+	    );
+	    break;
+	default:
+	    $('#standoffInfobox').html("");
+	};
+    }
+}
+	 

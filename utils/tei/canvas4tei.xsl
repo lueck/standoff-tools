@@ -23,22 +23,34 @@
       <body>
 	<xsl:if test="$includeToolbox = true()">
 	  <xsl:call-template name="teibpToolbox"/>
+	  <xsl:call-template name="standoffInfobox"/>
 	</xsl:if>
 	<canvas id="canvas" style="position:absolute; float:left;
-				   z-index:30000;"><br/></canvas>
+				   border: 1px solid red;"><br/></canvas>
 	<div id="tei_wrapper" style="z-index:20000;">
 	  <xsl:apply-templates/>
 	</div>
 	<xsl:copy-of select="$htmlFooter"/>
 	<script type="text/javascript" src="{$teibpJS}"></script>
 	<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-	<script type="application/x-javascript" src="arrows.js"></script>
+	<script src="https://raw.githubusercontent.com/caleb531/jcanvas/master/jcanvas.min.js"></script>
+	<script src="jannotation.js"></script>
+	<script src="static.js"></script>
 	<script type="text/javascript">
-	  window.onload = function () { drawStatic('canvas',
-	  'tei_wrapper')};
+	  window.onload = function () {
+	       drawStatic('canvas', 'tei_wrapper');
+	  };
 	</script>
 	</body>
     </html>
   </xsl:template>
+
+  <xsl:template name="standoffInfobox">
+    <div id="standoffInfoboxWrapper">
+      <h1>Stand-Off</h1>
+      <div id="standoffInfobox"/>
+    </div>
+  </xsl:template>
+  
 
 </xsl:stylesheet>
