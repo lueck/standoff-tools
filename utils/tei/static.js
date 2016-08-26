@@ -1,6 +1,5 @@
 function drawStatic (canvasId, wrapperId) {
     stretchCanvas(canvasId, wrapperId);
-    $('#'+canvasId).drawRect({fillStyle: '#000', x: 100, y: 100, width: 100, height: 100});
     $.getJSON("relations.json", function (data) {
 	console.log("Relations file found.");
 	console.log(data);
