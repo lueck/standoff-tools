@@ -31,16 +31,16 @@ splitOverlapping x (y:ys)
 merge :: (Tree b, TextRange b, TextRange a) => [b] -> a -> [a]
 merge [] a = [a]
 merge (x:xs) a
+  -- Split a when a right-overlaps x. FIXME: && start a < end a
+  | start a > start x && end a >= end x && start a < end x =
+    (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
+  -- Split a when a left-overlaps x. FIXME: && end a > start x
+  | start a <= start x && end a < end x && end a > start x =
+    (fst leftSplit') : (merge (contents x) (snd leftSplit'))
   -- Forward xml vertically when x contains a
   | start x <= start a && end x >= end a = merge (contents x) a
   -- Forward xml horizontally when x is before a
   | end x <= start a = (merge xs a)
-  -- Split a when a right-overlaps x. FIXME: && start a < end a
-  | start a > start x && end a > end x && start a < end x =
-    (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
-  -- Split a when a left-overlaps x. FIXME: && end a > start x
-  | start a < start x && end a < end x && end a > start x =
-    (fst leftSplit') : (merge (contents x) (snd leftSplit'))
   -- Needn't progress if a contains x, because then xs are not
   -- relevant and a contains the content of x, too.
   | start a <= start x && end a >= end x  = merge xs a
