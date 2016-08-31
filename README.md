@@ -180,13 +180,10 @@ may look like in the screenshot below. When you move your mouse over a
 relation, you will see details in the info box on the left:
 ![Demo of Arc Relations](utils/tei/sample.png)
 
-As you can see in the sample, the drawing of semantic relations
-suffers from the html-box-model of inline elements which span multiple
-lines. Proposals on how to improve the drawing of relations are
-welcome.
-
 Note that the canvas for drawing semantic relations is limited to a
-height of 32.000 pixels at the moment.
+height of 32.000 pixels at the moment. One approach would be to scroll
+the canvas into the visible area of the document, but there may be
+better approaches. This needs some fix.
 
 # Roadmap #
 

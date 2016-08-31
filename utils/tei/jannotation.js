@@ -4,12 +4,15 @@ function drawRelations (canvasId, relations) {
 	dy = canvas.offset().top;
     $.each(relations, function (count, rel) {
 	console.log("Drawing relation " + rel.relationId + ": " + rel.subject + " " + rel.predicate + " " + rel.object);
-	var subOffset = $("[eid|='"+rel.subject+"']").first().offset(),
-	    objOffset = $("[eid|='"+rel.object+"']").first().offset(),
+	console.log($("[eid|='"+rel.subject+"'] > .relationanchor"));
+	var sub = $("[eid|='"+rel.subject+"'] > .relationanchor"),
+	    subOffset = sub.offset(),
+	    obj = $("[eid|='"+rel.object+"'] > .relationanchor"),
+	    objOffset = obj.offset(),
 	    ax = subOffset.left - dx,
-	    ay = subOffset.top - dy,
+	    ay = subOffset.top - dy + 0.7*parseInt(sub.css("line-height")),
 	    bx = objOffset.left - dx,
-	    by = objOffset.top - dy,
+	    by = objOffset.top - dy + 0.7*parseInt(obj.css("line-height")),
 	    // sehne s
 	    sx = ax - bx,
 	    sy = ay - by,
@@ -23,6 +26,8 @@ function drawRelations (canvasId, relations) {
 	    // center
 	    cx = (0.5 * (ax + bx)) + (r/q * 0.5 * (ay - by) / ls),
 	    cy = (0.5 * (ay + by)) + (r/q * 0.5 * (bx - ax) / ls);
+	console.log('(' + ax + ', ' + ay + '), (' + bx + ', ' + by + ')');
+	console.log(sub.css("line-height"));
 	canvas.draw({
 	    type: "quadratic",
 	    strokeStyle: '#333',

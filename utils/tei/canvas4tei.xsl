@@ -69,4 +69,14 @@
     </head>
   </xsl:template>
 
+  <!-- add a relation anchor in front of the contents of each text
+       range -->
+  <xsl:template match="tei:span[@eid]">
+    <xsl:copy>
+      <xsl:apply-templates select="@*"/>
+      <a class="relationanchor"/>
+      <xsl:apply-templates select="node()"/>
+    </xsl:copy>
+  </xsl:template>
+
 </xsl:stylesheet>
