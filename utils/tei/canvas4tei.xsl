@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Please move to svg4tei.xsl which is based on svg instead of
+     canvas. -->
 <xsl:stylesheet
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     version="1.0" 
@@ -35,11 +37,16 @@
 	<script type="text/javascript" src="{$teibpJS}"></script>
 	<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
 	<script src="https://raw.githubusercontent.com/caleb531/jcanvas/master/jcanvas.min.js"></script>
-	<script src="jannotation.js"></script>
+	<script src="canvasannot.js"></script>
 	<script src="static.js"></script>
 	<script type="text/javascript">
 	  window.onload = function () {
-	       drawStatic('canvas', 'tei_wrapper');
+	      stretchCanvasToBody('canvas');
+	      $.getJSON("relations.json", function (data) {
+	          console.log("Relations file found.");
+		  console.log(data);
+		  drawRelations('canvas', data);
+	      });
 	  };
 	</script>
 	</body>

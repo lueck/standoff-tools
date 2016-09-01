@@ -1,3 +1,23 @@
+function stretchCanvasToBody (canvasId) {
+    // document.body is undefined when generated from xslt in the
+    // client, see
+    // https://forum.jquery.com/topic/using-jquery-from-an-xslt-throws-error-is-undefined-after-that
+    var body = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "body")[0],
+	bodyRect = body.getBoundingClientRect(),
+	canvas = document.getElementById(canvasId),
+	bodyWidth = Math.ceil(bodyRect.right - bodyRect.left),
+	bodyHeight = Math.ceil(bodyRect.bottom - bodyRect.top),
+	bodyPixels = bodyWidth * bodyHeight;
+    var maxCanvasHeight = 32000;
+    console.log("Stretching drawing area #"
+		+ canvasId
+		+ " to (width, height, pixels): "
+		+ bodyWidth + " " + bodyHeight + " "
+		+ bodyPixels, Math.min(bodyHeight, maxCanvasHeight)); 
+    canvas.width = bodyWidth;
+    canvas.height = Math.min(bodyHeight, maxCanvasHeight);
+}
+
 function drawRelations (canvasId, relations) {
     var canvas = $('#'+canvasId),
 	dx = canvas.offset().left,
