@@ -180,9 +180,10 @@ mouse over a relation, you will see details in the info box on the
 left: ![Demo of Arc Relations](utils/tei/sample.png)
 
 Here is a tree of directories and files of your local checkout of
-TEI-Boilerplate and the files discribed above. `herder.xml` is the
+TEI-Boilerplate and the files described above. `herder.xml` is the
 file generated with the `standoff internalize ...` like above. Open
-this file with the firefox.
+this file with firefox or an other browser, that is able to interpret
+the `xsl-stylesheet` processing instruction.
 
 	TEI-Boilerplate
 	+-- ...
@@ -190,17 +191,17 @@ this file with the firefox.
 	|   +-- content
 	|   |   +-- ...
 	|   |   +-- herder.xml  <--- generated with $ standoff internalize ...
-	|   |   +-- relations.json
-	|   |   +-- svg4tei.xsl
+	|   |   +-- relations.json  <--- generated with $ standoff dumped ...
+	|   |   +-- svg4tei.xsl  <--- xsl stylesheet
 	|   |   +-- svgannot.js  <--- javascript for relations
-	|   |   +-- teibpstyles.xml  <--- xsl stylesheet
+	|   |   +-- teibpstyles.xml
 	|   |   +-- teibp.xml
 	|   |   +-- teibp.xsl
 	|   |   \-- xml-to-string.xsl
 	|   +-- css
 	|   |   +-- custom.css  <--- your css
 	|   |   +-- sleepy.css
-	|   |   +-- standoff.css  <--- general css for standoff
+	|   |   +-- standoff.css  <--- general css for standoff info box etc.
 	|   |   +-- teibp.css
 	|   |   \-- terminal.css
 	|   +-- images
