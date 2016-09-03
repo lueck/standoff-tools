@@ -141,31 +141,31 @@ rendering in TEI XML in your browser. The following scripts from the
 `utils/tei` directory have to copied to the `dist/contents` directory of
 your clone of `TEI Boilerplate`:
 
-- `canvas4tei.xsl`: xslt stylesheet that imports (includes) `TEI
+- `svg4tei.xsl`: xslt stylesheet that imports (includes) `TEI
   Boilerplate`, but overrides the template responsible for generating
-  the `body` element of the resulting html. It inserts a canvas, loads
+  the `body` element of the resulting html. It inserts a root element
+  for scalable vector graphics, loads
   [`jQuery`](https://jquery.com/) and javascript for drawing relations
   between annotated text spans.
 
-- `jannotation.js`: javascript library for drawing relations.
-
-- `static.js`: javascript that loads static content from
-  `relations.json` (see below) and calls the drawing functions form
-  `jannotation.js`.
+- `svgannot.js`: javascript library for drawing relations.
 
 You should also put `standoff.css` into the `dist/css` directory of
-your clone of `TEI Boilerplate`.
+your clone of `TEI Boilerplate`. Note: There are also `canvas4tei.xsl`
+and `canvasannot.js`, which were an earlier try doing the
+visualisation based on the `html5` element `canvas`. 
 
 To generate internalized markup run `standoff internalize` like this
 and copy it's output into the `contents` directory of your boilerplate
 clone, too:
 
-	$ standoff internalize --tei -i "<?xml-stylesheet type=\"text/xsl\" href=\"canvas4tei.xsl\"?>" DUMP-FILE SOURCE-FILE > OUTPUT
+	$ standoff internalize --tei -i "<?xml-stylesheet type=\"text/xsl\" href=\"svg4tei.xsl\"?>" DUMP-FILE SOURCE-FILE > OUTPUT
 
 This not only internalizes the external markup but also inserts a
-processing instruction into the resulting XML, so that the canvas will
-automagically be inserted into the nive boilerplate representation of
-the annotated TEI source.
+processing instruction into the resulting XML, so that the graphical
+elements representing semantic relations will automagically be
+inserted into the nive boilerplate representation of the annotated TEI
+source.
 
 As a second step you have to generate a JSON file containing the
 relations:
@@ -173,17 +173,45 @@ relations:
 	$ standoff dumped -j -l DUMP-FILE > relations.json
 
 The resulting `relations.json` have to be present in the `contents`
-directory, too. It has to be that file name, which is hard-coded in
-`arrows.js`. If you have a `custom.css` like explained in the docs of
-TEI Boilerplate, your annotations get colored and semantic relations
-may look like in the screenshot below. When you move your mouse over a
-relation, you will see details in the info box on the left:
-![Demo of Arc Relations](utils/tei/sample.png)
+directory, too. If you have a `custom.css` like explained in the docs
+of TEI Boilerplate, your annotations get colored and semantic
+relations may look like in the screenshot below. When you move your
+mouse over a relation, you will see details in the info box on the
+left: ![Demo of Arc Relations](utils/tei/sample.png)
 
-Note that the canvas for drawing semantic relations is limited to a
-height of 32.000 pixels at the moment. One approach would be to scroll
-the canvas into the visible area of the document, but there may be
-better approaches. This needs some fix.
+Here is a tree of directories and files of your local checkout of
+TEI-Boilerplate and the files discribed above. `herder.xml` is the
+file generated with the `standoff internalize ...` like above. Open
+this file with the firefox.
+
+	TEI-Boilerplate
+	+-- ...
+	+-- dist
+	|   +-- content
+	|   |   +-- ...
+	|   |   +-- herder.xml  <--- generated with $ standoff internalize ...
+	|   |   +-- relations.json
+	|   |   +-- svg4tei.xsl
+	|   |   +-- svgannot.js  <--- javascript for relations
+	|   |   +-- teibpstyles.xml  <--- xsl stylesheet
+	|   |   +-- teibp.xml
+	|   |   +-- teibp.xsl
+	|   |   \-- xml-to-string.xsl
+	|   +-- css
+	|   |   +-- custom.css  <--- your css
+	|   |   +-- sleepy.css
+	|   |   +-- standoff.css  <--- general css for standoff
+	|   |   +-- teibp.css
+	|   |   \-- terminal.css
+	|   +-- images
+	|   |   \-- ...
+	|   +-- index.html
+	|   \-- js
+	|       \-- ...
+	\-- src
+		+-- ...
+		...
+
 
 # Roadmap #
 
