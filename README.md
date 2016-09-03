@@ -51,7 +51,7 @@ standoff - a tool for handling standoff annotations (aka external markup).
 Usage: standoff COMMAND
   standoff offers commands for parsing a dump file that contains external markup
   and for internalizing such external markup into an xml file. There is also a
-  command for parsing a file for newlines, which may be useful for debugging.
+  command for getting the positions of the tags of an xml file.
 
 Available options:
   -h,--help                Show this help text

@@ -232,7 +232,7 @@ opts = info
        (command_ <**> helper)
        (fullDesc <>
          header "standoff - a tool for handling standoff annotations (aka external markup)." <>
-         progDesc "standoff offers commands for parsing a dump file that contains external markup and for internalizing such external markup into an xml file. There is also a command for parsing a file for newlines, which may be useful for debugging." <>
+         progDesc "standoff offers commands for parsing a dump file that contains external markup and for internalizing such external markup into an xml file. There is also a command for getting the positions of the tags of an xml file." <>
          footer "See also: https://github.com/lueck/standoff-mode/ - standoff-mode is a tagger for GNU Emacs.")
 
 main :: IO ()
