@@ -164,7 +164,7 @@ clone, too:
 This not only internalizes the external markup but also inserts a
 processing instruction into the resulting XML, so that the graphical
 elements representing semantic relations will automagically be
-inserted into the nive boilerplate representation of the annotated TEI
+inserted into the nice boilerplate representation of the annotated TEI
 source.
 
 As a second step you have to generate a JSON file containing the
@@ -177,13 +177,13 @@ directory, too. If you have a `custom.css` like explained in the docs
 of TEI Boilerplate, your annotations get colored and semantic
 relations may look like in the screenshot below. When you move your
 mouse over a relation, you will see details in the info box on the
-left: ![Demo of Arc Relations](utils/tei/sample.png)
+right: ![Demo of Arc Relations](utils/tei/sample.png)
 
-Here is a tree of directories and files of your local checkout of
-TEI-Boilerplate and the files described above. `herder.xml` is the
-file generated with the `standoff internalize ...` like above. Open
-this file with firefox or an other browser, that is able to interpret
-the `xsl-stylesheet` processing instruction.
+Below is a tree of directories and files of your local checkout of
+TEI-Boilerplate and the additional files described above. `herder.xml`
+is the file generated with the `standoff internalize ...` like
+above. Open this file with firefox or an other browser, that is able
+to interpret the `xsl-stylesheet` processing instruction.
 
 	TEI-Boilerplate
 	+-- ...
