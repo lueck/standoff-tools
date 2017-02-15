@@ -19,31 +19,28 @@ with files (or a binding to a relational database).
 # Installation #
 
 `standoff-tools` is written in the Haskell programming language. To
-use it, it has to be compiled and linked. Requirements are a the
-[`haskell-platform`](https://www.haskell.org/platform/) and the
-`cabal` package and dependencies manager, which is already included in
-the `haskell-platform`. After having these installed, clone the
-repository and build the command line program in a `cabal sandbox`:
+compile and run it [`stack`](https://haskellstack.org), the
+haskell build tool, is required. After having stack installed, clone
+this `git` repository, `cd` into the new directory and run `stack`:
 
 	$ git clone https://github.com/lueck/standoff-tools.git
 	$ cd standoff-tools
-	$ cabal update
-	$ cabal sandbox init
-	$ cabal install
+	$ stack setup
+	$ stack build
 
 
-To run tests `cabal install` has to be run with the `--enable-tests`
-option.
-
-	$ cabal install  --enable-tests
-	$ cabal test
+To run tests do `stack test`.
 
 # Usage #
 
 ## Commands ##
 
-`cabal install` generates an executable named `standoff`, which offers
-some sub-commands:
+`stack build` generates an executable named `standoff`, which offers
+some sub-commands. Run `standoff` with the `--help` option like
+follow. Everything behind the double hyphen is interpreted as an
+option to `standoff`, not to `stack`.
+
+	$ stack exec standoff -- --help
 
 <pre><code>
 standoff - a tool for handling standoff annotations (aka external markup).
