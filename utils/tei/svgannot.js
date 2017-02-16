@@ -15,7 +15,7 @@ function stretchSvgBody (svgId) {
 		+ bodyWidth + " " + bodyHeight + " "
 		+ bodyPixels); 
     svg.setAttribute("width", bodyWidth);
-    svg.setAttribute("height", Math.min(bodyHeight, maxSvgHeight));
+    svg.setAttribute("height", bodyHeight);
 }
 
 function drawRelations (svgId, relations, animated) {
