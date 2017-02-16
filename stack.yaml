@@ -1,0 +1,7 @@
+resolver: lts-8.0
+packages:
+- '.'
+extra-deps:
+- uuid-aeson-0.1.0.0
+flags: {}
+extra-package-dbs: []
