@@ -13,3 +13,5 @@ dist
 .cabal-sandbox
 cabal.sandbox.config
 .stack-work
+
+doc/examples/*.TEI-P5.xml
