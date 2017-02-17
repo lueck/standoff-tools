@@ -65,7 +65,7 @@ Executable standoff
                    , transformers
                    , bytestring
                    , template-haskell
-  hs-source-dirs:    src
+  hs-source-dirs:    commandline, src
   default-language:  Haskell2010
 
 Test-Suite test-main
@@ -81,5 +81,6 @@ Test-Suite test-main
   build-depends:     HTF >=0.10.1
                    , bytestring
                    , template-haskell
+                   , hxt
   hs-source-dirs:    test, src
   default-language:  Haskell2010

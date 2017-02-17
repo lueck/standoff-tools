@@ -8,9 +8,9 @@ import Data.Aeson (encode, toJSON)
 import qualified Data.ByteString.Lazy as B
 import Language.Haskell.TH.Ppr (bytesToString)
 
-import StandOff.XML.NodeOffsets (xmlDocument)
-import StandOff.XML.LineOffsets (lineOffsets, Position, posOffset)
-import StandOff.ELisp.DumpFile (elDump)
+import StandOff.XML.NodeOffsets (runXmlParser)
+import StandOff.XML.LineOffsets (runLineOffsetParser, Position, posOffset)
+import StandOff.ELisp.DumpFile (runELispDumpParser)
 import StandOff.Internalizer.Internalize (internalize)
 import StandOff.XML.TagSerializer
 import StandOff.XML.AttributeSerializer
@@ -169,21 +169,15 @@ command_ = subparser
        header "standoff offsets - an xml parser returning node positions."))
   )
 
-parseGeneric :: (Monad m, P.Stream s Identity t) => String -> P.Parsec s u a -> u -> P.SourceName -> s -> m a
-parseGeneric err parser state fName contents = do
-  case P.runParser parser state fName contents of
-    Left e -> fail (err ++ " (" ++ fName ++ ") : " ++ (show e))
-    Right r -> return r
-
 run :: Command -> IO ()
 run (Offsets fileName) = do
   c <- readFile fileName
-  offsets <- parseGeneric "Error parsing line lengths" lineOffsets () fileName c
-  offsets' <- parseGeneric "Error parsing XML input" xmlDocument offsets fileName c
-  print offsets'
+  lOffsets <- runLineOffsetParser fileName c
+  nOffsets <- runXmlParser lOffsets fileName c
+  print nOffsets
 run (Dumped oFormat aTypes fileName) = do
   c <- readFile fileName
-  annotations <- parseGeneric "Error parsing elisp dump file" elDump () fileName c
+  annotations <- runELispDumpParser fileName c
   putStr $ formatter $ filter annotationsFilter annotations
   where formatter = case oFormat of
           Just Json -> bytesToString . B.unpack . encode
@@ -202,10 +196,10 @@ run (Internalize
      dumpFile
      xmlFile) = do
   dumpContents <- readFile dumpFile
-  dumped <- parseGeneric "Error parsing elisp dump file" elDump () dumpFile dumpContents
+  dumped <- runELispDumpParser dumpFile dumpContents
   xmlContents <- readFile xmlFile
-  lOffsets <- parseGeneric "Error parsing line lengths" lineOffsets () xmlFile xmlContents
-  xml <- parseGeneric "Error parsing XML input" xmlDocument lOffsets xmlFile xmlContents
+  lOffsets <- runLineOffsetParser xmlFile xmlContents
+  xml <- runXmlParser lOffsets xmlFile xmlContents
   putStr (insertAt
            (internalize
              xmlContents

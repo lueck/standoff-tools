@@ -1,11 +1,7 @@
 module StandOff.XML.NodeOffsets
-  ( parseString
-  , parseFile
-  , xmlDocument
+  ( xmlDocument
+  , runXmlParser
   ) where
-
--- A simple xml parser that prints the positions of tags.  Usage:
--- runhaskell XMLOffsets.hs < document.xml
 
 import Text.Parsec
 import Data.Char (isAlphaNum)
@@ -143,43 +139,21 @@ xmlDocument = do
              Nothing -> pInstr++[tree]
              Just (XMLDeclaration attrs s e) -> [(XMLDeclaration attrs s e)]++pInstr++[tree]
 
-
-parseString :: String -> String -> Either ParseError [XML]
-parseString doc fname =
-  runParser xmlDocument (lineOffsets' doc) fname doc 
-
-
-parseFile :: FilePath -> IO (Either ParseError [XML])
-parseFile fname = do
-  c <- readFile fname
-  return $ runParser xmlDocument (lineOffsets' c) fname c
+-- | Run the parser in the IO monad.
+runXmlParser :: [Int] -> FilePath -> String -> IO [XML]
+runXmlParser offsets location contents = do
+  return $ either (fail . (err++) . show) id $ runParser xmlDocument offsets location contents
+  where
+    err = "Error parsing XML input (" ++ location ++ "): "
 
 
+-- | A simple xml parser that prints the positions of tags.
+--
+-- Usage:
+-- > runhaskell XMLOffsets.hs < document.xml
 main :: IO ()
 main = do
   c <- getContents
-  case parseString c "(stdin)" of
-    Left e -> do putStrLn "Error parsing input:"
-                 print e
-    Right r -> print r
-
-
-main'' :: IO ()
-main'' = do
-  c <- getContents
-  case runParser xmlDocument (lineOffsets' c) "(stdin)" c of
-    Left e -> do putStrLn "Error parsing input:"
-                 print e
-    Right r -> print r
-
-
-main' :: IO ()
-main' = do
-  c <- getContents
-  case runParser lineOffsets () "(offsets)" c of
-    Left err -> do putStrLn "Error parsing line lengths:"
-                   print err
-    Right os -> case runParser xmlNode os "(stdin)" c of
-                  Left e -> do putStrLn "Error parsing input:"
-                               print e
-                  Right r -> print r
+  offsets <- runLineOffsetParser "(stdin)" c
+  rc <- runXmlParser offsets "(stdin)" c
+  print rc

@@ -132,15 +132,20 @@ elDump = do
   skipMany anyChar
   return $ ranges++rels
 
+-- | Run the dump parser in the IO monad.
+runELispDumpParser :: SourceName -> String -> IO [Annotation]
+runELispDumpParser location contents = do
+  return $ either (fail . (err++) . show) id $ parse elDump location contents
+  where
+    err = "Error parsing ELisp dump file (" ++ location ++ "): "
 
-parseDumpString :: String -> String -> Either ParseError [Annotation]
-parseDumpString doc fname =
-  runParser elDump () fname doc
 
+-- | Parse dumped Elisp annotations.
+--
+-- Usage:
+-- > runhaskell DumpFile.hs < INFILE
 main :: IO ()
 main = do
   c <- getContents
-  case parse elDump "(stdin)" c of
-    Left e -> do putStrLn "Error parsing input:"
-                 print e
-    Right r -> print r
+  rc <- runELispDumpParser "stdin" c
+  print c

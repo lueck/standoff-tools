@@ -4,6 +4,7 @@ module StandOff.XML.LineOffsets
   , getOffset
   , Position (..)
   , posOffset
+  , runLineOffsetParser
   ) where
     
 -- The lineOffsets parser returns the offsets of the lines fed to it
@@ -72,11 +73,8 @@ offsetsFromString seen (_:xs) = offsetsFromString (seen + 1) xs
 lineOffsets' :: String -> [Int]
 lineOffsets' s = 0 : offsetsFromString 0 s
 
--- FIXME: no output!
-main :: IO ()
-main = do
-  c <- getContents
-  case parse lineOffsets "(stdin)" c of
-    Left e -> do putStrLn "Error parsing input:"
-                 print e
-    Right r -> print r
+runLineOffsetParser :: String -> String -> IO [Int]
+runLineOffsetParser location contents = do
+  return $ either (fail . (err++) . show) id (parse lineOffsets location contents)
+  where
+    err = "Error parsing line offsets (" ++ location ++ ") :"
