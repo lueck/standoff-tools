@@ -127,6 +127,13 @@ Available options:
 Roadmap: A serializer which takes a map of prefixes is about to be implemented.
 </code></pre>
 
+## Implementation ##
+
+If you are interested in the internalizer's implementation, which is
+based in pure list processing functions instead of a look-ahead
+parser, have a look at
+[`Internalize.hs`](src/StandOff/Internalizer/Internalize.hs).
+
 ## Visualizing annotations and relations in a browser ##
 
 `standoff-tools` comes with some scripts that make it easy to display
