@@ -48,19 +48,19 @@ internal = [ (elm "root" 1 1000
 -- test left-overlapping
 test_internalizeLeftOverlapping = do
   assertEqual 2 (length resolved)
-  assertEqual [(260, 270), (274, 282)] (map spans resolved)
+  assertEqual [(260, 269), (274, 282)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 260 282)
 
 -- test split on right-overlapping and no-split on contain
 test_internalizeRightOverlapping = do
   assertEqual 2 (length resolved)
-  assertEqual [(235, 236), (241, 260)] (map spans resolved)
+  assertEqual [(235, 235), (241, 260)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 235 260)
 
 -- test two splits on left- and right-overlapping
 test_internalizeLeftRightOverlapping = do
   assertEqual 3 (length resolved)
-  assertEqual [(235, 236), (241,270), (274, 282)] (map spans resolved)
+  assertEqual [(235, 235), (241,269), (274, 282)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 235 282)
 
 
