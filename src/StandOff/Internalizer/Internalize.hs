@@ -114,7 +114,7 @@ insClose (a@(tagTyp, annot):as) endTag
 -- Internalize external markup into a document.
 internalize' :: (TextRange a, TextRange b, Tree b) => String -> [b] -> [a] -> (TagType -> a -> String) -> String
 internalize' doc internal external serializer =
-  insertTags' serializer (concatMap (merge internal) nestedInternal) doc 1
+  insertTags' serializer (concatMap (merge internal) nestedInternal) doc 0
   where
     nestedInternal = makeQuasiTree external
 
@@ -138,10 +138,10 @@ insertTags' slize as [] idx =
   ++ concatMap (slize Close) (filter (\a -> ((start a) < idx)
                                              && ((end a) >= idx)) as)
 insertTags' slize as (x:xs) idx =
-  (concatMap (slize Empty) (filter (\a -> ((start a) == idx)
+  {-(concatMap (slize Empty) (filter (\a -> ((start a) == idx)
                                           && ((end a) == idx)) as))
-  ++ (concatMap (slize Close) (reverse (filter (\a -> ((start a) < idx)
-                                                      && ((end a) == idx)) as)))
+  ++ -}(concatMap (slize Close) (reverse (filter (\a -> ((start a) < idx)
+                                                      && (((end a)+1) == idx)) as)))
   ++ (concatMap (slize Open) (filter (\a -> ((start a) == idx)
-                                            && ((end a) > idx)) as))
+                                            && (((end a)+1) > idx)) as))
   ++ (x : insertTags' slize as xs (idx+1))
