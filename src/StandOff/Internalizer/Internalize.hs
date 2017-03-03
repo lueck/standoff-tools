@@ -13,7 +13,7 @@ import StandOff.Internalizer.ResolveOverlapping
 -- Implementation:
 --
 -- 1) Split the annotations with each other, so that there are no
--- overlapping elemnts any more. This is done by a call to
+-- overlapping elements any more. This is done by a call to
 -- 'makeQuasiTree', which returns a list of splitted annotations in
 -- the right order.
 --
@@ -119,8 +119,7 @@ internalize' doc internal external serializer =
     nestedInternal = makeQuasiTree external
 
 -- | Deprecated: This function is very slow because it filters the
--- annotations for each char of the document! It would take
--- @tagsMerged@ in 'internalize'.
+-- annotations for each char of the document!
 --
 -- This actually does the job of inserting tags. We have to revert the
 -- list of closing tags for a position, as long as we deal with list
