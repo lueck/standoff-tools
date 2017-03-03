@@ -63,32 +63,31 @@ insertTags :: (TextRange a) =>
                                        -- tags inserted.
 insertTags _ [] doc _ = doc
 insertTags slize ((tagType, a):as) doc idx
-  -- 1. Insert empty tag. We do nothing here currently. FIXME?
-  | (start a) == (end a)
-  {-= (take dStart doc) ++
-    (slize Empty a) ++
-    insertTags slize as (drop dStart doc) (start a)-}
-  = insertTags slize as doc idx
-  -- 2. Insert open tag
-  -- 2.1 tag follows after some characters from document
+  -- Insertion of an empty tag never occurs. If (start a) equals (end a),
+  -- a is a markup range of length 1 character.
+  -- 1. Insert open tag
+  -- 1.1 tag follows after some characters from document
   | tagType == Open && idx < start a
   = (take dStart doc) ++
     (slize Open a) ++
     (insertTags slize (insClose as a) (drop dStart doc) (start a))
-  -- 2.2 no characters from doc, i.e. idx >= start position of
+  -- 1.2 no characters from doc, i.e. idx >= start position of
   -- tag. Index may be greater, because it may have been incremented
   -- by a preceding closing tag.
   | tagType == Open && idx >= start a
   = (slize Open a) ++
     (insertTags slize (insClose as a) doc idx)
-  -- 3. Insert close tag
-  -- 3.1 Tag follows after some characters from doc
-  | tagType == Close && idx < end a
+  -- 2. Insert close tag
+  -- 2.1 Tag follows after some characters from doc. Note: idx equals
+  -- end for closing tags of markup ranges with length of 1 character,
+  -- because start offset equals end offsets there and idx is start a
+  -- after having inserted the opening tag.
+  | tagType == Close && idx <= end a
   = (take dEnd doc) ++
     (slize Close a) ++
     (insertTags slize as (drop dEnd doc) ((end a)+1))
-  -- 3.2 Tag follows emeadiatly after preceding tag.
-  | tagType == Close && idx >= end a
+  -- 2.2 Tag follows emeadiatly after preceding tag.
+  | tagType == Close && idx > end a
   = (slize Close a) ++
     (insertTags slize as doc idx)
   where
