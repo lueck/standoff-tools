@@ -101,7 +101,7 @@ xmlDecl = do
   attrs <- many1 $ try attributeNode
   spaces
   string "?>"
-  e <- getOffset 0
+  e <- getOffset (-1)
   return $ XMLDeclaration attrs s e
 
 processingInstruction :: Parsec String [Int] XML
@@ -112,7 +112,7 @@ processingInstruction = do
   attrs <- many1 $ try attributeNode
   spaces
   string "?>"
-  e <- getOffset 0
+  e <- getOffset (-1)
   return $ ProcessingInstruction t attrs s e
 
 processingInstructionMaybeSpace :: Parsec String [Int] XML

@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module StandOff.ELisp.DumpFile
   where
 
@@ -71,8 +70,12 @@ markupRange = do
   return $ MarkupRange { rangeId = Nothing
                        , elementId = elemId
                        , markupType = typ
-                       , startOffset = (read start)::Int
-                       , endOffset = (read end)::Int
+                       -- Emacs starts with col 1, so -1 for start offset.
+                       , startOffset = ((read start)::Int) - 1
+                       -- Emacs starts with col 1 and standoff-mode
+                       -- defines the ranges end at the following
+                       -- char, so -2 for end offset.
+                       , endOffset = ((read end)::Int) - 2
                        , text = txt
                        , attributes = Map.empty }
 

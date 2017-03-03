@@ -1,5 +1,6 @@
 module StandOff.Internalizer.Internalize
   ( internalize
+  , internalize'
   ) where
 
 import StandOff.Data.TextRange
@@ -62,24 +63,37 @@ insertTags :: (TextRange a) =>
                                        -- tags inserted.
 insertTags _ [] doc _ = doc
 insertTags slize ((tagType, a):as) doc idx
-  -- insert empty tag
+  -- 1. Insert empty tag. We do nothing here currently. FIXME?
   | (start a) == (end a)
-  = (take dStart doc) ++
+  {-= (take dStart doc) ++
     (slize Empty a) ++
-    insertTags slize as (drop dStart doc) (start a)
-  -- insert open tag
-  | tagType == Open
+    insertTags slize as (drop dStart doc) (start a)-}
+  = insertTags slize as doc idx
+  -- 2. Insert open tag
+  -- 2.1 tag follows after some characters from document
+  | tagType == Open && idx < start a
   = (take dStart doc) ++
     (slize Open a) ++
     (insertTags slize (insClose as a) (drop dStart doc) (start a))
-  -- insert close tag
-  | tagType == Close
+  -- 2.2 no characters from doc, i.e. idx >= start position of
+  -- tag. Index may be greater, because it may have been incremented
+  -- by a preceding closing tag.
+  | tagType == Open && idx >= start a
+  = (slize Open a) ++
+    (insertTags slize (insClose as a) doc idx)
+  -- 3. Insert close tag
+  -- 3.1 Tag follows after some characters from doc
+  | tagType == Close && idx < end a
   = (take dEnd doc) ++
     (slize Close a) ++
-    (insertTags slize as (drop dEnd doc) (end a))
+    (insertTags slize as (drop dEnd doc) ((end a)+1))
+  -- 3.2 Tag follows emeadiatly after preceding tag.
+  | tagType == Close && idx >= end a
+  = (slize Close a) ++
+    (insertTags slize as doc idx)
   where
     dStart = (start a) - idx -- character delta of idx and start of a
-    dEnd = (end a) - idx -- character delta
+    dEnd = (end a) - idx + 1 -- character delta
 
 -- | Insert a Close tag to a list of tags.
 insClose :: (TextRange a) => [(TagType, a)] -> a -> [(TagType, a)]
@@ -94,7 +108,8 @@ insClose (a@(tagTyp, annot):as) endTag
   = (Close, endTag):a:as
   | otherwise = a : (insClose as endTag)
 
--- | Deprecated: Because using slow 'insertTags\''
+-- | Deprecated: Because using slow 'insertTags\''. But it produces
+-- valid xml.
 --
 -- Internalize external markup into a document.
 internalize' :: (TextRange a, TextRange b, Tree b) => String -> [b] -> [a] -> (TagType -> a -> String) -> String

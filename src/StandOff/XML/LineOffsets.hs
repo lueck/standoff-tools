@@ -61,7 +61,10 @@ getOffset cor = do
   pos <- getPosition
   return $ Position { line = sourceLine pos
                     , column = sourceColumn pos
-                    , offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor
+                    -- parsec's column in SourcePos starts with 1, but
+                    -- we say that the first char in a file has offset
+                    -- of 0. So we decrement the offset by 1.
+                    , offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor - 1
                     }
 
 
