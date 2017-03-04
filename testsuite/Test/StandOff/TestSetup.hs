@@ -35,5 +35,5 @@ mRng rid mid typ s e = (A.MarkupRange { A.rangeId = Just $ mkTestUUID rid
                                       , A.markupType = typ
                                       , A.startOffset = s
                                       , A.endOffset = e
-                                      , A.text = ""
+                                      , A.text = Just ""
                                       , A.attributes = Map.empty })
