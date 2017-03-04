@@ -19,7 +19,7 @@ data Annotation
     , markupType :: String       -- ^ the annotation type
     , startOffset :: Int         -- ^ the start character offset
     , endOffset :: Int           -- ^ the end character offset
-    , text :: String             -- ^ the string between 'startOffset' and 'endOffset'
+    , text :: Maybe String       -- ^ the string between 'startOffset' and 'endOffset'
     , attributes :: Map.Map String [String] } -- ^ attributes of the range
   | Relation                     -- ^ a relation between two markup elements 
     { relationId :: UUID         -- ^ the UUID of the relation

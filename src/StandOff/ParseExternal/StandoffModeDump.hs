@@ -76,7 +76,7 @@ markupRange = do
                        -- defines the ranges end at the following
                        -- char, so -2 for end offset.
                        , endOffset = ((read end)::Int) - 2
-                       , text = txt
+                       , text = Just txt
                        , attributes = Map.empty }
 
 markupRanges :: Parsec String () [Annotation]
