@@ -10,7 +10,7 @@ import Language.Haskell.TH.Ppr (bytesToString)
 
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
-import StandOff.ParseExternal.StandoffModeDump (runELispDumpParser)
+import StandOff.External.StandoffModeDump (runELispDumpParser)
 import StandOff.Internalize (internalize)
 import StandOff.TagSerializer
 import StandOff.AttributeSerializer

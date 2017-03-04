@@ -10,7 +10,7 @@ import Text.XML.HXT.Parser.XmlParsec
 import StandOff.ResolveOverlapping
 import StandOff.Internalize
 import StandOff.TextRange
-import StandOff.ParseExternal.StandoffModeDump
+import StandOff.External.StandoffModeDump
 import StandOff.XmlParsec
 import StandOff.LineOffsets
 import StandOff.TagSerializer

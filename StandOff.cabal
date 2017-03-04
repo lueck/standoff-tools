@@ -38,7 +38,7 @@ library
                    , StandOff.TagTypeDefs
                    , StandOff.TagSerializer
                    , StandOff.AttributeSerializer
-                   , StandOff.ParseExternal.StandoffModeDump
+                   , StandOff.External.StandoffModeDump
   -- other-modules:       
   -- other-extensions:    
   build-depends:     base >=4.9 && <4.10

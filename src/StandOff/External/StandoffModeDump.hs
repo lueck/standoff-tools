@@ -1,4 +1,4 @@
-module StandOff.ParseExternal.StandoffModeDump
+module StandOff.External.StandoffModeDump
   where
 
 import Text.Parsec
