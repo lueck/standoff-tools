@@ -1,4 +1,4 @@
-module StandOff.XML.NodeOffsets
+module StandOff.XmlParsec
   ( xmlDocument
   , runXmlParser
   ) where
@@ -6,8 +6,8 @@ module StandOff.XML.NodeOffsets
 import Text.Parsec
 import Data.Char (isAlphaNum)
 
-import StandOff.XML.LineOffsets
-import StandOff.Data.XML
+import StandOff.LineOffsets
+import StandOff.DomTypeDefs
 
 isTagNameCharP :: Char -> Bool
 isTagNameCharP '-' = True

@@ -1,11 +1,11 @@
-module TestSetup where
+module Test.StandOff.TestSetup where
 
 import Data.Map as Map
 import Data.UUID (UUID, fromString, toString)
 
-import StandOff.Data.Annotation as A
-import StandOff.Data.XML as X
-import StandOff.XML.LineOffsets as L
+import StandOff.AnnotationTypeDefs as A
+import StandOff.DomTypeDefs as X
+import StandOff.LineOffsets as L
 
 pos :: Int -> L.Position
 pos p = L.Position {L.offset=p, L.line=1, L.column=1}

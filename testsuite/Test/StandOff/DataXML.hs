@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module TestDataXML (htf_thisModulesTests) where
+module Test.StandOff.DataXML (htf_thisModulesTests) where
 
 import Test.Framework
 
-import StandOff.Data.TextRange
+import StandOff.TextRange
 
-import TestSetup
+import Test.StandOff.TestSetup
 
 test_elementImplementsTextRange = do
   assertEqual 100 (start d)

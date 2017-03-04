@@ -1,9 +1,9 @@
-module StandOff.XML.TagSerializer where
+module StandOff.TagSerializer where
 
 import Data.List
 
-import StandOff.Data.Annotation
-import StandOff.Data.Tag
+import StandOff.AnnotationTypeDefs
+import StandOff.TagTypeDefs
 
 -- Split http://arb.org/schema/Concept or
 -- http://arb.org/schema#Concept to a tuple of namespace and name,

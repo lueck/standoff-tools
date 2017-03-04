@@ -8,15 +8,15 @@ import Data.Aeson (encode, toJSON)
 import qualified Data.ByteString.Lazy as B
 import Language.Haskell.TH.Ppr (bytesToString)
 
-import StandOff.XML.NodeOffsets (runXmlParser)
-import StandOff.XML.LineOffsets (runLineOffsetParser, Position, posOffset)
-import StandOff.ELisp.DumpFile (runELispDumpParser)
-import StandOff.Internalizer.Internalize (internalize)
-import StandOff.XML.TagSerializer
-import StandOff.XML.AttributeSerializer
-import StandOff.Data.Annotation (makeAttributiveRanges, isMarkupRangeP, isRelationP, isPredicateP)
-import StandOff.Data.XML (XML, isXMLDeclarationP, isElementP, xmlSpanning)
-import StandOff.Data.Tag (NSNameValueSerializer(..))
+import StandOff.XmlParsec (runXmlParser)
+import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
+import StandOff.ParseExternal.StandoffModeDump (runELispDumpParser)
+import StandOff.Internalize (internalize)
+import StandOff.TagSerializer
+import StandOff.AttributeSerializer
+import StandOff.AnnotationTypeDefs (makeAttributiveRanges, isMarkupRangeP, isRelationP, isPredicateP)
+import StandOff.DomTypeDefs (XML, isXMLDeclarationP, isElementP, xmlSpanning)
+import StandOff.TagTypeDefs (NSNameValueSerializer(..))
 
 data OutputFormat = Raw
   | Json

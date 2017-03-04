@@ -1,12 +1,12 @@
-module StandOff.XML.AttributeSerializer where
+module StandOff.AttributeSerializer where
 
 import Data.List
 import qualified Data.Map as Map
 import Data.UUID (toString)
 
-import StandOff.Data.Annotation
-import StandOff.Data.Tag
-import StandOff.XML.TagSerializer
+import StandOff.AnnotationTypeDefs
+import StandOff.TagTypeDefs
+import StandOff.TagSerializer
 
 -- very simple serializer
 serializeAttributes' :: Annotation -> String

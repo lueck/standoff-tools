@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module StandOff.Data.Annotation
+module StandOff.AnnotationTypeDefs
   where
 
 import qualified Data.Map as Map
@@ -9,7 +9,7 @@ import Data.UUID (UUID)
 import Data.Aeson
 import Data.UUID.Aeson
 
-import StandOff.Data.TextRange
+import StandOff.TextRange
 
 data Annotation = MarkupRange { rangeId :: Maybe UUID
                               , elementId :: UUID

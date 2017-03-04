@@ -1,4 +1,4 @@
-module StandOff.ELisp.DumpFile
+module StandOff.ParseExternal.StandoffModeDump
   where
 
 import Text.Parsec
@@ -6,7 +6,7 @@ import qualified Data.Map as Map
 import Data.UUID (UUID, fromString)
 import Data.UUID.V4 (nextRandom)
 
-import StandOff.Data.Annotation
+import StandOff.AnnotationTypeDefs
 
 uuid :: Parsec String () UUID
 uuid = do

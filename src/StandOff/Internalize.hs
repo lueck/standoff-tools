@@ -1,12 +1,12 @@
-module StandOff.Internalizer.Internalize
+module StandOff.Internalize
   ( internalize
   , internalize'
   ) where
 
-import StandOff.Data.TextRange
-import StandOff.Data.Tree
-import StandOff.Data.Tag
-import StandOff.Internalizer.ResolveOverlapping
+import StandOff.TextRange
+import StandOff.Tree
+import StandOff.TagTypeDefs
+import StandOff.ResolveOverlapping
 
 -- | Internalize external markup into a document.
 --

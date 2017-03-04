@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module TestInternalizer (htf_thisModulesTests) where
+module Test.StandOff.Internalizer (htf_thisModulesTests) where
 
 import Test.Framework
 import Data.Either
@@ -7,19 +7,19 @@ import Text.Parsec
 import Text.XML.HXT.Parser.XmlCharParser
 import Text.XML.HXT.Parser.XmlParsec
 
-import StandOff.Internalizer.ResolveOverlapping
-import StandOff.Internalizer.Internalize
-import StandOff.Data.TextRange
-import StandOff.ELisp.DumpFile
-import StandOff.XML.NodeOffsets
-import StandOff.XML.LineOffsets
-import StandOff.XML.TagSerializer
-import StandOff.XML.AttributeSerializer
-import StandOff.Data.Tag
-import StandOff.Data.Annotation
-import StandOff.Data.XML
+import StandOff.ResolveOverlapping
+import StandOff.Internalize
+import StandOff.TextRange
+import StandOff.ParseExternal.StandoffModeDump
+import StandOff.XmlParsec
+import StandOff.LineOffsets
+import StandOff.TagSerializer
+import StandOff.AttributeSerializer
+import StandOff.TagTypeDefs
+import StandOff.AnnotationTypeDefs
+import StandOff.DomTypeDefs
 
-import TestSetup
+import Test.StandOff.TestSetup
 
 sampleELisp = "doc/examples/XXX.TEI-P5.dump.el"
 sampleXml = "doc/examples/XXX.TEI-P5.xml"

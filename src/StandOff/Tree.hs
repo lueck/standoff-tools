@@ -1,4 +1,4 @@
-module StandOff.Data.Tree where
+module StandOff.Tree where
 
 -- A Tree is a recursive structure, like an XML element node.
 class Tree a where

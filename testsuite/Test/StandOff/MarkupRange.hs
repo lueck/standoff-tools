@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module TestMarkupRange (htf_thisModulesTests) where
+module Test.StandOff.MarkupRange (htf_thisModulesTests) where
 
 import Test.Framework
 import Data.UUID (toString)
@@ -7,10 +7,10 @@ import Data.Aeson (encode, toJSON)
 import qualified Data.ByteString.Lazy as B
 import Language.Haskell.TH.Ppr (bytesToString)
 
-import StandOff.Data.Annotation
-import StandOff.Data.TextRange
+import StandOff.AnnotationTypeDefs
+import StandOff.TextRange
 
-import TestSetup
+import Test.StandOff.TestSetup
 
 sampleRanges = [ (mRng "a1" "e1" "root" 1 100)
                , (mRng "a2" "e2" "div" 1 20)

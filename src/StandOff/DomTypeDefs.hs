@@ -1,8 +1,8 @@
-module StandOff.Data.XML where
+module StandOff.DomTypeDefs where
 
-import StandOff.XML.LineOffsets
-import qualified StandOff.Data.TextRange as TR
-import StandOff.Data.Tree
+import StandOff.LineOffsets
+import qualified StandOff.TextRange as TR
+import StandOff.Tree
 
 type AttrName = String
 type AttrVal  = String
