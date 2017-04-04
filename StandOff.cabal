@@ -35,10 +35,12 @@ library
                    , StandOff.XmlParsec
                    , StandOff.AnnotationTypeDefs
                    , StandOff.Internalize
+                   , StandOff.ResolveOverlapping
                    , StandOff.TagTypeDefs
                    , StandOff.TagSerializer
                    , StandOff.AttributeSerializer
                    , StandOff.External.StandoffModeDump
+                   , StandOff.Owl
   -- other-modules:       
   -- other-extensions:    
   build-depends:     base >=4.9 && <4.10
@@ -48,11 +50,25 @@ library
                    , uuid >= 1.3.11
                    , aeson
                    , uuid-aeson
+                   , hxt
+                   , cassava
   hs-source-dirs:    src
   default-language:  Haskell2010
 
 Executable standoff
   main-is:           standoff.hs
+  other-modules:     StandOff.TextRange
+                   , StandOff.Tree
+                   , StandOff.DomTypeDefs
+                   , StandOff.LineOffsets
+                   , StandOff.XmlParsec
+                   , StandOff.AnnotationTypeDefs
+                   , StandOff.Internalize
+                   , StandOff.ResolveOverlapping
+                   , StandOff.TagTypeDefs
+                   , StandOff.TagSerializer
+                   , StandOff.AttributeSerializer
+                   , StandOff.External.StandoffModeDump
   build-depends:     base >=4.9 && <4.10
                    , containers >= 0.5.0.0
                    , parsec >=3.1
@@ -60,6 +76,28 @@ Executable standoff
                    , uuid >= 1.3.11
                    , aeson
                    , uuid-aeson
+                   , hxt
+                   , cassava
+  build-depends:     directory >= 1.2.0.1
+                   , optparse-applicative >= 0.12.1.0
+                   , transformers
+                   , bytestring
+                   , template-haskell
+  hs-source-dirs:    commandline, src
+  default-language:  Haskell2010
+
+Executable owlSchema2csv
+  main-is:           owlSchema2csv.hs
+  other-modules:     StandOff.Owl
+  build-depends:     base >=4.9 && <4.10
+                   , containers >= 0.5.0.0
+                   , parsec >=3.1
+                   , text >= 1.2.2.1
+                   , uuid >= 1.3.11
+                   , aeson
+                   , uuid-aeson
+                   , hxt
+                   , cassava
   build-depends:     directory >= 1.2.0.1
                    , optparse-applicative >= 0.12.1.0
                    , transformers
@@ -71,6 +109,23 @@ Executable standoff
 Test-Suite test-main
   type:              exitcode-stdio-1.0
   main-is:           TestMain.hs
+  other-modules:     StandOff.TextRange
+                   , StandOff.Tree
+                   , StandOff.DomTypeDefs
+                   , StandOff.LineOffsets
+                   , StandOff.XmlParsec
+                   , StandOff.AnnotationTypeDefs
+                   , StandOff.Internalize
+                   , StandOff.ResolveOverlapping
+                   , StandOff.TagTypeDefs
+                   , StandOff.TagSerializer
+                   , StandOff.AttributeSerializer
+                   , StandOff.External.StandoffModeDump
+                   , Test.StandOff.DataXML
+                   , Test.StandOff.Internalizer
+                   , Test.StandOff.MarkupRange
+                   , Test.StandOff.TagSerializer
+                   , Test.StandOff.TestSetup
   build-depends:     base  >=4.9 && <4.10
                    , containers >= 0.5.0.0
                    , parsec >=3.1
@@ -78,9 +133,10 @@ Test-Suite test-main
                    , uuid >= 1.3.11
                    , aeson
                    , uuid-aeson
+                   , hxt
+                   , cassava
   build-depends:     HTF >=0.10.1
                    , bytestring
                    , template-haskell
-                   , hxt
   hs-source-dirs:    testsuite, src
   default-language:  Haskell2010
