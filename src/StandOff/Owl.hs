@@ -17,14 +17,14 @@ import qualified Data.Aeson as A
 data Ontology
   = Ontology
     { ontologyId :: Int      -- ^ the ID
-    , namespace :: String    -- ^ the namespace URI of the ontology
-    , version :: String      -- ^ the version string
-    , definition :: String   -- ^ the serialized ontology XML string
+    , iri :: String          -- ^ the the ontology IRI
+    , versionInfo :: String  -- ^ the version info string
+    , xml :: String          -- ^ the serialized ontology XML string
     }
   | OntologyResource
     { ontologyResourceId :: Int -- ^ the ID
     , ontology :: Int        -- ^ the ontology's ID
-    , localName :: String   -- ^ the local name
+    , localName :: String    -- ^ the local name
     , resourceType :: String -- ^ the type
     }
   deriving (Show, Eq, Generic)
@@ -75,9 +75,9 @@ instance Csv.ToRecord Ontology
 -- | When wrapped in 'ReadOwl' 'Ontology' is exported to CSV without
 -- fields that are set by the database.
 instance Csv.ToRecord (ReadOwl Ontology) where
-  toRecord (ReadOwl (Ontology _ ns vsn def))
-    = Csv.record [ Csv.toField ns
-                 , Csv.toField vsn
+  toRecord (ReadOwl (Ontology _ iri vInfo def))
+    = Csv.record [ Csv.toField iri
+                 , Csv.toField vInfo
                  , Csv.toField def ]
   toRecord (ReadOwl (OntologyResource _ _ ln rt))
     = Csv.record [ Csv.toField ln
@@ -90,19 +90,14 @@ data ReadOwl a where
 
 -- * Parsing
 
-poRoot :: IOSArrow XmlTree Ontology
-poRoot =
-  isRoot >>>
-  getOntologyIri &&&
-  (getOntologyVersionInfo `orElse` arr (const "NOVERSION")) &&&
-  getOntologyContents >>>
-  arr3 (Ontology 0)
-
+-- | Get the rdf:about value of the owl:Ontology element, i.e. the
+-- ontology IRI.
 getOntologyIri :: (ArrowXml a) => a XmlTree String
 getOntologyIri =
   deep (hasQName (mkNsName "Ontology" owlNs)) >>>
   getQAttrValue0 (mkNsName "about" rdfNs)
 
+-- | Get the owl:versionInfo from the owl:Ontology element.
 getOntologyVersionInfo :: (ArrowXml a) => a XmlTree String
 getOntologyVersionInfo =
   deep (hasQName (mkNsName "Ontology" owlNs)) >>>
@@ -116,16 +111,34 @@ getOntologyVersionInfo =
 getOntologyContents :: IOSArrow XmlTree String
 getOntologyContents = (getAttrValue0 a_source >>> arrIO readFile)
 
+-- | Filters out elements thats rdf:about identifier is not from the
+-- ontology iri.
+isInOntology :: (ArrowXml a) => String -> a XmlTree XmlTree
+isInOntology iri =
+  (getQAttrValue (mkNsName "about" rdfNs) >>> isA iriPrefixP)
+  `guards` this
+  where
+    iriPrefixP = isJust . (stripPrefix iri)
+
+-- | Make an 'Ontology' from the root element.
+poRoot :: IOSArrow XmlTree Ontology
+poRoot =
+  isRoot >>>
+  getOntologyIri &&&
+  (getOntologyVersionInfo `orElse` arr (const "NOVERSION")) &&&
+  getOntologyContents >>>
+  arr3 (Ontology 0)
+
 -- | owl:Class is parsed into a 'OntologyResource' with 'resourceType'
 -- = \"markup\".
 poOwlClass :: String -> IOSArrow XmlTree Ontology
 poOwlClass ns =
   isElem >>>
   hasQName (mkNsName "Class" owlNs) >>>
-  ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripIri ns)) &&&
-   arr (const "markup")) >>>
-  arr2 (OntologyResource 0 0)
-  -- FIXME: `when` from ns
+  isInOntology ns >>>
+  (((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripIri ns)) &&&
+    arr (const "markup")) >>>
+   arr2 (OntologyResource 0 0))
 
 -- | owl:ObjectProperty is parsed into a 'OntologyResource' with
 -- 'resourceType' = \"relation\".
@@ -133,6 +146,7 @@ poOwlObjectProperty :: String -> IOSArrow XmlTree Ontology
 poOwlObjectProperty ns =
   isElem >>>
   hasQName (mkNsName "ObjectProperty" owlNs) >>>
+  isInOntology ns >>>
   ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripIri ns)) &&&
    arr (const "relation")) >>>
   arr2 (OntologyResource 0 0)
@@ -143,6 +157,7 @@ poOwlDatatypeProperty :: String -> IOSArrow XmlTree Ontology
 poOwlDatatypeProperty ns =
   isElem >>>
   hasQName (mkNsName "DatatypeProperty" owlNs) >>>
+  isInOntology ns >>>
   ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripIri ns)) &&&
    arr (const "attribute")) >>>
   arr2 (OntologyResource 0 0)
