@@ -169,7 +169,7 @@ poOntology = poOntology' $< getOntologyIri
 poOntology' :: String -> IOSArrow XmlTree Ontology
 poOntology' ns =
   poRoot <+>
-  (this //> multi (poOntology'' ns))
+  multi (poOntology'' ns)
 
 poOntology'' :: String -> IOSArrow XmlTree Ontology
 poOntology'' ns =
