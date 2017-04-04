@@ -2,9 +2,11 @@
 import System.IO
 import Options.Applicative
 import Data.Monoid ((<>))
+import Data.Char
 import qualified Text.Parsec as P
 import Data.Functor.Identity (Identity)
 import Data.Aeson (encode, toJSON)
+import qualified Data.Csv as Csv
 import qualified Data.ByteString.Lazy as B
 import Language.Haskell.TH.Ppr (bytesToString)
 
@@ -17,6 +19,7 @@ import StandOff.AttributeSerializer
 import StandOff.AnnotationTypeDefs (makeAttributiveRanges, isMarkupRangeP, isRelationP, isPredicateP)
 import StandOff.DomTypeDefs (XML, isXMLDeclarationP, isElementP, xmlSpanning)
 import StandOff.TagTypeDefs (NSNameValueSerializer(..))
+import StandOff.Owl
 
 
 -- * The commands of the @standoff@ commandline program.
@@ -26,6 +29,10 @@ data Command
   = Offsets String
   | Dumped OutputFormat AnnotationTypes String
   | Internalize TagSerializer AttrSerializer (Maybe String) String String
+  | Owl2Csv
+    { ontologyFilter :: OntologyFilter
+    , csvDelimiter :: String
+    , inFile :: String }
   deriving (Eq, Show)
 
 -- | Parser for the commands of the standoff commandline program.
@@ -34,6 +41,7 @@ command_ = subparser
   ( command "dumped" dumpedInfo_
     <> command "internalize" internalizeInfo_
     <> command "offsets" offsetsInfo_
+    <> command "owl2csv" owl2csvInfo_
   )
 
 
@@ -166,6 +174,36 @@ internalizeInfo_ =
      <> footer "Roadmap: A serializer which takes a map of prefixes is about to be implemented."))
 
 
+-- * The @owl2csv@ command.
+
+data OntologyFilter = Ontology' | OntologyResource'
+  deriving (Show, Eq)
+
+owl2csv_ :: Parser Command
+owl2csv_ = Owl2Csv
+  <$> (flag' OntologyResource'
+        (long "resource"
+          <> short 'r'
+          <> help "Parse the owl:Class, owl:ObjectProperty and owl:DatatypeProperty to ontology resources.")
+       <|>
+       flag OntologyResource' Ontology'
+        (long "ontology"
+          <> short 'o'
+          <> help "Parse the whole ontology to single CSV line."))
+  <*> strOption (long "csv-delimiter"
+                  <> help "Delimiter for CSV output. Defaults to ',' (comma)."
+                  <> value ","
+                  <> metavar "CHAR")
+  <*> argument str (metavar "INFILE")
+
+owl2csvInfo_ :: ParserInfo Command
+owl2csvInfo_ =
+  info (helper <*> owl2csv_)
+  ( fullDesc
+    <> progDesc "Minimalistic conversion from OWL to CSV for standoff database."
+    <> header "standoff owl2csv - Converts OWL to CSV as needed by standoff database.")
+
+
 -- * The @standoff@ commandline program.
 
 run :: Command -> IO ()
@@ -219,6 +257,17 @@ run (Internalize
           | otherwise = 0
           where decl = filter isXMLDeclarationP xml
         idAttrSlizer = (serializeAttributes (Just rangeIdAttr) (Just elementIdAttr))
+run (Owl2Csv ontFilter csvDelimiter inFile) = do
+  parsed <- runOwlParser inFile
+  B.putStr $ Csv.encodeWith csvOpts $ map ReadOwl $ filter (predicate ontFilter) parsed
+  where
+    csvOpts = Csv.defaultEncodeOptions {
+      Csv.encDelimiter = fromIntegral $ ord $ head csvDelimiter
+      }
+    predicate :: OntologyFilter -> (Ontology -> Bool)
+    predicate (Ontology') = isOntology
+    predicate (OntologyResource') = isOntologyResource
+
 
 opts :: ParserInfo Command
 opts = info
