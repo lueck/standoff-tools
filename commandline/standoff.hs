@@ -29,21 +29,13 @@ data AnnotationTypes = AllAnnotations
   | ButRanges
   deriving (Eq, Show)
 
-data TagSerializer = Simple
-  | Namespace String
-  | Span String String
-  | TEI
-  deriving (Eq, Show)
-
-data AttrSerializer = AttrSerializer String String
-  deriving (Eq, Show)
-
 data Options = Options
   { optCommand :: Command
   } deriving (Eq, Show) 
 
-data Command = Offsets String
-  | Dumped (Maybe OutputFormat) (Maybe AnnotationTypes) String
+data Command
+  = Offsets String
+  | Dumped OutputFormat AnnotationTypes String
   | Internalize TagSerializer AttrSerializer (Maybe String) String String
   deriving (Eq, Show)
 
@@ -91,8 +83,29 @@ offsets_ = Offsets <$> argument str (metavar "FILE")
 
 dumped_ :: Parser Command
 dumped_ = Dumped
-  <$> optional outputFormat_
-  <*> optional annotationTypes_
+  <$> (flag' Json
+       (short 'j'
+        <> long "json-output"
+        <> help "JSON output format")
+       <|>
+       flag Json Raw
+        (short 'w'
+         <> long "raw-output"
+         <> help "Raw output format"))
+  <*> ((flag' Ranges
+        (short 'r'
+         <> long "ranges"
+         <> help "Filter the output, so that only markup ranges are returned. This is the default."))
+       <|>
+       (flag' Relations
+        (short 'l'
+         <> long "relations"
+         <> help "Filter the output, so that relations are returned."))
+       <|>
+       (flag Ranges Predicates
+        (short 'p'
+          <> long "predicates"
+          <> help "Filter the output, so that only literal predicates are returned.")))
   <*> argument str (metavar "FILE")
 
 attrSerializer_ :: Parser AttrSerializer
@@ -139,6 +152,15 @@ teiSerializer_ =
               <> long "tei"
               <> help "Conveniance for \"-n span rendition\". This seems to be working good for TEI P5 source files.")
 
+data TagSerializer = Simple
+  | Namespace String
+  | Span String String
+  | TEI
+  deriving (Eq, Show)
+
+data AttrSerializer = AttrSerializer String String
+  deriving (Eq, Show)
+
 internalize_ :: Parser Command
 internalize_ = Internalize
   <$> tagSerializer_
@@ -180,13 +202,13 @@ run (Dumped oFormat aTypes fileName) = do
   annotations <- runELispDumpParser fileName c
   putStr $ formatter $ filter annotationsFilter annotations
   where formatter = case oFormat of
-          Just Json -> bytesToString . B.unpack . encode
+          Json -> bytesToString . B.unpack . encode
           otherwise -> show
         annotationsFilter = case aTypes of
-          Just Ranges -> isMarkupRangeP
-          Just Relations -> isRelationP
-          Just Predicates -> isPredicateP
-          Just ButRanges -> isRelationP -- FIXME: as soon as we have Predicates
+          Ranges -> isMarkupRangeP
+          Relations -> isRelationP
+          Predicates -> isPredicateP
+          ButRanges -> isRelationP -- FIXME: as soon as we have Predicates
           otherwise -> isAnnotationP
         isAnnotationP _ = True
 run (Internalize
