@@ -93,16 +93,28 @@ data ReadOwl a where
 poRoot :: IOSArrow XmlTree Ontology
 poRoot =
   isRoot >>>
-  (getOntologyNsUri &&&
-   (arr (const "FIXME: Version")) &&&
-   (arr (const "FIXME: definition"))) >>>
+  getOntologyIri &&&
+  (getOntologyVersionInfo `orElse` arr (const "NOVERSION")) &&&
+  getOntologyContents >>>
   arr3 (Ontology 0)
 
-getOntologyNsUri :: (ArrowXml a) => a XmlTree String
-getOntologyNsUri =
-  this //>
-  hasQName (mkNsName "Ontology" owlNs) >>>
+getOntologyIri :: (ArrowXml a) => a XmlTree String
+getOntologyIri =
+  deep (hasQName (mkNsName "Ontology" owlNs)) >>>
   getQAttrValue0 (mkNsName "about" rdfNs)
+
+getOntologyVersionInfo :: (ArrowXml a) => a XmlTree String
+getOntologyVersionInfo =
+  deep (hasQName (mkNsName "Ontology" owlNs)) >>>
+  getChildren >>>
+  hasQName (mkNsName "versionInfo" owlNs) >>>
+  getChildren >>>
+  getText
+
+-- FIXME: Is readFile sufficient, or do we need handlers for stdin,
+-- http, https etc.?
+getOntologyContents :: IOSArrow XmlTree String
+getOntologyContents = (getAttrValue0 a_source >>> arrIO readFile)
 
 -- | owl:Class is parsed into a 'OntologyResource' with 'resourceType'
 -- = \"markup\".
@@ -110,7 +122,7 @@ poOwlClass :: String -> IOSArrow XmlTree Ontology
 poOwlClass ns =
   isElem >>>
   hasQName (mkNsName "Class" owlNs) >>>
-  ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripNsUri ns)) &&&
+  ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripIri ns)) &&&
    arr (const "markup")) >>>
   arr2 (OntologyResource 0 0)
   -- FIXME: `when` from ns
@@ -121,7 +133,7 @@ poOwlObjectProperty :: String -> IOSArrow XmlTree Ontology
 poOwlObjectProperty ns =
   isElem >>>
   hasQName (mkNsName "ObjectProperty" owlNs) >>>
-  ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripNsUri ns)) &&&
+  ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripIri ns)) &&&
    arr (const "relation")) >>>
   arr2 (OntologyResource 0 0)
 
@@ -131,13 +143,13 @@ poOwlDatatypeProperty :: String -> IOSArrow XmlTree Ontology
 poOwlDatatypeProperty ns =
   isElem >>>
   hasQName (mkNsName "DatatypeProperty" owlNs) >>>
-  ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripNsUri ns)) &&&
+  ((getQAttrValue0 (mkNsName "about" rdfNs) >>> arr (stripIri ns)) &&&
    arr (const "attribute")) >>>
   arr2 (OntologyResource 0 0)
 
 -- | Parse root or class or object property or ...
 poOntology :: IOSArrow XmlTree Ontology
-poOntology = poOntology' $< getOntologyNsUri
+poOntology = poOntology' $< getOntologyIri
 
 poOntology' :: String -> IOSArrow XmlTree Ontology
 poOntology' ns =
@@ -151,8 +163,8 @@ poOntology'' ns =
   poOwlDatatypeProperty ns
 
 -- FIXME: Really always drop 1?
-stripNsUri :: String -> String -> String
-stripNsUri ns qName =
+stripIri :: String -> String -> String
+stripIri ns qName =
   fromMaybe qName $ fmap (drop 1) $ stripPrefix ns qName
 
 -- | Run the owl parser in the IO monad.
