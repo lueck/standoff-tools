@@ -141,9 +141,9 @@ getRdfAbout = getQAttrValue0 (mkNsName "about" rdfNs)
 -- slash.
 getNamespaceDelimiter :: (ArrowXml a) => String -> a XmlTree (Maybe String)
 getNamespaceDelimiter ns =
-  deep (isElem >>>
-        hasNameWith ((/="ontology") . (map toLower) . localPart) >>>
-        isInOntology ns) >>>
+  single (deep (isElem >>>
+                hasNameWith ((/="ontology") . (map toLower) . localPart) >>>
+                isInOntology ns)) >>>
   -- FIXME: Should we (takeWhile isPunctuation) instead of (take 1)?
   getRdfAbout >>> arr ((fmap (take 1)) . (stripPrefix ns))
 
@@ -157,7 +157,7 @@ getPrefix ns =
   isAttr >>>
   -- filter out default namespace
   hasNameWith ((/= "xmlns") . (map toLower) . localPart) >>>
-  -- filter the namespace = ns(#|/) 
+  -- filter out namespace = ns, but not namespace = ns(#|/)
   ((xshow getChildren >>> isA (`elem` [ns++"#", ns++"/"])) `guards` this) >>>
   getQName >>> arr (Just . localPart)
 
