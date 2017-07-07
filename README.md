@@ -132,7 +132,7 @@ Roadmap: A serializer which takes a map of prefixes is about to be implemented.
 If you are interested in the internalizer's implementation, which is
 based in pure list processing functions instead of a look-ahead
 parser, have a look at
-[`Internalize.hs`](src/StandOff/Internalizer/Internalize.hs).
+[`Internalize.hs`](src/StandOff/Internalize.hs).
 
 ## Visualizing annotations and relations in a browser ##
 
