@@ -22,7 +22,7 @@ data Annotation
     , text :: Maybe String       -- ^ the string between 'startOffset' and 'endOffset'
     , attributes :: Map.Map String [String] } -- ^ attributes of the range
   | Relation                     -- ^ a relation between two markup elements 
-    { relationId :: UUID         -- ^ the UUID of the relation
+    { relationId :: Maybe UUID   -- ^ the UUID of the relation
     , subject :: UUID            -- ^ the UUID of the markup element
                                  -- which is the relation's subject
     , predicate :: String        -- ^ the relation's predicate
@@ -79,6 +79,21 @@ rangeEndOffset (MarkupRange _ _ _ _ e _ _) = e
 
 rangeAttributes :: Annotation -> Map.Map String [String]
 rangeAttributes (MarkupRange _ _ _ _ _ _ attrs) = attrs
+
+
+-- * Getting the record fields of a 'Relation'.
+
+relationRelationId :: Annotation -> Maybe UUID
+relationRelationId (Relation rid _ _ _) = rid
+
+relationSubject :: Annotation -> UUID
+relationSubject (Relation _ s _ _) = s
+
+relationPredicate :: Annotation -> String
+relationPredicate (Relation _ _ p _) = p
+
+relationObject :: Annotation -> UUID
+relationObject (Relation _ _ _ o) = o
 
 
 -- * Handling attributes

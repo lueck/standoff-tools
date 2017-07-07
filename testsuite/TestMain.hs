@@ -7,6 +7,7 @@ import {-@ HTF_TESTS @-} Test.StandOff.MarkupRange
 import {-@ HTF_TESTS @-} Test.StandOff.DataXML
 import {-@ HTF_TESTS @-} Test.StandOff.TagSerializer
 import {-@ HTF_TESTS @-} Test.StandOff.Internalizer
+import {-@ HTF_TESTS @-} Test.StandOff.External.StandoffModeDump
 
 main = htfMain htf_importedTests
 

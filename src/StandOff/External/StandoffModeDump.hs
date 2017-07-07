@@ -55,6 +55,8 @@ markupRange = do
   spaces
   elemId <- uuid
   spaces
+  rangeId <- optionMaybe $ try uuid
+  spaces
   typ <- quoteString
   spaces
   start <- manyTill digit space
@@ -67,7 +69,7 @@ markupRange = do
   spaces
   char ')'
   spaces
-  return $ MarkupRange { rangeId = Nothing
+  return $ MarkupRange { rangeId = rangeId
                        , elementId = elemId
                        , markupType = typ
                        -- Emacs starts with col 1, so -1 for start offset.
@@ -76,7 +78,7 @@ markupRange = do
                        -- defines the ranges end at the following
                        -- char, so -2 for end offset.
                        , endOffset = ((read end)::Int) - 2
-                       , text = Just txt
+                       , text = Nothing -- Just txt -- Drop the text
                        , attributes = Map.empty }
 
 markupRanges :: Parsec String () [Annotation]
@@ -93,9 +95,9 @@ relation :: Parsec String () Annotation
 relation = do
   char '('
   spaces
-  relId <- uuid
+  firstUuid <- uuid
   spaces
-  subj <- uuid
+  secondUuid <- optionMaybe $ try uuid
   spaces
   predicat <- quoteString
   spaces
@@ -107,10 +109,15 @@ relation = do
   spaces
   char ')'
   spaces
-  return $ Relation { relationId = relId
-                    , subject = subj
-                    , predicate = predicat
-                    , object = obj }
+  case (secondUuid) of
+    Nothing -> return $ Relation { relationId = Nothing
+                                 , subject = firstUuid
+                                 , predicate = predicat
+                                 , object = obj }
+    Just subj -> return $ Relation { relationId = Just firstUuid
+                                   , subject = subj
+                                   , predicate = predicat
+                                   , object = obj }
 
 relations :: Parsec String () [Annotation]
 relations = do

@@ -107,6 +107,7 @@ Test-Suite test-main
                    , Test.StandOff.Internalizer
                    , Test.StandOff.MarkupRange
                    , Test.StandOff.TagSerializer
+                   , Test.StandOff.External.StandoffModeDump
                    , Test.StandOff.TestSetup
   build-depends:     base  >=4.9 && <4.10
                    , containers >= 0.5.0.0
