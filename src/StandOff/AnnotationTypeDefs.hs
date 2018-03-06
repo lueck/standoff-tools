@@ -7,7 +7,7 @@ import qualified Data.Map as Map
 import GHC.Generics
 import Data.UUID (UUID)
 import Data.Aeson
-import Data.UUID.Aeson
+-- import Data.UUID.Aeson -- we use aeson >= 1.1
 
 import StandOff.TextRange
 
