@@ -68,18 +68,22 @@ before x y = (end x <= start y)
 behind :: TextRange a => a -> a -> Bool
 behind x y = (start x >= end y)
 
--- | length
-len :: TextRange a => a -> Int
-len x = (end x) - (start x)
-
+-- | left-split first range by second range
 leftSplit :: TextRange a => a -> a -> (a, a)
 leftSplit x y = split x $ fst $ splitPoints y
 
+-- | right-split first range by second range
 rightSplit :: TextRange a => a -> a -> (a, a)
 rightSplit x y = split x $ snd $ splitPoints y
 
+-- | sort a list of text ranges
 sortTextRanges :: (TextRange a) => [a] -> [a]
 sortTextRanges ranges = sortBy compareRanges ranges
   where compareRanges x y
           | start x == start y = end y `compare` end x
           | otherwise = start x `compare` start y
+
+-- DEPRECATED:
+-- | length
+len :: TextRange a => a -> Int
+len x = (end x) - (start x)
