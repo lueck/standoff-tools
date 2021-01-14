@@ -1,7 +1,6 @@
-resolver: lts-7.24
+resolver: lts-9.21
 packages:
 - '.'
-extra-deps:
-- uuid-aeson-0.1.0.0
+extra-deps: []
 flags: {}
 extra-package-dbs: []

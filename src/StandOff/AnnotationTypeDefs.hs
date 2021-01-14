@@ -5,9 +5,8 @@ module StandOff.AnnotationTypeDefs
 
 import qualified Data.Map as Map
 import GHC.Generics
-import Data.UUID (UUID)
+import Data.UUID.Types (UUID)
 import Data.Aeson
--- import Data.UUID.Aeson -- we use aeson >= 1.1
 
 import StandOff.TextRange
 
@@ -38,8 +37,8 @@ instance TextRange (Annotation) where
       , (MarkupRange rid eid typ s2 e2 txt attrs))
       -- FIXME: add attributes with info about split
 
-instance ToJSON Annotation where
-  toEncoding = genericToEncoding defaultOptions
+instance ToJSON Annotation
+
 
 -- * Predicates to be used by filters.
 

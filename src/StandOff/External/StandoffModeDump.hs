@@ -3,8 +3,7 @@ module StandOff.External.StandoffModeDump
 
 import Text.Parsec
 import qualified Data.Map as Map
-import Data.UUID (UUID, fromString)
-import Data.UUID.V4 (nextRandom)
+import Data.UUID.Types hiding (nil)
 
 import StandOff.AnnotationTypeDefs
 

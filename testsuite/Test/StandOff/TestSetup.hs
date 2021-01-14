@@ -1,7 +1,7 @@
 module Test.StandOff.TestSetup where
 
 import Data.Map as Map
-import Data.UUID (UUID, fromString, toString)
+import Data.UUID.Types (UUID, fromString, toString)
 
 import StandOff.AnnotationTypeDefs as A
 import StandOff.DomTypeDefs as X

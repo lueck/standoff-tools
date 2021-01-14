@@ -8,7 +8,7 @@ import StandOff.External.StandoffModeDump
 
 import Test.StandOff.TestSetup
 
-import Data.UUID (UUID, toString, fromString)
+import Data.UUID.Types (UUID, toString, fromString)
 import Text.Parsec (parse)
 import Data.Maybe
 
