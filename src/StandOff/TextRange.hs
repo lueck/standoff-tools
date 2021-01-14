@@ -1,37 +1,82 @@
-module StandOff.TextRange where
+module StandOff.TextRange
+  ( Position
+  , TextRange(..)
+  -- * Analyse relative position of two ranges
+  , (<<>>)
+  , leftOverlaps
+  , rightOverlaps
+  , before
+  , behind
+  -- * Splitting
+  , leftSplit
+  , rightSplit
+  -- * Sorting (Preprocessing)
+  , sortTextRanges
+  -- * Extra
+  , len
+  )
+where
 
 import Data.List
 
 type Position = Int
 
--- A new instance of TextRange just has to define `start`, `end`,
--- `split` and maybe `splitPoints`.
+-- | A range in a text given by start and end point.
 class TextRange a where
-  (<<>>) :: a -> a -> Bool -- contains
-  leftOverlaps :: a -> a -> Bool -- left-overlaps
-  rightOverlaps :: a -> a -> Bool -- right-overlaps
-  before :: a -> a -> Bool -- before
-  behind :: a -> a -> Bool -- behind
-  start :: a -> Position -- start position
-  end :: a -> Position -- end position
-  spans :: a -> (Position, Position) -- tuple of start and end position
-  len :: a -> Int -- length
-  split :: a -> (Position, Position) -> (a, a)
-  splitPoints :: a -> ((Position, Position), (Position, Position))
-  leftSplit :: a -> a -> (a, a)
-  rightSplit :: a -> a -> (a, a)
-  x <<>> y = (start x <= start y) && (end x >= end y)
-  leftOverlaps x y = (start x < start y) && (end x < end y) && (end x > start y) 
-  rightOverlaps x y = (start x > start y) && (end x > end y) && (start x < end y)
-  before x y = (end x <= start y)
-  behind x y = (start x >= end y)
+  {-# MINIMAL start, end, split | spans, split #-}
+
+   -- | start position
+  start :: a -> Position
+  start = fst . spans
+
+  -- | end position
+  end :: a -> Position
+  end = snd . spans
+
+  -- | tuple of start and end position
+  spans :: a -> (Position, Position)
   spans x = ((start x), (end x))
-  len x = (end x) - (start x)
+
+  -- | split a range at a given positions (start and end of an other
+  -- range) into two ranges
+  split :: a -> (Position, Position) -> (a, a)
+
+  -- | return split points
+  splitPoints :: a -> ((Position, Position), (Position, Position))
   splitPoints x = ((s, s), (e, e))
     where s = start x
           e = end x
-  leftSplit x y = split x $ fst $ splitPoints y
-  rightSplit x y = split x $ snd $ splitPoints y
+
+
+-- | contains
+(<<>>) :: TextRange a => a -> a -> Bool
+x <<>> y = (start x <= start y) && (end x >= end y)
+
+-- | left-overlaps
+leftOverlaps :: TextRange a => a -> a -> Bool
+leftOverlaps x y = (start x < start y) && (end x < end y) && (end x > start y)
+
+-- | right-overlaps
+rightOverlaps :: TextRange a => a -> a -> Bool
+rightOverlaps x y = (start x > start y) && (end x > end y) && (start x < end y)
+
+-- | before
+before :: TextRange a => a -> a -> Bool
+before x y = (end x <= start y)
+
+-- | behind
+behind :: TextRange a => a -> a -> Bool
+behind x y = (start x >= end y)
+
+-- | length
+len :: TextRange a => a -> Int
+len x = (end x) - (start x)
+
+leftSplit :: TextRange a => a -> a -> (a, a)
+leftSplit x y = split x $ fst $ splitPoints y
+
+rightSplit :: TextRange a => a -> a -> (a, a)
+rightSplit x y = split x $ snd $ splitPoints y
 
 sortTextRanges :: (TextRange a) => [a] -> [a]
 sortTextRanges ranges = sortBy compareRanges ranges
