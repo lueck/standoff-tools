@@ -2,7 +2,7 @@
 module Test.StandOff.MarkupRange (htf_thisModulesTests) where
 
 import Test.Framework
-import Data.UUID (toString)
+import Data.UUID.Types (toString)
 import Data.Aeson (encode, toJSON)
 import qualified Data.ByteString.Lazy as B
 import Language.Haskell.TH.Ppr (bytesToString)

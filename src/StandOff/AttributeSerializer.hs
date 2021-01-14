@@ -2,7 +2,7 @@ module StandOff.AttributeSerializer where
 
 import Data.List
 import qualified Data.Map as Map
-import Data.UUID (toString)
+import Data.UUID.Types (toString)
 
 import StandOff.AnnotationTypeDefs
 import StandOff.TagTypeDefs

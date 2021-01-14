@@ -1,12 +1,12 @@
 name:                StandOff
-version:             0.0.2.0
+version:             0.0.2.1
 synopsis:            Tools for managing stand-off markup.
 homepage:            https://github.com/lueck/standoff-tools/
 license:             GPL-3
 license-file:        LICENSE
 author:              Christian Lück
 maintainer:          christian.lueck@ruhr-uni-bochum.de
-copyright:           Christian Lück, 2016
+copyright:           Christian Lück, 2016, 2021
 category:            Text
 build-type:          Simple
 extra-source-files:  ChangeLog.md
@@ -47,9 +47,8 @@ library
                    , containers
                    , parsec
                    , text
-                   , uuid >= 1.3.11
+                   , uuid-types
                    , aeson >= 1.1
-                   --, uuid-aeson
                    , hxt
                    , cassava
                    , bytestring
@@ -75,9 +74,8 @@ Executable standoff
                    , containers >= 0.5.0.0
                    , parsec >=3.1
                    , text >= 1.2.2.1
-                   , uuid >= 1.3.11
+                   , uuid-types
                    , aeson >= 1.1
-                   --, uuid-aeson
                    , hxt
                    , cassava
                    , bytestring
@@ -113,9 +111,8 @@ Test-Suite test-main
                    , containers >= 0.5.0.0
                    , parsec >=3.1
                    , text >= 1.2.2.1
-                   , uuid >= 1.3.11
+                   , uuid-types
                    , aeson >= 1.1
-                   --, uuid-aeson
                    , hxt
                    , cassava
                    , bytestring
