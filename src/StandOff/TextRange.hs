@@ -2,6 +2,7 @@ module StandOff.TextRange
   ( Position
   , TextRange(..)
   -- * Analyse relative position of two ranges
+  , contains
   , (<<>>)
   , leftOverlaps
   , rightOverlaps
@@ -49,23 +50,28 @@ class TextRange a where
 
 
 -- | contains
-(<<>>) :: TextRange a => a -> a -> Bool
+contains :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+contains x y = (start x <= start y) && (end x >= end y)
+
+-- | like 'contains', but iconic name
+(<<>>) :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 x <<>> y = (start x <= start y) && (end x >= end y)
+{-# DEPRECATED (<<>>) "Use contains" #-}
 
 -- | left-overlaps
-leftOverlaps :: TextRange a => a -> a -> Bool
+leftOverlaps :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 leftOverlaps x y = (start x < start y) && (end x < end y) && (end x > start y)
 
 -- | right-overlaps
-rightOverlaps :: TextRange a => a -> a -> Bool
+rightOverlaps :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 rightOverlaps x y = (start x > start y) && (end x > end y) && (start x < end y)
 
 -- | before
-before :: TextRange a => a -> a -> Bool
+before :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 before x y = (end x <= start y)
 
 -- | behind
-behind :: TextRange a => a -> a -> Bool
+behind :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 behind x y = (start x >= end y)
 
 -- | left-split first range by second range
@@ -83,7 +89,8 @@ sortTextRanges ranges = sortBy compareRanges ranges
           | start x == start y = end y `compare` end x
           | otherwise = start x `compare` start y
 
--- DEPRECATED:
+
 -- | length
 len :: TextRange a => a -> Int
 len x = (end x) - (start x)
+{-# DEPRECATED len "Don't use len. It prevents making 'Position' abstract." #-}
