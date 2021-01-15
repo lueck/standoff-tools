@@ -8,6 +8,9 @@ module StandOff.TextRange
   , rightOverlaps
   , before
   , behind
+  , startsBefore
+  , endsBehind
+  , spansEq
   -- * Splitting
   , leftSplit
   , rightSplit
@@ -73,6 +76,15 @@ before x y = (end x <= start y)
 -- | behind
 behind :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 behind x y = (start x >= end y)
+
+startsBefore :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+startsBefore x y = (start x) < (start y)
+
+endsBehind :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+endsBehind x y = (end x) > (end y)
+
+spansEq :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+spansEq x y = spans x == spans y
 
 -- | left-split first range by second range
 leftSplit :: TextRange a => a -> a -> (a, a)
