@@ -11,7 +11,7 @@ test_elementImplementsTextRange = do
   assertEqual 100 (start d)
   assertEqual 200 (end d)
   assertEqual (100, 200) (spans d)
-  assertEqual ((100, 104), (195, 200)) (splitPoints d)
+  assertEqual ((99, 105), (194, 201)) (splitPoints d)
   assertEqual 100 (len d)
   assertThrowsSome (split d)
   assertThrowsSome (leftSplit d (elm "x" 120 350 []))

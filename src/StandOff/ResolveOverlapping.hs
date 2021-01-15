@@ -54,10 +54,4 @@ merge (x:xs) a
   | otherwise = error "Could not resolve overlapping!"
   where rightSplit' = split a $ snd $ splitPoints'
         leftSplit' = split a $ fst $ splitPoints'
-        splitPoints' = correctSndStart $ splitPoints x
-        -- Split points have to be corrected. The first part of the
-        -- split should always end right before the open tag and the
-        -- second part of the split should always start right after a
-        -- tag, but not at the position of the tags last char.  FIXME:
-        -- Should we do that on the implementation of splitPoints?
-        correctSndStart ((f1, f2), (s1, s2)) = ((f1-1, f2+1), (s1-1, s2+1))
+        splitPoints' = splitPoints x

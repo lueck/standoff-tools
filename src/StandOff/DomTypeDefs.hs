@@ -41,7 +41,12 @@ myMapTuple f (a1, a2) = (f a1, f a2)
 instance TR.TextRange XML where
   start x = posOffset $ fst $ xmlSpanning x
   end x = posOffset $ snd $ xmlSpanning x
-  splitPoints x = ((so, eo), (sc, ec))
+  -- Split points have to be corrected. The first part of the split
+  -- should always end right before the open tag and the second part
+  -- of the split should always start right after a tag, but not at
+  -- the position of the tags last char. FIXME: Is this correct for
+  -- all markup types?
+  splitPoints x = ((so-1, eo+1), (sc-1, ec+1))
     where (so, eo) = myMapTuple posOffset $ elementOpenTagPosition x
           (sc, ec) = myMapTuple posOffset $ elementCloseTagPosition x
   split _ = error "Cannot split internal markup"
