@@ -1,5 +1,6 @@
 module StandOff.TextRange
   ( Position
+  , MainSplit(..)
   , TextRange(..)
   -- * Analyse relative position of two ranges
   , contains
@@ -35,6 +36,13 @@ import StandOff.Tree
 -- | A position
 type Position = Int
 
+-- | A choice which of two text ranges returned by 'split' should be
+-- the main one, e.g. have the ID. Most of the time, this is the first
+-- split, but there are occasions, where the first split is dropped,
+-- so the unique attributes of the text range must go to the second
+-- split.
+data MainSplit = FstSplit | SndSplit
+
 -- | A range in a text given by start and end point.
 class TextRange a where
   {-# MINIMAL start, end, split | spans, split #-}
@@ -53,7 +61,7 @@ class TextRange a where
 
   -- | split a range at a given positions (start and end of an other
   -- range) into two ranges
-  split :: a -> (Position, Position) -> (a, a)
+  split :: MainSplit -> a -> (Position, Position) -> (a, a)
 
   -- | return split points
   splitPoints :: a -> ((Position, Position), (Position, Position))
@@ -128,12 +136,12 @@ forbidden' xPt ySplPts x y = xPt x > fst spltPts && xPt x < snd spltPts
   where spltPts = ySplPts $ splitPoints y
 
 -- | left-split first range by second range
-leftSplit :: (TextRange a1, TextRange a2) => a1 -> a2 -> (a1, a1)
-leftSplit x y = split x $ fst $ splitPoints y
+leftSplit :: (TextRange a1, TextRange a2) => MainSplit -> a1 -> a2 -> (a1, a1)
+leftSplit ms x y = split ms x $ fst $ splitPoints y
 
 -- | right-split first range by second range
-rightSplit :: (TextRange a1, TextRange a2) => a1 -> a2 -> (a1, a1)
-rightSplit x y = split x $ snd $ splitPoints y
+rightSplit :: (TextRange a1, TextRange a2) => MainSplit -> a1 -> a2 -> (a1, a1)
+rightSplit ms x y = split ms x $ snd $ splitPoints y
 
 -- | sort a list of text ranges
 sortTextRanges :: (TextRange a) => [a] -> [a]
@@ -166,8 +174,8 @@ spltExtRec (a:as)
 spltOverlapping :: (TextRange a) => a -> [a] -> [a]
 spltOverlapping x [] = [x]
 spltOverlapping x (y:ys)
-  | x `leftOverlaps` y = mkList $ leftSplit x y
-  | x `rightOverlaps` y = mkList $ rightSplit x y
+  | x `leftOverlaps` y = mkList $ leftSplit FstSplit x y
+  | x `rightOverlaps` y = mkList $ rightSplit FstSplit x y
   | otherwise = spltOverlapping x ys
   where mkList (t1, t2) = [t1, t2]
 
@@ -180,10 +188,10 @@ merge (x:xs) a
   | a `spansEq` x = [a]
   -- a contained in x and it starts in a forbidden position, i.e. in
   -- the opening tag of x:
-  | x `contains` a && a `startLeftForbidden` x = merge (x:xs) $ snd $ leftSplit a x
+  | x `contains` a && a `startLeftForbidden` x = merge (x:xs) $ snd $ leftSplit SndSplit a x
   -- a contained in x and it ends in a forbidden position, i.e. in the
   -- closing tag of x:
-  | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit a x
+  | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit FstSplit a x
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
     (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
@@ -200,5 +208,5 @@ merge (x:xs) a
   | a `before` x = [a]
   | otherwise = error "Could not resolve overlapping!"
   where
-    rightSplit' = rightSplit a x
-    leftSplit' = leftSplit a x
+    rightSplit' = rightSplit FstSplit a x
+    leftSplit' = leftSplit FstSplit a x
