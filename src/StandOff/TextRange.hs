@@ -77,26 +77,29 @@ before x y = (end x <= start y)
 behind :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 behind x y = (start x >= end y)
 
+-- | starts before
 startsBefore :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 startsBefore x y = (start x) < (start y)
 
+-- | ends behind
 endsBehind :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 endsBehind x y = (end x) > (end y)
 
+-- | start and end points equal
 spansEq :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 spansEq x y = spans x == spans y
 
 -- | left-split first range by second range
-leftSplit :: TextRange a => a -> a -> (a, a)
+leftSplit :: (TextRange a1, TextRange a2) => a1 -> a2 -> (a1, a1)
 leftSplit x y = split x $ fst $ splitPoints y
 
 -- | right-split first range by second range
-rightSplit :: TextRange a => a -> a -> (a, a)
+rightSplit :: (TextRange a1, TextRange a2) => a1 -> a2 -> (a1, a1)
 rightSplit x y = split x $ snd $ splitPoints y
 
 -- | sort a list of text ranges
 sortTextRanges :: (TextRange a) => [a] -> [a]
-sortTextRanges ranges = sortBy compareRanges ranges
+sortTextRanges = sortBy compareRanges
   where compareRanges x y
           | start x == start y = end y `compare` end x
           | otherwise = start x `compare` start y
