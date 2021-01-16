@@ -114,11 +114,11 @@ endRightForbidden x y = forbidden' end snd x y
 forbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 forbidden x y = startLeftForbidden x y || startRightForbidden x y || endLeftForbidden x y || endRightForbidden x y
 
--- forbidden :: (TextRange a1, TextRange a2) => (a1 -> Position) -> ((b, b) -> b) -> a1 -> a2 -> Bool
+-- forbidden' :: (TextRange a1, TextRange a2) => (a1 -> Position) -> ((b, b) -> b) -> a1 -> a2 -> Bool
 forbidden' :: (TextRange a1, TextRange a2) =>
-             (a1 -> Position) -- ^ 'start' or 'end'
-          -> (((Position, Position), (Position, Position)) -> (Position,Position)) -- ^ 'fst' or 'snd'
-          -> a1 -> a2 -> Bool
+              (a1 -> Position) -- ^ 'start' or 'end'
+           -> (((Position, Position), (Position, Position)) -> (Position,Position)) -- ^ 'fst' or 'snd'
+           -> a1 -> a2 -> Bool
 forbidden' xPt ySplPts x y = xPt x > fst spltPts && xPt x < snd spltPts
   where spltPts = ySplPts $ splitPoints y
 
