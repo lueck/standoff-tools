@@ -1,5 +1,6 @@
 module StandOff.TextRange
   ( Position
+  , MainSplit(..)
   , TextRange(..)
   -- * Analyse relative position of two ranges
   , contains
@@ -21,14 +22,26 @@ module StandOff.TextRange
   , rightSplit
   -- * Sorting (Preprocessing)
   , sortTextRanges
+  -- * Resolve overlapping edges
+  , splitExternal
+  , merge
   -- * Extra
   , len
   )
 where
 
 import Data.List
+import StandOff.Tree
 
+-- | A position
 type Position = Int
+
+-- | A choice which of two text ranges returned by 'split' should be
+-- the main one, e.g. have the ID. Most of the time, this is the first
+-- split, but there are occasions, where the first split is dropped,
+-- so the unique attributes of the text range must go to the second
+-- split.
+data MainSplit = FstSplit | SndSplit
 
 -- | A range in a text given by start and end point.
 class TextRange a where
@@ -48,7 +61,7 @@ class TextRange a where
 
   -- | split a range at a given positions (start and end of an other
   -- range) into two ranges
-  split :: a -> (Position, Position) -> (a, a)
+  split :: MainSplit -> a -> (Position, Position) -> (a, a)
 
   -- | return split points
   splitPoints :: a -> ((Position, Position), (Position, Position))
@@ -123,12 +136,12 @@ forbidden' xPt ySplPts x y = xPt x > fst spltPts && xPt x < snd spltPts
   where spltPts = ySplPts $ splitPoints y
 
 -- | left-split first range by second range
-leftSplit :: (TextRange a1, TextRange a2) => a1 -> a2 -> (a1, a1)
-leftSplit x y = split x $ fst $ splitPoints y
+leftSplit :: (TextRange a1, TextRange a2) => MainSplit -> a1 -> a2 -> (a1, a1)
+leftSplit ms x y = split ms x $ fst $ splitPoints y
 
 -- | right-split first range by second range
-rightSplit :: (TextRange a1, TextRange a2) => a1 -> a2 -> (a1, a1)
-rightSplit x y = split x $ snd $ splitPoints y
+rightSplit :: (TextRange a1, TextRange a2) => MainSplit -> a1 -> a2 -> (a1, a1)
+rightSplit ms x y = split ms x $ snd $ splitPoints y
 
 -- | sort a list of text ranges
 sortTextRanges :: (TextRange a) => [a] -> [a]
@@ -142,3 +155,58 @@ sortTextRanges = sortBy compareRanges
 len :: TextRange a => a -> Int
 len x = (end x) - (start x)
 {-# DEPRECATED len "Don't use len. It prevents making 'Position' abstract." #-}
+
+
+-- | Make a list of non-overlapping ranges from a list of
+-- (potentially) overlapping ranges by splitting overlapping
+-- ranges. So the result is something, that could be represented as a
+-- tree. We can look at it as if (quasi) it was a tree.
+splitExternal :: (TextRange a) => [a] -> [a]
+splitExternal = sortTextRanges . spltExtRec . sortTextRanges
+
+spltExtRec :: (TextRange a) => [a] -> [a]
+spltExtRec [] = []
+spltExtRec (a:as)
+  | (length splits) == 1 = a:(spltExtRec as)
+  | otherwise =  spltExtRec splits++as
+  where splits = spltOverlapping a as
+
+spltOverlapping :: (TextRange a) => a -> [a] -> [a]
+spltOverlapping x [] = [x]
+spltOverlapping x (y:ys)
+  | x `leftOverlaps` y = mkList $ leftSplit FstSplit x y
+  | x `rightOverlaps` y = mkList $ rightSplit FstSplit x y
+  | otherwise = spltOverlapping x ys
+  where mkList (t1, t2) = [t1, t2]
+
+-- | Not really merge, but SPLIT an annotation depending on Tree. This
+-- function is the workhorse of markup internalization.
+merge :: (Tree b, TextRange b, TextRange a) => [b] -> a -> [a]
+merge [] a = [a]
+merge (x:xs) a
+  -- If a spans the equal range as x, then return a.
+  | a `spansEq` x = [a]
+  -- a contained in x and it starts in a forbidden position, i.e. in
+  -- the opening tag of x:
+  | x `contains` a && a `startLeftForbidden` x = merge (x:xs) $ snd $ leftSplit SndSplit a x
+  -- a contained in x and it ends in a forbidden position, i.e. in the
+  -- closing tag of x:
+  | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit FstSplit a x
+  -- Split a when a right-overlaps x.
+  | a `rightOverlaps` x =
+    (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
+  -- Split a when a left-overlaps x.
+  | a `leftOverlaps` x =
+    (fst leftSplit') : (merge (contents x) (snd leftSplit'))
+  -- Forward xml vertically when x contains a
+  | x `contains` a = merge (contents x) a
+  -- Forward xml horizontally when a is behind x
+  | a `behind` x = (merge xs a)
+  -- If a contains x, proceed with xs:
+  | a `contains` x = merge xs a
+  -- Needn't progress behind a.
+  | a `before` x = [a]
+  | otherwise = error "Could not resolve overlapping!"
+  where
+    rightSplit' = rightSplit FstSplit a x
+    leftSplit' = leftSplit FstSplit a x

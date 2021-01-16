@@ -49,7 +49,7 @@ instance TR.TextRange XML where
   splitPoints x = ((so-1, eo+1), (sc-1, ec+1))
     where (so, eo) = myMapTuple posOffset $ elementOpenTagPosition x
           (sc, ec) = myMapTuple posOffset $ elementCloseTagPosition x
-  split _ = error "Cannot split internal markup"
+  split _ _ = error "Cannot split internal markup"
 
 instance Tree XML where
   contents x = filter isElementP $ elementContent x

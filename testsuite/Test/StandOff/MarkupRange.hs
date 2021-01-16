@@ -44,7 +44,7 @@ test_split = do
   assertEqual False (fstPart `rightOverlaps` sndPart)
   where fstPart = fst splits
         sndPart = snd splits
-        splits = leftSplit (sampleRanges !! 1) (sampleRanges !! 2)
+        splits = leftSplit FstSplit (sampleRanges !! 1) (sampleRanges !! 2)
 
 test_tojson = assertEqual "{\"rangeId\":\"a2000000-0000-0000-0000-000000000000\",\"tag\":\"MarkupRange\",\"startOffset\":1,\"text\":\"\",\"attributes\":{},\"endOffset\":20,\"markupType\":\"div\",\"elementId\":\"e2000000-0000-0000-0000-000000000000\"}" encoded
   where encoded = bytesToString . B.unpack . encode $ toJSON (sampleRanges !! 1)

@@ -32,7 +32,7 @@ data Annotation
 instance TextRange (Annotation) where
   start (MarkupRange _ _ _ s _ _ _) = s
   end (MarkupRange _ _ _ _ e _ _) = e
-  split (MarkupRange rid eid typ s1 e2 txt attrs) (e1, s2)
+  split _ (MarkupRange rid eid typ s1 e2 txt attrs) (e1, s2)
     = ( (MarkupRange rid eid typ s1 e1 txt attrs)
       , (MarkupRange rid eid typ s2 e2 txt attrs))
       -- FIXME: add attributes with info about split
