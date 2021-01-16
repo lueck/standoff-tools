@@ -31,7 +31,7 @@ module StandOff.TextRange
 where
 
 import Data.List
-import StandOff.Tree
+import StandOff.MarkupTree
 
 -- | A position
 type Position = Int
@@ -181,7 +181,7 @@ spltOverlapping x (y:ys)
 
 -- | Not really merge, but SPLIT an annotation depending on Tree. This
 -- function is the workhorse of markup internalization.
-merge :: (Tree b, TextRange b, TextRange a) => [b] -> a -> [a]
+merge :: (MarkupTree b, TextRange b, TextRange a) => [b] -> a -> [a]
 merge [] a = [a]
 merge (x:xs) a
   -- If a spans the equal range as x, then return a.
@@ -194,12 +194,12 @@ merge (x:xs) a
   | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit FstSplit a x
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
-    (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
+    (merge (getMarkupChildren x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
   -- Split a when a left-overlaps x.
   | a `leftOverlaps` x =
-    (fst leftSplit') : (merge (contents x) (snd leftSplit'))
+    (fst leftSplit') : (merge (getMarkupChildren x) (snd leftSplit'))
   -- Forward xml vertically when x contains a
-  | x `contains` a = merge (contents x) a
+  | x `contains` a = merge (getMarkupChildren x) a
   -- Forward xml horizontally when a is behind x
   | a `behind` x = (merge xs a)
   -- If a contains x, proceed with xs:

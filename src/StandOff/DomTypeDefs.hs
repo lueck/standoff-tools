@@ -2,7 +2,7 @@ module StandOff.DomTypeDefs where
 
 import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
-import StandOff.Tree
+import StandOff.MarkupTree
 
 type AttrName = String
 type AttrVal  = String
@@ -51,8 +51,9 @@ instance TR.TextRange XML where
           (sc, ec) = myMapTuple posOffset $ elementCloseTagPosition x
   split _ _ = error "Cannot split internal markup"
 
-instance Tree XML where
-  contents x = filter isElementP $ elementContent x
+instance MarkupTree XML where
+  getMarkupChildren (Element _ _ _ _ _ _ c) = filter isElementP c
+  getMarkupChildren _ = []
 
 elementName :: XML -> String
 elementName (Element n _ _ _ _ _ _) = n
