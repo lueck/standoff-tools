@@ -36,6 +36,8 @@ splitOverlapping x (y:ys)
 merge :: (Tree b, TextRange b, TextRange a) => [b] -> a -> [a]
 merge [] a = [a]
 merge (x:xs) a
+  -- a in a forbidden position of x
+  | a `forbidden` x = error $ "forbidden markup position: " ++ (show $ spans a)
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
     -- start a > start x && end a >= end x && start a < end x =
