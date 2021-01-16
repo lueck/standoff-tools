@@ -134,6 +134,6 @@ test_herder' = do
   sample <- validateInternalized' "doc/examples/herder_plastik_1778.TEI-P5.xml"
   assertBool(isRight sample)
 
-test_rosenkranz' = do
+offtest_rosenkranz' = do
   sample <- validateInternalized' "doc/examples/rosenkranz_aesthetik_1853.TEI-P5.xml"
   assertBool(isRight sample)
