@@ -11,6 +11,11 @@ module StandOff.TextRange
   , startsBefore
   , endsBehind
   , spansEq
+  , startLeftForbidden
+  , startRightForbidden
+  , endLeftForbidden
+  , endRightForbidden
+  , forbidden
   -- * Splitting
   , leftSplit
   , rightSplit
@@ -88,6 +93,42 @@ endsBehind x y = (end x) > (end y)
 -- | start and end points equal
 spansEq :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 spansEq x y = spans x == spans y
+
+-- | start of x between left split points
+startLeftForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+startLeftForbidden x y = forbidden' start fst x y
+-- startLeftForbidden x y = start x > fst sp && start x < snd sp
+--   where sp = fst $ splitPoints y
+
+-- | start of x between right split points
+startRightForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+startRightForbidden x y = forbidden' start snd x y
+-- startRightForbidden x y = start x > fst sp && start x < snd sp
+--   where sp = snd $ splitPoints y
+
+-- | end of x between left split points
+endLeftForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+endLeftForbidden x y = forbidden' end fst x y
+-- endLeftForbidden x y = end x > fst sp && end x < snd sp
+--   where sp = fst $ splitPoints y
+
+-- | end of x between right split points
+endRightForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+endRightForbidden x y = forbidden' end snd x y
+-- endRightForbidden x y = end x > fst sp && end x < snd sp
+--   where sp = snd $ splitPoints y
+
+-- | start or end of a is in a forbidden span between split points
+forbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+forbidden x y = startLeftForbidden x y || startRightForbidden x y || endLeftForbidden x y || endRightForbidden x y
+
+-- forbidden :: (TextRange a1, TextRange a2) => (a1 -> Position) -> ((b, b) -> b) -> a1 -> a2 -> Bool
+forbidden' :: (TextRange a1, TextRange a2) =>
+             (a1 -> Position) -- ^ 'start' or 'end'
+          -> (((Position, Position), (Position, Position)) -> (Position,Position)) -- ^ 'fst' or 'snd'
+          -> a1 -> a2 -> Bool
+forbidden' xPt ySplPts x y = xPt x > fst spltPts && xPt x < snd spltPts
+  where spltPts = ySplPts $ splitPoints y
 
 -- | left-split first range by second range
 leftSplit :: (TextRange a1, TextRange a2) => a1 -> a2 -> (a1, a1)
