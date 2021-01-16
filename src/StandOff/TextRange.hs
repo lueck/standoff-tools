@@ -97,26 +97,18 @@ spansEq x y = spans x == spans y
 -- | start of x between left split points
 startLeftForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 startLeftForbidden x y = forbidden' start fst x y
--- startLeftForbidden x y = start x > fst sp && start x < snd sp
---   where sp = fst $ splitPoints y
 
 -- | start of x between right split points
 startRightForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 startRightForbidden x y = forbidden' start snd x y
--- startRightForbidden x y = start x > fst sp && start x < snd sp
---   where sp = snd $ splitPoints y
 
 -- | end of x between left split points
 endLeftForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 endLeftForbidden x y = forbidden' end fst x y
--- endLeftForbidden x y = end x > fst sp && end x < snd sp
---   where sp = fst $ splitPoints y
 
 -- | end of x between right split points
 endRightForbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 endRightForbidden x y = forbidden' end snd x y
--- endRightForbidden x y = end x > fst sp && end x < snd sp
---   where sp = snd $ splitPoints y
 
 -- | start or end of a is in a forbidden span between split points
 forbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
