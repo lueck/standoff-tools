@@ -194,12 +194,12 @@ merge (x:xs) a
   | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit FstSplit a x
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
-    (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
+    (merge (getChildren x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
   -- Split a when a left-overlaps x.
   | a `leftOverlaps` x =
-    (fst leftSplit') : (merge (contents x) (snd leftSplit'))
+    (fst leftSplit') : (merge (getChildren x) (snd leftSplit'))
   -- Forward xml vertically when x contains a
-  | x `contains` a = merge (contents x) a
+  | x `contains` a = merge (getChildren x) a
   -- Forward xml horizontally when a is behind x
   | a `behind` x = (merge xs a)
   -- If a contains x, proceed with xs:

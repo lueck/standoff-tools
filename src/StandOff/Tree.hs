@@ -1,5 +1,8 @@
-module StandOff.Tree where
+module StandOff.Tree
+  ( Tree(..)
+  )
+where
 
--- A Tree is a recursive structure, like an XML element node.
+-- | An n-ary tree, i.e. a rose tree like XML.
 class Tree a where
-  contents :: a -> [a] -- returns the contents of a tree element
+  getChildren :: a -> [a] -- ^ returns the children of a tree node
