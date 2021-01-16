@@ -34,7 +34,7 @@ import StandOff.ResolveOverlapping
 -- This implementation does not need a look-ahead parser. Instead all
 -- work is done with lists, which is the strength of lispy
 -- haskell. All can be done with pure functions--nice for testing.
-internalize :: (TextRange a, TextRange b, Tree b) =>
+internalize :: (TextRange a, TextRange b, MarkupTree b) =>
                String  -- ^ the document
                -> [b]  -- ^ the parsed xml tree of the document
                -> [a]  -- ^ the annotations to be internalized
@@ -111,7 +111,7 @@ insClose (a@(tagTyp, annot):as) endTag
 -- valid xml.
 --
 -- Internalize external markup into a document.
-internalize' :: (TextRange a, TextRange b, Tree b) => String -> [b] -> [a] -> (TagType -> a -> String) -> String
+internalize' :: (TextRange a, TextRange b, MarkupTree b) => String -> [b] -> [a] -> (TagType -> a -> String) -> String
 internalize' doc internal external serializer =
   insertTags' serializer (concatMap (merge internal) nestedInternal) doc 0
   where

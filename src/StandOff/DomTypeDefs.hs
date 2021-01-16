@@ -51,9 +51,9 @@ instance TR.TextRange XML where
           (sc, ec) = myMapTuple posOffset $ elementCloseTagPosition x
   split _ _ = error "Cannot split internal markup"
 
-instance Tree XML where
-  getChildren (Element _ _ _ _ _ _ c) = c
-  getChildren _ = []
+instance MarkupTree XML where
+  getMarkupChildren (Element _ _ _ _ _ _ c) = filter isElementP c
+  getMarkupChildren _ = []
 
 elementName :: XML -> String
 elementName (Element n _ _ _ _ _ _) = n
