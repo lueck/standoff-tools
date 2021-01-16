@@ -25,6 +25,7 @@ module StandOff.TextRange
   -- * Resolve overlapping edges
   , splitExternal
   , merge
+  , mkInternalizable
   -- * Extra
   , len
   )
@@ -210,3 +211,8 @@ merge (x:xs) a
   where
     rightSplit' = rightSplit FstSplit a x
     leftSplit' = leftSplit FstSplit a x
+
+-- | Make external markup internalizable by splitting it with itself
+-- and a 'MarkupTree'.
+mkInternalizable :: (MarkupTree b, TextRange b, TextRange a) => [b] -> [a] -> [a]
+mkInternalizable internal = concatMap (merge internal) . splitExternal
