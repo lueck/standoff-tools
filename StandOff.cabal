@@ -1,5 +1,5 @@
 name:                StandOff
-version:             0.0.2.1
+version:             0.0.3.0
 synopsis:            Tools for managing stand-off markup.
 homepage:            https://github.com/lueck/standoff-tools/
 license:             GPL-3
@@ -29,7 +29,7 @@ description:
 
 library
   exposed-modules:   StandOff.TextRange
-                   , StandOff.Tree
+                   , StandOff.MarkupTree
                    , StandOff.DomTypeDefs
                    , StandOff.LineOffsets
                    , StandOff.XmlParsec
@@ -58,7 +58,7 @@ library
 Executable standoff
   main-is:           standoff.hs
   other-modules:     StandOff.TextRange
-                   , StandOff.Tree
+                   , StandOff.MarkupTree
                    , StandOff.DomTypeDefs
                    , StandOff.LineOffsets
                    , StandOff.XmlParsec
@@ -90,7 +90,7 @@ Test-Suite test-main
   type:              exitcode-stdio-1.0
   main-is:           TestMain.hs
   other-modules:     StandOff.TextRange
-                   , StandOff.Tree
+                   , StandOff.MarkupTree
                    , StandOff.DomTypeDefs
                    , StandOff.LineOffsets
                    , StandOff.XmlParsec

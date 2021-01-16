@@ -2,7 +2,7 @@ module StandOff.DomTypeDefs where
 
 import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
-import StandOff.Tree
+import StandOff.MarkupTree
 
 type AttrName = String
 type AttrVal  = String
@@ -41,13 +41,19 @@ myMapTuple f (a1, a2) = (f a1, f a2)
 instance TR.TextRange XML where
   start x = posOffset $ fst $ xmlSpanning x
   end x = posOffset $ snd $ xmlSpanning x
-  splitPoints x = ((so, eo), (sc, ec))
+  -- Split points have to be corrected. The first part of the split
+  -- should always end right before the open tag and the second part
+  -- of the split should always start right after a tag, but not at
+  -- the position of the tags last char. FIXME: Is this correct for
+  -- all markup types?
+  splitPoints x = ((so-1, eo+1), (sc-1, ec+1))
     where (so, eo) = myMapTuple posOffset $ elementOpenTagPosition x
           (sc, ec) = myMapTuple posOffset $ elementCloseTagPosition x
-  split _ = error "Cannot split internal markup"
+  split _ _ = error "Cannot split internal markup"
 
-instance Tree XML where
-  contents x = filter isElementP $ elementContent x
+instance MarkupTree XML where
+  getMarkupChildren (Element _ _ _ _ _ _ c) = filter isElementP c
+  getMarkupChildren _ = []
 
 elementName :: XML -> String
 elementName (Element n _ _ _ _ _ _) = n
