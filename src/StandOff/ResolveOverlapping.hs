@@ -36,25 +36,26 @@ splitOverlapping x (y:ys)
 merge :: (Tree b, TextRange b, TextRange a) => [b] -> a -> [a]
 merge [] a = [a]
 merge (x:xs) a
-  -- a in a forbidden position of x
-  | a `forbidden` x = error $ "forbidden markup position: " ++ (show $ spans a)
+  -- If a spans the equal range as x, then return a.
+  | a `spansEq` x = [a]
+  -- a contained in x and it starts in a forbidden position, i.e. in
+  -- the opening tag of x:
+  | x `contains` a && a `startLeftForbidden` x = merge (x:xs) (snd leftSplit')
+  -- a contained in x and it ends in a forbidden position, i.e. in the
+  -- closing tag of x:
+  | x `contains` a && a `endRightForbidden` x = merge (x:xs) (fst rightSplit')
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
-    -- start a > start x && end a >= end x && start a < end x =
     (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
   -- Split a when a left-overlaps x.
   | a `leftOverlaps` x =
-    -- start a <= start x && end a < end x && end a > start x =
     (fst leftSplit') : (merge (contents x) (snd leftSplit'))
-  -- Forward xml vertically when x contains a
+  -- Forward xml vertically when x contains a, but only if a has no
+  -- forbidden position
   | x `contains` a = merge (contents x) a
   -- Forward xml horizontally when a is behind x
   | a `behind` x = (merge xs a)
-  -- Needn't progress if a contains x, because then xs are not
-  -- relevant and a contains the content of x, too.
-  | a `spansEq` x = [a]
-  --  | a `contains` x && a `startsBefore` x = (fst leftSplit') : (merge (x:xs) (snd leftSplit'))
-  --  | a `contains` x && a `endsBehind` x = (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
+  -- If a contains x, proceed with xs:
   | a `contains` x = merge xs a
   -- Needn't progress behind a.
   | a `before` x = [a]
