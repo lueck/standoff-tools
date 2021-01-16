@@ -4,7 +4,7 @@ module StandOff.Internalize
   ) where
 
 import StandOff.TextRange
-import StandOff.Tree
+import StandOff.MarkupTree
 import StandOff.TagTypeDefs
 import StandOff.ResolveOverlapping
 

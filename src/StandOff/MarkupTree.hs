@@ -1,4 +1,4 @@
-module StandOff.Tree
+module StandOff.MarkupTree
   ( MarkupTree(..)
   )
 where

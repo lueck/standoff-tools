@@ -31,7 +31,7 @@ module StandOff.TextRange
 where
 
 import Data.List
-import StandOff.Tree
+import StandOff.MarkupTree
 
 -- | A position
 type Position = Int

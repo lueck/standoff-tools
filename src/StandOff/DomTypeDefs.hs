@@ -2,7 +2,7 @@ module StandOff.DomTypeDefs where
 
 import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
-import StandOff.Tree
+import StandOff.MarkupTree
 
 type AttrName = String
 type AttrVal  = String
