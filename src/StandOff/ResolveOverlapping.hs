@@ -40,18 +40,17 @@ merge (x:xs) a
   | a `spansEq` x = [a]
   -- a contained in x and it starts in a forbidden position, i.e. in
   -- the opening tag of x:
-  | x `contains` a && a `startLeftForbidden` x = merge (x:xs) (snd leftSplit')
+  | x `contains` a && a `startLeftForbidden` x = merge (x:xs) $ snd $ leftSplit a x
   -- a contained in x and it ends in a forbidden position, i.e. in the
   -- closing tag of x:
-  | x `contains` a && a `endRightForbidden` x = merge (x:xs) (fst rightSplit')
+  | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit a x
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
     (merge (contents x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
   -- Split a when a left-overlaps x.
   | a `leftOverlaps` x =
     (fst leftSplit') : (merge (contents x) (snd leftSplit'))
-  -- Forward xml vertically when x contains a, but only if a has no
-  -- forbidden position
+  -- Forward xml vertically when x contains a
   | x `contains` a = merge (contents x) a
   -- Forward xml horizontally when a is behind x
   | a `behind` x = (merge xs a)
@@ -60,6 +59,6 @@ merge (x:xs) a
   -- Needn't progress behind a.
   | a `before` x = [a]
   | otherwise = error "Could not resolve overlapping!"
-  where rightSplit' = split a $ snd $ splitPoints'
-        leftSplit' = split a $ fst $ splitPoints'
-        splitPoints' = splitPoints x
+  where
+    rightSplit' = rightSplit a x
+    leftSplit' = leftSplit a x
