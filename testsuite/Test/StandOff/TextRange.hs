@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Test.StandOff.Internalizer (htf_thisModulesTests) where
+module Test.StandOff.TextRange (htf_thisModulesTests) where
 
 import Test.Framework
 
