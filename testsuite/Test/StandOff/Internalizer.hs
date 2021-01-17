@@ -63,27 +63,27 @@ test_internalizeLeftRightOverlapping = do
 
 -- test lost opening tag
 test_internalizeLostOpeningTag = do
-  assertEqual [(233, 235)] (map spans resolved)
+  assertEqual [(234, 235)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 233 240)
 
 -- test lost closing tag
 test_internalizeLostClosingTag = do
-  assertEqual [(233, 235)] (map spans resolved)
+  assertEqual [(234, 235)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 230 235)
 
 -- test in opening tag
 test_internalizeInOpeningTag = do
-  assertEqual [(233, 235)] (map spans resolved)
+  assertEqual [(234, 235)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 231 240)
 
 -- test in closing tag
 test_internalizeInClosingTag = do
-  assertEqual [(233, 235)] (map spans resolved)
+  assertEqual [(234, 235)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 230 239)
 
 -- test in both tags
 test_internalizeInBothTags = do
-  assertEqual [(233, 235)] (map spans resolved)
+  assertEqual [(234, 235)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 231 239)
 
 
