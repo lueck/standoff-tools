@@ -25,7 +25,7 @@ module StandOff.TextRange
   -- * Resolve overlapping edges
   , splitExternal
   , merge
-  , mkInternalizable
+  , splitOverlapping
   -- * Extra
   , len
   )
@@ -180,18 +180,21 @@ spltOverlapping x (y:ys)
   | otherwise = spltOverlapping x ys
   where mkList (t1, t2) = [t1, t2]
 
--- | Not really merge, but SPLIT an annotation depending on Tree. This
--- function is the workhorse of markup internalization.
+-- | Not really merge, but SPLIT an annotation depending on the
+-- 'MarkupTree'. This function is the workhorse of markup
+-- internalization. Splitting is only necessary in two situations:
+-- overlapping and lost tags, i.e. only one of the pair of tags is
+-- within the range of the external markup.
 merge :: (MarkupTree b, TextRange b, TextRange a) => [b] -> a -> [a]
 merge [] a = [a]
 merge (x:xs) a
   -- If a spans the equal range as x, then return a.
   | a `spansEq` x = [a]
   -- a contained in x and it starts in a forbidden position, i.e. in
-  -- the opening tag of x:
+  -- the opening tag of x (lost tag):
   | x `contains` a && a `startLeftForbidden` x = merge (x:xs) $ snd $ leftSplit SndSplit a x
   -- a contained in x and it ends in a forbidden position, i.e. in the
-  -- closing tag of x:
+  -- closing tag of x (lost tag):
   | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit FstSplit a x
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
@@ -214,5 +217,5 @@ merge (x:xs) a
 
 -- | Make external markup internalizable by splitting it with itself
 -- and a 'MarkupTree'.
-mkInternalizable :: (MarkupTree b, TextRange b, TextRange a) => [b] -> [a] -> [a]
-mkInternalizable internal = concatMap (merge internal) . splitExternal
+splitOverlapping :: (MarkupTree b, TextRange b, TextRange a) => [b] -> [a] -> [a]
+splitOverlapping internal = concatMap (merge internal) . splitExternal
