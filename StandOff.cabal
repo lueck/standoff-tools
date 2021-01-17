@@ -103,6 +103,7 @@ Test-Suite test-main
                    , StandOff.External.StandoffModeDump
                    , Test.StandOff.DataXML
                    , Test.StandOff.Internalizer
+                   , Test.StandOff.InternalizerRW
                    , Test.StandOff.MarkupRange
                    , Test.StandOff.TagSerializer
                    , Test.StandOff.External.StandoffModeDump

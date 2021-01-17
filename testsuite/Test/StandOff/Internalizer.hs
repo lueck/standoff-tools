@@ -21,8 +21,6 @@ import StandOff.DomTypeDefs
 
 import Test.StandOff.TestSetup
 
-sampleELisp = "doc/examples/XXX.TEI-P5.dump.el"
-sampleXml = "doc/examples/XXX.TEI-P5.xml"
 
 internal = [ (elm "root" 1 1000
               [ (elm "head" 8 99 [])
@@ -63,6 +61,31 @@ test_internalizeLeftRightOverlapping = do
   assertEqual [(235, 235), (241,269), (274, 282)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 235 282)
 
+-- test lost opening tag
+test_internalizeLostOpeningTag = do
+  assertEqual [(234, 235)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 233 240)
+
+-- test lost closing tag
+test_internalizeLostClosingTag = do
+  assertEqual [(234, 235)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 230 235)
+
+-- test in opening tag
+test_internalizeInOpeningTag = do
+  assertEqual [(234, 235)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 231 240)
+
+-- test in closing tag
+test_internalizeInClosingTag = do
+  assertEqual [(234, 235)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 230 239)
+
+-- test in both tags
+test_internalizeInBothTags = do
+  assertEqual [(234, 235)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 231 239)
+
 
 external = [ (mRng "a1" "m1" "root" 1 100)
            , (mRng "a2" "m2" "div" 1 20)
@@ -75,65 +98,3 @@ test_quasiTree = do
   assertEqual 5 (length tree)
   assertEqual [(1,100), (1,15), (5,7), (15,40), (15,20)] (map spans tree)
   where tree = makeQuasiTree external
-
-
--- * Test valid xml output of internalize using real world data.
-
--- | Internalize using the fast internalizer
-validateInternalized sampleXml = do
-  elispContents <- readFile sampleELisp
-  annotations <- runELispDumpParser sampleELisp elispContents
-  xmlContents <- readFile sampleXml
-  offsets <- runLineOffsetParser sampleXml xmlContents
-  xml <- runXmlParser offsets sampleXml xmlContents
-  let
-    tagSerializer = serializeSpanTag
-                    (serializeAttributes (Just "rid") (Just "eid") (Just "type") LocalName)
-                    "span"
-    internalized = (internalize
-                    xmlContents
-                    (filter isElementP xml)
-                    (makeAttributiveRanges annotations)
-                    tagSerializer)
-  -- assert that there is valid xml. We use hxt's parser for this.
-  return $ runParser document' (withNormNewline ()) ("("++sampleXml++")") internalized
-  where
-    sampleELisp = sampleXml ++ ".dump.el"
-
-test_herder = do
-  sample <- validateInternalized "doc/examples/herder_plastik_1778.TEI-P5.xml"
-  assertBool(isRight sample)
-
-test_rosenkranz = do
-  sample <- validateInternalized "doc/examples/rosenkranz_aesthetik_1853.TEI-P5.xml"
-  assertBool(isRight sample)
-
--- | Internalize and assert valid xml using the old and slow internalizer
--- implementation of internalize.
-validateInternalized' sampleXml = do
-  elispContents <- readFile sampleELisp
-  annotations <- runELispDumpParser sampleELisp elispContents
-  xmlContents <- readFile sampleXml
-  offsets <- runLineOffsetParser sampleXml xmlContents
-  xml <- runXmlParser offsets sampleXml xmlContents
-  let
-    tagSerializer = serializeSpanTag
-                    (serializeAttributes (Just "rid") (Just "eid") (Just "type") LocalName)
-                    "span"
-    internalized = (internalize'
-                    xmlContents
-                    (filter isElementP xml)
-                    (makeAttributiveRanges annotations)
-                    tagSerializer)
-  -- assert that there is valid xml. We use hxt's parser for this.
-  return $ runParser document' (withNormNewline ()) ("("++sampleXml++")") internalized
-  where
-    sampleELisp = sampleXml ++ ".dump.el"
-
-test_herder' = do
-  sample <- validateInternalized' "doc/examples/herder_plastik_1778.TEI-P5.xml"
-  assertBool(isRight sample)
-
-offtest_rosenkranz' = do
-  sample <- validateInternalized' "doc/examples/rosenkranz_aesthetik_1853.TEI-P5.xml"
-  assertBool(isRight sample)
