@@ -4,6 +4,7 @@ module Test.StandOff.TextRange (htf_thisModulesTests) where
 import Test.Framework
 
 import StandOff.TextRange
+import StandOff.DomTypeDefs
 
 import Test.StandOff.TestSetup
 
@@ -69,6 +70,82 @@ test_mergeInClosingTag = do
 test_mergeInBothTags = do
   assertEqual [(234, 235)] (map spans resolved)
   where resolved = merge internal (mRng "a" "a" "a" 231 239)
+
+-- test merge into region without markup
+test_mergePlain = do
+  assertEqual [(210,220)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 210 220)
+
+-- test merge containing
+test_mergeContaining = do
+  assertEqual [(220,250)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 220 250)
+
+-- test merge with equal spans
+test_mergeSpanEqual = do
+  assertEqual [(230,240)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 230 240)
+
+-- test merge contained (same as plain?)
+test_mergeContained = do
+  assertEqual [(150,160)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 150 160)
+
+-- test merge behind
+test_mergeBehind = do
+  assertEqual [(2100,2200)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 2100 2200)
+
+-- test merge before
+test_mergeBefore = do
+  assertEqual [(0,0)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 0 0)
+
+-- test merge before at
+test_mergeNextBefore = do
+  assertEqual [(0,1)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 0 1)
+
+-- test end extends into open tag
+test_mergeEndIntoOpening = do
+  assertEqual [(210,229)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 210 231)
+
+-- test end extends into closing tag (same as test_mergeInClosingTag)
+test_mergeEndIntoClosing = do
+  assertEqual [(234,235)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 234 239)
+
+-- test start extends into open tag (same as test_mergeInOpeningTag)
+test_mergeStartIntoOpening = do
+  assertEqual [(234,235)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 231 235)
+
+-- test start extends into closing tag
+test_mergeStartIntoClosing = do
+  assertEqual [(241,245)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 239 245)
+
+-- test markup in a single opening tag
+test_mergeInSingleOpening = do
+  assertEqual [] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 231 232)
+
+-- test markup in a single closing tag
+test_mergeInSingleClosing = do
+  assertEqual [] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 238 239)
+
+-- test markup between to elements, extending into both of them
+test_mergeExtendsIntoClosingOpening = do
+  assertEqual [(241,269)] (map spans resolved)
+  where resolved = merge internal (mRng "a" "a" "a" 239 271)
+
+
+-- corner case: test markup in a single closing tag
+test_mergeIntoPlaintext = do
+  assertEqual [(10, 20)] (map spans resolved)
+  where resolved = merge ([]::[XML]) (mRng "a" "a" "a" 10 20)
 
 
 external = [ (mRng "a1" "m1" "root" 1 100)
