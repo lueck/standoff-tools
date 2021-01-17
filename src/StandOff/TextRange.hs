@@ -17,6 +17,7 @@ module StandOff.TextRange
   , endLeftForbidden
   , endRightForbidden
   , forbidden
+  , inTag
   -- * Splitting
   , leftSplit
   , rightSplit
@@ -128,6 +129,10 @@ endRightForbidden x y = forbidden' end snd x y
 forbidden :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
 forbidden x y = startLeftForbidden x y || startRightForbidden x y || endLeftForbidden x y || endRightForbidden x y
 
+-- | x is in a single tag of x
+inTag :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
+inTag x y = (startLeftForbidden x y && endLeftForbidden x y) || (startRightForbidden x y && endRightForbidden x y)
+
 -- forbidden' :: (TextRange a1, TextRange a2) => (a1 -> Position) -> ((b, b) -> b) -> a1 -> a2 -> Bool
 forbidden' :: (TextRange a1, TextRange a2) =>
               (a1 -> Position) -- ^ 'start' or 'end'
@@ -182,20 +187,32 @@ spltOverlapping x (y:ys)
 
 -- | Not really merge, but SPLIT an annotation depending on the
 -- 'MarkupTree'. This function is the workhorse of markup
--- internalization. Splitting is only necessary in two situations:
--- overlapping and lost tags, i.e. only one of the pair of tags is
--- within the range of the external markup.
+-- internalization. Splitting is only necessary in three situations:
+-- overlapping, and lost tags, i.e. only one of the pair of tags is
+-- within the range of the external markup. Also in some situations
+-- when the external markup extends into a tag, however we first try
+-- to keep at least a split, then.
 merge :: (MarkupTree b, TextRange b, TextRange a) => [b] -> a -> [a]
 merge [] a = [a]
 merge (x:xs) a
   -- If a spans the equal range as x, then return a.
   | a `spansEq` x = [a]
+  -- Needn't progress behind a.
+  | a `before` x = [a]
+  -- Forward xml horizontally when a is behind x
+  | a `behind` x = (merge xs a)
+  -- a is in a single tag of x: drop it
+  | a `inTag` x = []
   -- a contained in x and it starts in a forbidden position, i.e. in
   -- the opening tag of x (lost tag):
   | x `contains` a && a `startLeftForbidden` x = merge (x:xs) $ snd $ leftSplit SndSplit a x
   -- a contained in x and it ends in a forbidden position, i.e. in the
   -- closing tag of x (lost tag):
   | x `contains` a && a `endRightForbidden` x = merge (x:xs) $ fst $ rightSplit FstSplit a x
+  -- a's end extends into a closing tag
+  | a `endLeftForbidden` x = merge (x:xs) $ fst $ leftSplit FstSplit a x
+  -- a's start extends into an opening tag
+  | a `startRightForbidden` x = merge (x:xs) $ snd $ rightSplit SndSplit a x
   -- Split a when a right-overlaps x.
   | a `rightOverlaps` x =
     (merge (getMarkupChildren x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
@@ -204,12 +221,8 @@ merge (x:xs) a
     (fst leftSplit') : (merge (getMarkupChildren x) (snd leftSplit'))
   -- Forward xml vertically when x contains a
   | x `contains` a = merge (getMarkupChildren x) a
-  -- Forward xml horizontally when a is behind x
-  | a `behind` x = (merge xs a)
   -- If a contains x, proceed with xs:
   | a `contains` x = merge xs a
-  -- Needn't progress behind a.
-  | a `before` x = [a]
   | otherwise = error "Could not resolve overlapping!"
   where
     rightSplit' = rightSplit FstSplit a x
