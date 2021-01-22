@@ -1,0 +1,58 @@
+name:                standoff-tools
+version:             0.0.3.1
+synopsis:            Tools for managing stand-off markup.
+github:		     "lueck/standoff-tools"
+license:             GPL-3
+author:              Christian Lück
+maintainer:          christian.lueck@ruhr-uni-bochum.de
+copyright:           Christian Lück, 2016, 2021
+category:            Text
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+
+description:  Please see the README on GitHub at <https://github.com/clueck/standoff-tools#readme>
+
+dependencies:
+- base >=4.9 && <4.10
+- containers
+- parsec
+- text
+- uuid-types
+- aeson >= 1.1
+- hxt
+- cassava
+- bytestring
+
+
+library:
+  source-dirs: src
+
+executables:
+  standoff:
+    main: standoff.hs
+    source-dirs: commandline
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - standoff-tools
+    - directory >= 1.2.0.1
+    - optparse-applicative >= 0.12.1.0
+    - transformers
+    - template-haskell
+
+tests:
+  unit-tests:
+    main: TestMain.hs
+    source-dirs:         testsuite
+    dependencies:
+    - standoff-tools
+    - HTF >=0.10.1
+    - template-haskell
+  realworld-tests:
+    main: RealWorldTests.hs
+    source-dirs:         testsuite
+    dependencies:
+    - standoff-tools
+    - HTF >=0.10.1
