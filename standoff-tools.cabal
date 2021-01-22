@@ -1,0 +1,141 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 886c85c92a2bfe6c67ca4f544abd8030e7e924542194af3fee50ec71daf4e7a0
+
+name:           standoff-tools
+version:        0.0.3.1
+synopsis:       Tools for managing stand-off markup.
+description:    Please see the README on GitHub at <https://github.com/clueck/standoff-tools#readme>
+category:       Text
+homepage:       https://github.com/lueck/standoff-tools#readme
+bug-reports:    https://github.com/lueck/standoff-tools/issues
+author:         Christian Lück
+maintainer:     christian.lueck@ruhr-uni-bochum.de
+copyright:      Christian Lück, 2016, 2021
+license:        GPL-3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/lueck/standoff-tools
+
+library
+  exposed-modules:
+      StandOff.AnnotationTypeDefs
+      StandOff.AttributeSerializer
+      StandOff.DomTypeDefs
+      StandOff.External.StandoffModeDump
+      StandOff.Internalize
+      StandOff.LineOffsets
+      StandOff.MarkupTree
+      StandOff.Owl
+      StandOff.ResolveOverlapping
+      StandOff.TagSerializer
+      StandOff.TagTypeDefs
+      StandOff.TextRange
+      StandOff.XmlParsec
+  other-modules:
+      Paths_standoff_tools
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson >=1.1
+    , base >=4.9 && <4.10
+    , bytestring
+    , cassava
+    , containers
+    , hxt
+    , parsec
+    , text
+    , uuid-types
+  default-language: Haskell2010
+
+executable standoff
+  main-is: standoff.hs
+  other-modules:
+      Paths_standoff_tools
+  hs-source-dirs:
+      commandline
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson >=1.1
+    , base >=4.9 && <4.10
+    , bytestring
+    , cassava
+    , containers
+    , directory >=1.2.0.1
+    , hxt
+    , optparse-applicative >=0.12.1.0
+    , parsec
+    , standoff-tools
+    , template-haskell
+    , text
+    , transformers
+    , uuid-types
+  default-language: Haskell2010
+
+test-suite realworld-tests
+  type: exitcode-stdio-1.0
+  main-is: RealWorldTests.hs
+  other-modules:
+      Test.StandOff.DataXML
+      Test.StandOff.External.StandoffModeDump
+      Test.StandOff.InternalizerRW
+      Test.StandOff.MarkupRange
+      Test.StandOff.TagSerializer
+      Test.StandOff.TestSetup
+      Test.StandOff.TextRange
+      TestMain
+      Paths_standoff_tools
+  hs-source-dirs:
+      testsuite
+  build-depends:
+      HTF >=0.10.1
+    , aeson >=1.1
+    , base >=4.9 && <4.10
+    , bytestring
+    , cassava
+    , containers
+    , hxt
+    , parsec
+    , standoff-tools
+    , text
+    , uuid-types
+  default-language: Haskell2010
+
+test-suite unit-tests
+  type: exitcode-stdio-1.0
+  main-is: TestMain.hs
+  other-modules:
+      RealWorldTests
+      Test.StandOff.DataXML
+      Test.StandOff.External.StandoffModeDump
+      Test.StandOff.InternalizerRW
+      Test.StandOff.MarkupRange
+      Test.StandOff.TagSerializer
+      Test.StandOff.TestSetup
+      Test.StandOff.TextRange
+      Paths_standoff_tools
+  hs-source-dirs:
+      testsuite
+  build-depends:
+      HTF >=0.10.1
+    , aeson >=1.1
+    , base >=4.9 && <4.10
+    , bytestring
+    , cassava
+    , containers
+    , hxt
+    , parsec
+    , standoff-tools
+    , template-haskell
+    , text
+    , uuid-types
+  default-language: Haskell2010
