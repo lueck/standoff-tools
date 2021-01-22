@@ -22,7 +22,7 @@ internal = [ (elm "root" 1 1000
                    ])
                  , (elm "div3" 300 399
                    [])
-                 , (elm "div4" 400 987
+                 , (elm "div4" 400 986
                    [])
                  ])
               ])
@@ -119,6 +119,22 @@ test_mergeInSingleClosing = do
 -- test markup between to elements, extending into both of them
 test_mergeExtendsIntoClosingOpening = do
   assertEqual [(241,269)] (mergeCase 239 271)
+
+-- test external contains a subtree and must be merged with the next one
+test_mergeContainsMergeNext = do
+  assertEqual [(120, 192), (200, 299), (306, 350)] (mergeCase 120 350)
+
+-- test external spans multiple subtrees
+test_mergeContainsSeveral = do
+  assertEqual [(200, 986)] (mergeCase 200 986)
+
+-- test external spans multiple subtrees
+test_mergeLeftOverlapsAndContainsSeveral = do
+  assertEqual [(120, 192), (200, 986)] (mergeCase 120 986)
+
+-- test with markup, that starts in a tag and ends in a tag of a nested element
+test_mergeCrossOverTags = do
+  assertEqual [(206, 269), (274, 274)] (mergeCase 203 277)
 
 
 -- corner case: test markup in a single closing tag

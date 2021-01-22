@@ -29,7 +29,10 @@ this `git` repository, `cd` into the new directory and run `stack`:
 	$ stack build
 
 
-To run tests do `stack test`.
+To run tests do `stack test :unit-tests`. There is also a testsuite
+with real world tests, which require TEI-P5 input files. If you want
+to run these tests, too, then don't hesitate to contact me for getting
+the files.
 
 # Usage #
 
