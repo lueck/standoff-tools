@@ -86,7 +86,7 @@ Executable standoff
   hs-source-dirs:    commandline, src
   default-language:  Haskell2010
 
-Test-Suite test-main
+Test-Suite unit-tests
   type:              exitcode-stdio-1.0
   main-is:           TestMain.hs
   other-modules:     StandOff.TextRange
@@ -103,10 +103,40 @@ Test-Suite test-main
                    , StandOff.External.StandoffModeDump
                    , Test.StandOff.DataXML
                    , Test.StandOff.TextRange
-                   , Test.StandOff.InternalizerRW
                    , Test.StandOff.MarkupRange
                    , Test.StandOff.TagSerializer
                    , Test.StandOff.External.StandoffModeDump
+                   , Test.StandOff.TestSetup
+  build-depends:     base  >=4.9 && <4.10
+                   , containers >= 0.5.0.0
+                   , parsec >=3.1
+                   , text >= 1.2.2.1
+                   , uuid-types
+                   , aeson >= 1.1
+                   , hxt
+                   , cassava
+                   , bytestring
+  build-depends:     HTF >=0.10.1
+                   , template-haskell
+  hs-source-dirs:    testsuite, src
+  default-language:  Haskell2010
+
+Test-Suite realworld-tests
+  type:              exitcode-stdio-1.0
+  main-is:           RealWorldTests.hs
+  other-modules:     StandOff.TextRange
+                   , StandOff.MarkupTree
+                   , StandOff.DomTypeDefs
+                   , StandOff.LineOffsets
+                   , StandOff.XmlParsec
+                   , StandOff.AnnotationTypeDefs
+                   , StandOff.Internalize
+                   , StandOff.ResolveOverlapping
+                   , StandOff.TagTypeDefs
+                   , StandOff.TagSerializer
+                   , StandOff.AttributeSerializer
+                   , StandOff.External.StandoffModeDump
+                   , Test.StandOff.InternalizerRW
                    , Test.StandOff.TestSetup
   build-depends:     base  >=4.9 && <4.10
                    , containers >= 0.5.0.0
