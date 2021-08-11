@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2a6ee817696ff2d52272695247d415e39f0fc00913827eb3c2b6909bb76ac851
+-- hash: 0bbbd6ac59cace07a89c75bd6799de62e77f7b49dd7d151c385849fa7b19653a
 
 name:           standoff-tools
 version:        0.0.3.1
@@ -30,13 +30,16 @@ library
   exposed-modules:
       StandOff.AnnotationTypeDefs
       StandOff.AttributeSerializer
+      StandOff.AttributesMap
       StandOff.DomTypeDefs
+      StandOff.External
       StandOff.External.StandoffModeDump
       StandOff.Internalize
       StandOff.LineOffsets
       StandOff.MarkupTree
       StandOff.Owl
       StandOff.ResolveOverlapping
+      StandOff.Tag
       StandOff.TagSerializer
       StandOff.TagTypeDefs
       StandOff.TextRange
@@ -47,10 +50,10 @@ library
       src
   build-depends:
       aeson >=1.1
-    , base >=4.9 && <4.10
+    , base >=4.9 && <5
     , bytestring
     , cassava
-    , containers
+    , containers >=0.5.8.1
     , hxt
     , parsec
     , text
@@ -67,10 +70,10 @@ executable standoff
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.1
-    , base >=4.9 && <4.10
+    , base >=4.9 && <5
     , bytestring
     , cassava
-    , containers
+    , containers >=0.5.8.1
     , directory >=1.2.0.1
     , hxt
     , optparse-applicative >=0.12.1.0
@@ -101,10 +104,10 @@ test-suite realworld-tests
   build-depends:
       HTF >=0.10.1
     , aeson >=1.1
-    , base >=4.9 && <4.10
+    , base >=4.9 && <5
     , bytestring
     , cassava
-    , containers
+    , containers >=0.5.8.1
     , hxt
     , parsec
     , standoff-tools
@@ -131,10 +134,10 @@ test-suite unit-tests
   build-depends:
       HTF >=0.10.1
     , aeson >=1.1
-    , base >=4.9 && <4.10
+    , base >=4.9 && <5
     , bytestring
     , cassava
-    , containers
+    , containers >=0.5.8.1
     , hxt
     , parsec
     , standoff-tools
