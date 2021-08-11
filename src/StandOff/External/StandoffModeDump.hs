@@ -79,8 +79,8 @@ instance A.FromJSON StandoffModeRange where
     <$> v .: "markupRangeId"
     <*> v .: "markupElementId"
     <*> v .: "qualifiedName"
-    <*> ((v .: "sourceStart") <|> (fmap (assertInt . readMaybe) $ v .: "sourceStart"))
-    <*> ((v .: "sourceEnd") <|> (fmap (assertInt . readMaybe) $ v .: "sourceEnd"))
+    <*> (fmap (\x -> x - 1) $ ((v .: "sourceStart") <|> (fmap (assertInt . readMaybe) $ v .: "sourceStart")))
+    <*> (fmap (\x -> x - 2) $ ((v .: "sourceEnd") <|> (fmap (assertInt . readMaybe) $ v .: "sourceEnd")))
     <*> (fmap readFormattedTime $ v .: "createdAt")
     <*> v .: "createdBy"
     where
