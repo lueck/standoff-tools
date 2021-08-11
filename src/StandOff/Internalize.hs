@@ -1,6 +1,7 @@
 module StandOff.Internalize
   ( internalize
   , internalize'
+  , insClose
   ) where
 
 import StandOff.TextRange
