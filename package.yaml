@@ -22,6 +22,7 @@ dependencies:
 - hxt
 - cassava
 - bytestring
+- time
 
 
 library:

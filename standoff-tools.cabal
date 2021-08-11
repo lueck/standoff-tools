@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 886c85c92a2bfe6c67ca4f544abd8030e7e924542194af3fee50ec71daf4e7a0
+-- hash: 2a6ee817696ff2d52272695247d415e39f0fc00913827eb3c2b6909bb76ac851
 
 name:           standoff-tools
 version:        0.0.3.1
@@ -54,6 +54,7 @@ library
     , hxt
     , parsec
     , text
+    , time
     , uuid-types
   default-language: Haskell2010
 
@@ -77,6 +78,7 @@ executable standoff
     , standoff-tools
     , template-haskell
     , text
+    , time
     , transformers
     , uuid-types
   default-language: Haskell2010
@@ -107,6 +109,7 @@ test-suite realworld-tests
     , parsec
     , standoff-tools
     , text
+    , time
     , uuid-types
   default-language: Haskell2010
 
@@ -137,5 +140,6 @@ test-suite unit-tests
     , standoff-tools
     , template-haskell
     , text
+    , time
     , uuid-types
   default-language: Haskell2010
