@@ -14,7 +14,6 @@ import qualified Data.Map as Map
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
 import StandOff.Internalize (internalize)
-import StandOff.AttributeSerializer
 import StandOff.DomTypeDefs (XML, isXMLDeclarationP, isElementP, xmlSpanning)
 import StandOff.Owl
 import StandOff.External
