@@ -5,7 +5,7 @@ module StandOff.Internalize
 
 import StandOff.TextRange
 import StandOff.MarkupTree
-import StandOff.TagTypeDefs
+import StandOff.Tag
 import StandOff.ResolveOverlapping
 
 -- | Internalize external markup into a document.
