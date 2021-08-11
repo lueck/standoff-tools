@@ -1,4 +1,4 @@
-module StandOff.AttributeSerializer where
+module StandOff.AttributeSerializer {-# DEPRECATED "Use StandOff.AttributeMap instead!" #-} where
 
 import Data.List
 import qualified Data.Map as Map

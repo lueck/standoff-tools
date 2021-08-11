@@ -1,4 +1,4 @@
-module StandOff.TagSerializer where
+module StandOff.TagSerializer {-# DEPRECATED "Use StandOff.Tag instead!" #-} where
 
 import Data.List
 
