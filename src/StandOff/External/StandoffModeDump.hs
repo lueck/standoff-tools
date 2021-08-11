@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, TupleSections #-}
 
 module StandOff.External.StandoffModeDump
   ( StandoffModeRange(..)
@@ -23,8 +23,11 @@ import Text.Read (readMaybe)
 import Text.Parsec hiding ((<|>))
 import qualified Data.ByteString.Lazy as BS
 import System.IO
+import qualified Data.Map as Map
+import Data.Maybe
 
 import StandOff.TextRange
+import StandOff.External
 
 
 -- * Data type
@@ -46,6 +49,16 @@ instance TextRange (StandoffModeRange) where
   start = somr_start
   end = somr_end
   split _ range (e1, s2) = (range {somr_end = e1}, range {somr_start = s2})
+
+instance ToAttributes StandoffModeRange where
+  attributes r = Map.fromList $ catMaybes
+    [ Just ("tagger", "standoff-mode")
+    , (fmap (("rangeId",) . show ) $ somr_id r)
+    , Just ("elementId", (show $ somr_elementId r))
+    , Just ("type", somr_type r)
+    , (fmap (("createdAt",) . show) $ somr_createdAt r)
+    , (fmap ("createdBy",) $ somr_createdBy r)
+    ]
 
 
 -- | A record for representing the contents of standoff-mode's
