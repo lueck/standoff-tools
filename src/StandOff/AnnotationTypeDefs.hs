@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module StandOff.AnnotationTypeDefs
+  {-# DEPRECATED "Please write a type definition for every parsed type of annotation! This module will be gone in version 0.1.0.0" #-}
   where
 
 import qualified Data.Map as Map
