@@ -1,14 +1,9 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
 import System.IO
 import Options.Applicative
 import Data.Monoid ((<>))
 import Data.Char
-import qualified Text.Parsec as P
-import Data.Functor.Identity (Identity)
-import Data.Aeson (encode, toJSON)
 import qualified Data.Csv as Csv
 import qualified Data.ByteString.Lazy as B
-import Language.Haskell.TH.Ppr (bytesToString)
 import qualified Data.Map as Map
 
 import StandOff.XmlParsec (runXmlParser)
