@@ -9,16 +9,17 @@ import Data.Aeson (encode, toJSON)
 import qualified Data.Csv as Csv
 import qualified Data.ByteString.Lazy as B
 import Language.Haskell.TH.Ppr (bytesToString)
+import qualified Data.Map as Map
 
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
 import StandOff.Internalize (internalize)
-import StandOff.TagSerializer
 import StandOff.AttributeSerializer
-import StandOff.AnnotationTypeDefs (makeAttributiveRanges, isMarkupRangeP, isRelationP, isPredicateP)
 import StandOff.DomTypeDefs (XML, isXMLDeclarationP, isElementP, xmlSpanning)
-import StandOff.TagTypeDefs (NSNameValueSerializer(..))
 import StandOff.Owl
+import StandOff.External
+import StandOff.AttributesMap
+import StandOff.Tag
 
 import StandOff.External.StandoffModeDump
 
@@ -36,12 +37,22 @@ getAnnotationsParser :: AnnotationFormat -> AnnotationsParser
 getAnnotationsParser StandoffModeELisp = runELispDumpParser
 getAnnotationsParser StandoffModeJSON = runJsonParser
 
+data TagSerializerType
+  = ConstTagSerializer String
+  | VarTagSerializer String String
+  deriving (Eq, Show)
+
+getTagSerializer :: ToAttributes a => TagSerializerType -> ((ExternalAttributes -> [Attribute]) -> TagSerializer a)
+getTagSerializer (ConstTagSerializer el) = constTagSerializer el
+getTagSerializer (VarTagSerializer attr el) = undefined
+
+
 -- | Commands and their commandline options.
 data Command
   = Offsets String
   | Internalize
-    { intlz_tagSrlzr :: TagSerializer
-    , intlz_attrSrlzr :: AttrSerializer
+    { intlz_tagSrlzr :: TagSerializerType
+    , intlz_attrMapping :: Maybe FilePath
     , intlz_pi :: Maybe String
     , intlz_annFormat :: AnnotationFormat
     , intlz_ann :: FilePath
@@ -77,61 +88,31 @@ offsetsInfo_ =
 
 -- * Options for the internalize command
 
-data TagSerializer
-  = Simple
-  | Namespace String
-  | Span String String
-  | TEI
-  deriving (Eq, Show)
-
-data AttrSerializer = AttrSerializer String String
-  deriving (Eq, Show)
-
-
 internalize_ :: Parser Command
 internalize_ = Internalize
-  <$> ((Span
-         <$> strOption
-         (metavar "ELEMENT TYPE-ATTR"
-          <> short 'n'
-          <> long "span"
-          <> help "Serialize tags into elements of name ELEMENT. The markup type is written to the attribute named TYPE-ATTR.")
-         <*> argument str ( metavar ""))
+  <$> ((ConstTagSerializer <$>
+         strOption (
+           metavar "ELEMENT"
+           <> short 'c'
+           <> long "const"
+           <> help "Serialize tags into elements of name ELEMENT."))
        <|>
-       (flag' TEI
-         (short 't'
-          <> long "tei"
-          <> help "Conveniance for \"-n span rendition\". This seems to be working good for TEI P5 source files."))
-       <|>
-       (Namespace
-         <$> strOption
-         (metavar "PREFIX"
-           <> short 'p'
-           <> long "prefix"
-           <> help "Serialize tags using the markup type as tag name. The name is prefixed with a general PREFIX, the namespace of which is defined on every internalized tag. So, using this tag internalizer every internalized tag starts like this: <PREFIX:localname xmlns:PREFIX='...' ...>. Be careful not to break namespace definitions of the xml tree in source file. Is it valid xml when the namespace, which is connected to a prefix, is changed while a so-prefixed elment is still open?"))
-       <|>
-       (flag' Simple
-        (short 's'
-          <> long "simple"
-          <> help "Serialize tags with a very simple serializer that uses the markup type as tag name. This is only usefull for markup types without namespaces."))
-        
-      )
-  <*> (AttrSerializer
-       <$> strOption
-        ( short 'r'
-          <> long "range-id"
-          <> help "Attribute name for markup range IDs. Defaults to \"rid\"."
-          <> value "rid")
-        <*> strOption
-        ( short 'e'
-          <> long "element-id"
-          <> help "Attribute name for markup element IDs. Defaults to \"eid\"."
-          <> value "eid"))
+       (VarTagSerializer
+         <$> strOption (
+           metavar "ATTRIBUTE FALLBACK"
+           <> short 'v'
+           <> long "variable"
+           <> help "Serialize tags setting the tag name variably from the tag's feature named ATTRIBUTE. If ATTRIBUTE is not among the tag's features, FALLBACK is used as tag name.")
+         <*> argument str (metavar "")))
   <*> optional (strOption
-                ( short 'i'
-                  <> long "processing-instruction"
-                  <> help "Insert a processing instruction into the result."
-                  <> metavar "PI"))
+                (short 'm'
+                 <> long "mapping"
+                 <> help "A mapping file of the external markup's features to tag attributes that will be internalized into the source. If not mapping is given, an empty mapping is used, which means, that no attributes are serialized."
+                 <> metavar "MAPPING"))
+  <*> optional (strOption
+                (short 'i'
+                 <> long "processing-instruction"
+                 <> help "Insert a processing instruction into the result."))
   <*> ((flag' StandoffModeJSON
         (short 'j'
          <> long "standoff-json"
@@ -148,9 +129,8 @@ internalizeInfo_ :: ParserInfo Command
 internalizeInfo_ =
   (info (internalize_ <**> helper)
     (fullDesc
-     <> progDesc "Internalize external annotations given in DUMPFILE into SOURCE. DUMPFILE must be generated (or must look like it's been generated) with GNU Emacs' standoff-mode. SOURCE must be a valid XML file, at least it must contain a root node. There are options on how the internalizer should serialize markup ranges, its type information, IDs etc. By default only markup ranges are internalized, but not relations."
-     <> header "standoff internalize - internalize standoff markup into an xml file."
-     <> footer "Roadmap: A serializer which takes a map of prefixes is about to be implemented."))
+     <> progDesc "Internalize external annotations given in EXTERNAL into SOURCE.  SOURCE must be a valid XML file, at least it must contain a root node.  EXTERNAL can have different formats.  The MAPPING file controls how the annotated features are serialized to XML."
+     <> header "standoff internalize - internalize standoff markup into an xml file."))
 
 
 -- * The @owl2csv@ command.
@@ -193,7 +173,7 @@ run (Offsets fileName) = do
   print nOffsets
 run (Internalize
      tagSlizer
-     (AttrSerializer rangeIdAttr elementIdAttr )
+     mappingFile
      procInstr
      annFormat
      annFile
@@ -208,19 +188,16 @@ run (Internalize
 
   let internalzd = internalize xmlContents internal external tagSlizer'
   putStr $ postProcess xml internalzd
-  where tagSlizer' = case tagSlizer of
-                       Simple -> serializeTag (idAttrSlizer Nothing LocalName) 
-                       Namespace prefix -> serializeNsTag (idAttrSlizer Nothing LocalName) prefix
-                       Span elName typeAttr -> serializeSpanTag (idAttrSlizer (Just typeAttr) LocalName) elName
-                       TEI -> serializeSpanTag (idAttrSlizer (Just "rendition") LocalName) "span"
-        postProcess xml rs = insertAt rs procInstr (behindXMLDeclOrTop xml)
-        insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
-        insertAt s Nothing _ = s
-        behindXMLDeclOrTop xml
-          | length decl == 1 = (posOffset $ snd $ xmlSpanning $ head decl) - 1
-          | otherwise = 0
-          where decl = filter isXMLDeclarationP xml
-        idAttrSlizer = (serializeAttributes (Just rangeIdAttr) (Just elementIdAttr))
+  where
+    tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
+    attrsMapping = Map.empty -- TODO
+    postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
+    insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
+    insertAt s Nothing _ = s
+    behindXMLDeclOrTop x
+      | length decl == 1 = (posOffset $ snd $ xmlSpanning $ head decl) - 1
+      | otherwise = 0
+      where decl = filter isXMLDeclarationP x
 run (Owl2Csv ontFilter csvDelimiter inFile) = do
   parsed <- runOwlParser inFile
   B.putStr $ Csv.encodeWith csvOpts $ map ReadOwl $ filter (predicate ontFilter) parsed
