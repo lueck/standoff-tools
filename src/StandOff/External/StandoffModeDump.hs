@@ -3,6 +3,7 @@
 module StandOff.External.StandoffModeDump
   ( StandoffModeRange(..)
   , StandoffModeAnnotations(..)
+  , runJsonParser
   , elDump
   , runELispDumpParser
   )
@@ -20,6 +21,8 @@ import qualified Data.Aeson.Types as A
 import Control.Applicative ((<|>))
 import Text.Read (readMaybe)
 import Text.Parsec hiding ((<|>))
+import qualified Data.ByteString.Lazy as BS
+import System.IO
 
 import StandOff.TextRange
 
@@ -84,6 +87,14 @@ instance A.FromJSON StandoffModeAnnotations where
       somJsonFields "som_md5sum" = "md5sum"
       somJsonFields "som_ranges" = "MarkupRanges"
       somJsonFields s = s
+
+-- | Parse all 'StandoffModeRange' objects found in IO 'Handle'.
+runJsonParser :: Handle -> IO [StandoffModeRange]
+runJsonParser h = do
+  c <- BS.hGetContents h
+  let ann = A.decode c :: Maybe StandoffModeAnnotations
+  -- TODO: Wrap the result in GADT.
+  return $ maybe [] id $ fmap som_ranges ann
 
 
 -- * Parsing elisp dump files
@@ -218,22 +229,21 @@ elDump = do
   return $ ranges++rels
 
 -- | Run the dump parser in the IO monad.
-runELispDumpParser :: SourceName -> String -> IO [StandoffModeRange]
-runELispDumpParser location contents = do
-  return $ either (fail . (err++) . show) id $ parse elDump location contents
+runELispDumpParser :: Handle -> IO [StandoffModeRange]
+runELispDumpParser h = do
+  contents <- hGetContents h
+  return $ either (fail . (err++) . show) id $ parse elDump (show h) contents
   where
-    err = "Error parsing ELisp dump file (" ++ location ++ "): "
+    err = "Error parsing ELisp dump (" ++ (show h) ++ "): "
 
 
--- | Parse dumped Elisp annotations.
+-- | Parse annotations.
 --
 -- Usage:
 -- > runhaskell DumpFile.hs < INFILE
 main :: IO ()
 main = do
-  c <- getContents
-  rc <- runELispDumpParser "stdin" c
-  -- needs import qualified Data.ByteString.Lazy as BS
+  rc <- runELispDumpParser stdin
   -- c <- BS.getContents
   -- let rc = A.decode c :: Maybe StandoffModeAnnotations
   print rc
