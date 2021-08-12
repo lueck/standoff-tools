@@ -42,6 +42,8 @@ data StandoffModeRange
     , somr_end :: Int             -- ^ the end character offset
     , somr_createdAt :: Maybe UTCTime -- ^ a unix timestamp
     , somr_createdBy :: Maybe String -- ^ the annotator's user name
+    -- | For internal use:
+    , somr_splitNum :: Maybe Int  -- ^ number of the split
     }
   deriving (Show)
 
@@ -59,6 +61,11 @@ instance ToAttributes StandoffModeRange where
     , (fmap (("createdAt",) . show) $ somr_createdAt r)
     , (fmap ("createdBy",) $ somr_createdBy r)
     ]
+
+instance IdentifiableSplit StandoffModeRange where
+  markupId = Just . show . somr_elementId
+  splitNum = somr_splitNum
+  updSplitNum r i = r { somr_splitNum = Just i }
 
 
 -- | A record for representing the contents of standoff-mode's
@@ -83,6 +90,7 @@ instance A.FromJSON StandoffModeRange where
     <*> (fmap (\x -> x - 2) $ ((v .: "sourceEnd") <|> (fmap (assertInt . readMaybe) $ v .: "sourceEnd")))
     <*> (fmap readFormattedTime $ v .: "createdAt")
     <*> v .: "createdBy"
+    <*> pure Nothing
     where
       assertInt Nothing = 0
       assertInt (Just i) = i
@@ -186,6 +194,7 @@ markupRange = do
     , somr_end = ((read end)::Int) - 2
     , somr_createdBy = Nothing -- FIXME
     , somr_createdAt = Nothing -- FIXME
+    , somr_splitNum = Nothing
     }
 
 markupRanges :: Parsec String () [StandoffModeRange]
