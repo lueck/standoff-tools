@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 module StandOff.AttributesMap
   ( AttributesMap
   , AttributeMap(..)
@@ -6,6 +7,7 @@ module StandOff.AttributesMap
   , mapExternal
   , serializeXml
   , specialAttrs
+  , parseMapping
   )
 where
 
@@ -27,6 +29,9 @@ import Data.Map ((!))
 import Data.Maybe
 import Control.Monad
 import Data.Monoid
+import qualified Data.Yaml as Y
+import qualified Data.Aeson as J
+import GHC.Generics
 
 import StandOff.External
 
@@ -44,7 +49,7 @@ data AttributeMap = AttributeMap
   , attrm_ns :: Maybe String
   , attrm_name :: String
   , attrm_values :: Maybe ValueMap
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
 
 -- | Mapping of values of external markup to some other values.
 type ValueMap = Map.Map String String
@@ -57,6 +62,23 @@ data Attribute = Attribute
   , attr_name :: String
   , attr_value :: String
   } deriving (Eq, Show)
+
+
+-- * Parser for mappings in YAML
+
+instance Y.FromJSON AttributeMap where
+  parseJSON = J.genericParseJSON $ J.defaultOptions { J.fieldLabelModifier = drop 6 }
+
+
+-- | Parse 'AttributesMap' from file.
+parseMapping :: FilePath -> IO (Either Y.ParseException AttributesMap)
+parseMapping = Y.decodeFileEither
+
+
+-- | Debugging: USAGE:
+-- stack runghc src/StandOff/AttributesMap.hs
+main :: IO ()
+main = parseMapping "utils/mappings/som-tei.yaml" >>= print
 
 
 -- * Do the mapping

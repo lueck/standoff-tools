@@ -23,6 +23,7 @@ dependencies:
 - cassava
 - bytestring
 - time
+- yaml
 
 
 library:
