@@ -5,7 +5,7 @@ __standoff_special__splitId:
   prefix: xml
   name: id
 
-__standoff_special__prev:
+__standoff_special__prevId:
   name: prev
 
 type:
