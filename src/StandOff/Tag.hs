@@ -27,8 +27,11 @@ type TagSerializer a = (TagType -> a -> String)
 
 -- | A serializer that produces tags with the same name. The name must
 -- be given in the first parameter.
-constTagSerializer :: (ToAttributes a, IdentifiableSplit a) =>
-                      String -> (ExternalAttributes -> [Attribute]) -> TagSerializer a
+constTagSerializer
+  :: (ToAttributes a, IdentifiableSplit a) =>
+     String                              -- ^ name of element
+  -> (ExternalAttributes -> [Attribute]) -- ^ a partially evaluated attributes mapping
+  -> TagSerializer a                     -- ^ returns a 'TagSerializer'
 constTagSerializer elName mapping Open tag =
   "<" <> elName
   <> (concatMap ((" "<>) . serializeXml) $ mapping $ specialAttrs tag $ attributes tag)
