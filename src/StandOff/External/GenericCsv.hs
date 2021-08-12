@@ -67,8 +67,8 @@ parseCsv s =
   -- first line is taken as column names
   -- we zip the columns of the other lines with these names
   -- and generate a 'Map' for each line
-  fmap (\vec -> catMaybes .
-         map mkMarkup .
+  fmap (\vec -> catMaybes $
+         map mkMarkup $
          map (Map.fromList .
               (zip (map (T.unpack . decodeUtf8 . BL.toStrict) $ V.toList $ V.head vec)) .
               (map (T.unpack . decodeUtf8 . BL.toStrict) . V.toList)) $
