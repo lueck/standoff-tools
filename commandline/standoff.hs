@@ -39,7 +39,7 @@ data TagSerializerType
 getTagSerializer :: (ToAttributes a, IdentifiableSplit a) =>
                     TagSerializerType -> ((ExternalAttributes -> [Attribute]) -> TagSerializer a)
 getTagSerializer (ConstTagSerializer el) = constTagSerializer el
-getTagSerializer (VarTagSerializer attr el) = undefined
+getTagSerializer (VarTagSerializer attr el) = fail "This serializer is still undefined"
 
 
 readAttrsMapping :: Maybe FilePath -> IO AttributesMap
