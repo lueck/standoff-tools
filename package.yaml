@@ -52,9 +52,10 @@ tests:
     - standoff-tools
     - HTF >=0.10.1
     - template-haskell
-  realworld-tests:
-    main: RealWorldTests.hs
-    source-dirs:         testsuite
-    dependencies:
-    - standoff-tools
-    - HTF >=0.10.1
+  # realworld-tests:
+  #   main: RealWorldTests.hs
+  #   source-dirs:         testsuite
+  #   dependencies:
+  #   - standoff-tools
+  #   - HTF >=0.10.1
+  #   - template-haskell
