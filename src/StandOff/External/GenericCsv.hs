@@ -13,7 +13,7 @@ where
 import qualified Data.Map as Map
 import qualified Data.Csv as C
 import qualified Data.ByteString.Lazy as BL
-
+import qualified Data.ByteString as BS
 import System.IO
 import Data.Vector (Vector)
 import qualified Data.Vector as V
@@ -56,22 +56,23 @@ instance IdentifiableSplit GenericCsvMarkup where
 -- * Parse CSV
 
 -- | Parse CSV input from IO 'Handle'.
-runCsvParser :: Handle -> IO [GenericCsvMarkup]
-runCsvParser h = do
+runCsvParser :: (BS.ByteString -> T.Text) -> Handle -> IO [GenericCsvMarkup]
+runCsvParser dec h = do
   c <- BL.hGetContents h
-  return $ either fail id $ parseCsv c
+  return $ either fail id $ parseCsv dec c
 
--- | Parse CSV input from lazy bytestring.
-parseCsv :: BL.ByteString -> Either String [GenericCsvMarkup]
-parseCsv s =
+-- | Parse CSV input from lazy bytestring. Use e.g. 'decodeUtf8' for
+-- decoding the character encoding.
+parseCsv :: (BS.ByteString -> T.Text) -> BL.ByteString -> Either String [GenericCsvMarkup]
+parseCsv dec s =
   -- first line is taken as column names
   -- we zip the columns of the other lines with these names
   -- and generate a 'Map' for each line
   fmap (\vec -> catMaybes $
          map mkMarkup $
          map (Map.fromList .
-              (zip (map (T.unpack . decodeUtf8 . BL.toStrict) $ V.toList $ V.head vec)) .
-              (map (T.unpack . decodeUtf8 . BL.toStrict) . V.toList)) $
+              (zip (map (T.unpack . dec . BL.toStrict) $ V.toList $ V.head vec)) .
+              (map (T.unpack . dec . BL.toStrict) . V.toList)) $
          tail $
          V.toList vec
        ) markup
