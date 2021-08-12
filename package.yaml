@@ -24,6 +24,7 @@ dependencies:
 - bytestring
 - time
 - yaml
+- vector
 
 
 library:
