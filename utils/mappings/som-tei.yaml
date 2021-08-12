@@ -1,0 +1,18 @@
+## Attribute mapping for internalizing standoff-mode annotations into
+## TEI
+
+__standoff_special__splitId:
+  prefix: xml
+  name: id
+
+__standoff_special__prev:
+  name: prev
+
+type:
+  name: type
+
+createdBy:
+  name: resp
+
+tagger:
+  name: source
