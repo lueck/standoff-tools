@@ -10,8 +10,6 @@ where
 import StandOff.External
 import StandOff.AttributesMap
 import Data.Monoid
-import qualified Data.Map as Map
-
 
 
 -- | Tag types for use in 'internalize'.
