@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2a6ee817696ff2d52272695247d415e39f0fc00913827eb3c2b6909bb76ac851
+-- hash: ccdd1c1e3e1f7c15139ce64c38cd26b481170a65a17db46d7ca4fde3c491e8d9
 
 name:           standoff-tools
-version:        0.0.3.1
+version:        0.1.0.0
 synopsis:       Tools for managing stand-off markup.
 description:    Please see the README on GitHub at <https://github.com/clueck/standoff-tools#readme>
 category:       Text
@@ -30,13 +30,16 @@ library
   exposed-modules:
       StandOff.AnnotationTypeDefs
       StandOff.AttributeSerializer
+      StandOff.AttributesMap
       StandOff.DomTypeDefs
+      StandOff.External
       StandOff.External.StandoffModeDump
       StandOff.Internalize
       StandOff.LineOffsets
       StandOff.MarkupTree
       StandOff.Owl
       StandOff.ResolveOverlapping
+      StandOff.Tag
       StandOff.TagSerializer
       StandOff.TagTypeDefs
       StandOff.TextRange
@@ -47,15 +50,16 @@ library
       src
   build-depends:
       aeson >=1.1
-    , base >=4.9 && <4.10
+    , base >=4.9 && <5
     , bytestring
     , cassava
-    , containers
+    , containers >=0.5.8.1
     , hxt
     , parsec
     , text
     , time
     , uuid-types
+    , yaml
   default-language: Haskell2010
 
 executable standoff
@@ -67,10 +71,10 @@ executable standoff
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.1
-    , base >=4.9 && <4.10
+    , base >=4.9 && <5
     , bytestring
     , cassava
-    , containers
+    , containers >=0.5.8.1
     , directory >=1.2.0.1
     , hxt
     , optparse-applicative >=0.12.1.0
@@ -81,46 +85,14 @@ executable standoff
     , time
     , transformers
     , uuid-types
-  default-language: Haskell2010
-
-test-suite realworld-tests
-  type: exitcode-stdio-1.0
-  main-is: RealWorldTests.hs
-  other-modules:
-      Test.StandOff.DataXML
-      Test.StandOff.External.StandoffModeDump
-      Test.StandOff.InternalizerRW
-      Test.StandOff.MarkupRange
-      Test.StandOff.TagSerializer
-      Test.StandOff.TestSetup
-      Test.StandOff.TextRange
-      TestMain
-      Paths_standoff_tools
-  hs-source-dirs:
-      testsuite
-  build-depends:
-      HTF >=0.10.1
-    , aeson >=1.1
-    , base >=4.9 && <4.10
-    , bytestring
-    , cassava
-    , containers
-    , hxt
-    , parsec
-    , standoff-tools
-    , text
-    , time
-    , uuid-types
+    , yaml
   default-language: Haskell2010
 
 test-suite unit-tests
   type: exitcode-stdio-1.0
   main-is: TestMain.hs
   other-modules:
-      RealWorldTests
       Test.StandOff.DataXML
-      Test.StandOff.External.StandoffModeDump
-      Test.StandOff.InternalizerRW
       Test.StandOff.MarkupRange
       Test.StandOff.TagSerializer
       Test.StandOff.TestSetup
@@ -131,10 +103,10 @@ test-suite unit-tests
   build-depends:
       HTF >=0.10.1
     , aeson >=1.1
-    , base >=4.9 && <4.10
+    , base >=4.9 && <5
     , bytestring
     , cassava
-    , containers
+    , containers >=0.5.8.1
     , hxt
     , parsec
     , standoff-tools
@@ -142,4 +114,5 @@ test-suite unit-tests
     , text
     , time
     , uuid-types
+    , yaml
   default-language: Haskell2010

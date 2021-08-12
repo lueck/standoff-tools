@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, TupleSections #-}
 
 module StandOff.External.StandoffModeDump
   ( StandoffModeRange(..)
@@ -23,8 +23,11 @@ import Text.Read (readMaybe)
 import Text.Parsec hiding ((<|>))
 import qualified Data.ByteString.Lazy as BS
 import System.IO
+import qualified Data.Map as Map
+import Data.Maybe
 
 import StandOff.TextRange
+import StandOff.External
 
 
 -- * Data type
@@ -39,6 +42,8 @@ data StandoffModeRange
     , somr_end :: Int             -- ^ the end character offset
     , somr_createdAt :: Maybe UTCTime -- ^ a unix timestamp
     , somr_createdBy :: Maybe String -- ^ the annotator's user name
+    -- | For internal use:
+    , somr_splitNum :: Maybe Int  -- ^ number of the split
     }
   deriving (Show)
 
@@ -46,6 +51,21 @@ instance TextRange (StandoffModeRange) where
   start = somr_start
   end = somr_end
   split _ range (e1, s2) = (range {somr_end = e1}, range {somr_start = s2})
+
+instance ToAttributes StandoffModeRange where
+  attributes r = Map.fromList $ catMaybes
+    [ Just ("tagger", "standoff-mode")
+    , (fmap (("rangeId",) . show ) $ somr_id r)
+    , Just ("elementId", (show $ somr_elementId r))
+    , Just ("type", somr_type r)
+    , (fmap (("createdAt",) . show) $ somr_createdAt r)
+    , (fmap ("createdBy",) $ somr_createdBy r)
+    ]
+
+instance IdentifiableSplit StandoffModeRange where
+  markupId = Just . show . somr_elementId
+  splitNum = somr_splitNum
+  updSplitNum r i = r { somr_splitNum = Just i }
 
 
 -- | A record for representing the contents of standoff-mode's
@@ -66,10 +86,11 @@ instance A.FromJSON StandoffModeRange where
     <$> v .: "markupRangeId"
     <*> v .: "markupElementId"
     <*> v .: "qualifiedName"
-    <*> ((v .: "sourceStart") <|> (fmap (assertInt . readMaybe) $ v .: "sourceStart"))
-    <*> ((v .: "sourceEnd") <|> (fmap (assertInt . readMaybe) $ v .: "sourceEnd"))
+    <*> (fmap (\x -> x - 1) $ ((v .: "sourceStart") <|> (fmap (assertInt . readMaybe) $ v .: "sourceStart")))
+    <*> (fmap (\x -> x - 2) $ ((v .: "sourceEnd") <|> (fmap (assertInt . readMaybe) $ v .: "sourceEnd")))
     <*> (fmap readFormattedTime $ v .: "createdAt")
     <*> v .: "createdBy"
+    <*> pure Nothing
     where
       assertInt Nothing = 0
       assertInt (Just i) = i
@@ -173,6 +194,7 @@ markupRange = do
     , somr_end = ((read end)::Int) - 2
     , somr_createdBy = Nothing -- FIXME
     , somr_createdAt = Nothing -- FIXME
+    , somr_splitNum = Nothing
     }
 
 markupRanges :: Parsec String () [StandoffModeRange]
