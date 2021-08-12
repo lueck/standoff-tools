@@ -36,7 +36,8 @@ data TagSerializerType
   | VarTagSerializer String String
   deriving (Eq, Show)
 
-getTagSerializer :: ToAttributes a => TagSerializerType -> ((ExternalAttributes -> [Attribute]) -> TagSerializer a)
+getTagSerializer :: (ToAttributes a, IdentifiableSplit a) =>
+                    TagSerializerType -> ((ExternalAttributes -> [Attribute]) -> TagSerializer a)
 getTagSerializer (ConstTagSerializer el) = constTagSerializer el
 getTagSerializer (VarTagSerializer attr el) = undefined
 
