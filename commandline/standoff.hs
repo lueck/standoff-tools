@@ -42,6 +42,14 @@ getTagSerializer (ConstTagSerializer el) = constTagSerializer el
 getTagSerializer (VarTagSerializer attr el) = undefined
 
 
+readAttrsMapping :: Maybe FilePath -> IO AttributesMap
+readAttrsMapping Nothing = return Map.empty
+readAttrsMapping (Just fname) = do
+  rc <- parseMapping fname
+  case rc of
+    Left err -> fail $ show err
+    Right m -> return m
+
 -- | Commands and their commandline options.
 data Command
   = Offsets String
@@ -176,6 +184,9 @@ run (Internalize
   annotsH <- openFile annFile ReadMode
   external <- (getAnnotationsParser annFormat) annotsH
 
+  attrsMapping <- readAttrsMapping mappingFile
+  let tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
+
   xmlContents <- readFile xmlFile
   lOffsets <- runLineOffsetParser xmlFile xmlContents
   xml <- runXmlParser lOffsets xmlFile xmlContents
@@ -184,8 +195,6 @@ run (Internalize
   let internalzd = internalize xmlContents internal external tagSlizer'
   putStr $ postProcess xml internalzd
   where
-    tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
-    attrsMapping = Map.empty -- TODO
     postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
     insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
     insertAt s Nothing _ = s
