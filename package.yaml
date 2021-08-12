@@ -1,5 +1,5 @@
 name:                standoff-tools
-version:             0.0.3.1
+version:             0.1.0.0
 synopsis:            Tools for managing stand-off markup.
 github:		     "lueck/standoff-tools"
 license:             GPL-3
@@ -14,7 +14,7 @@ description:  Please see the README on GitHub at <https://github.com/clueck/stan
 
 dependencies:
 - base >=4.9 && <5
-- containers
+- containers >= 0.5.8.1
 - parsec
 - text
 - uuid-types
@@ -22,6 +22,8 @@ dependencies:
 - hxt
 - cassava
 - bytestring
+- time
+- yaml
 
 
 library:
@@ -50,9 +52,10 @@ tests:
     - standoff-tools
     - HTF >=0.10.1
     - template-haskell
-  realworld-tests:
-    main: RealWorldTests.hs
-    source-dirs:         testsuite
-    dependencies:
-    - standoff-tools
-    - HTF >=0.10.1
+  # realworld-tests:
+  #   main: RealWorldTests.hs
+  #   source-dirs:         testsuite
+  #   dependencies:
+  #   - standoff-tools
+  #   - HTF >=0.10.1
+  #   - template-haskell

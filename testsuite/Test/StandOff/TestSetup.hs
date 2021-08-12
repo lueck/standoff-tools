@@ -1,6 +1,6 @@
 module Test.StandOff.TestSetup where
 
-import Data.Map as Map
+import Data.Map as Map hiding (drop)
 import Data.UUID.Types (UUID, fromString, toString)
 
 import StandOff.AnnotationTypeDefs as A
