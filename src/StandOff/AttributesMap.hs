@@ -8,6 +8,7 @@ module StandOff.AttributesMap
   , serializeXml
   , specialAttrs
   , parseMapping
+  , updSplitNumbers
   )
 where
 
@@ -32,6 +33,7 @@ import Data.Monoid
 import qualified Data.Yaml as Y
 import qualified Data.Aeson as J
 import GHC.Generics
+import Data.Traversable
 
 import StandOff.External
 
@@ -137,3 +139,13 @@ splitIdValue Nothing _ = "unknown"
 splitIdValue (Just mid) Nothing = mid
 splitIdValue (Just mid) (Just 0) = mid
 splitIdValue (Just mid) (Just i) =  mid <> "-" <> (show i)
+
+
+-- | Update splits with split numbers starting from zero.
+updSplitNumbers :: IdentifiableSplit a => [a] -> [a]
+updSplitNumbers = snd . mapAccumL countSplits Map.empty
+  where
+    countSplits :: IdentifiableSplit a => Map.Map String Int -> a -> (Map.Map String Int, a)
+    countSplits mp tg =
+      ((,) <$> snd <*> (updSplitNum tg . fromMaybe 0 . fst) ) $
+      Map.insertLookupWithKey (const (+)) (fromMaybe "unknown" $ markupId tg) 1 mp
