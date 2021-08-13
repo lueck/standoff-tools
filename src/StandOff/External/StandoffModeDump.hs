@@ -54,7 +54,8 @@ instance TextRange (StandoffModeRange) where
 
 instance ToAttributes StandoffModeRange where
   attributes r = Map.fromList $ catMaybes
-    [ Just ("tagger", "standoff-mode")
+    [ Just ("id", (show $ somr_elementId r)) -- "id" is used by 'GenericMarkup'
+    , Just ("tagger", "standoff-mode")
     , (fmap (("rangeId",) . show ) $ somr_id r)
     , Just ("elementId", (show $ somr_elementId r))
     , Just ("type", somr_type r)
