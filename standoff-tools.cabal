@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7f1795ddc00b1e0355defabb13944ea3dc2809b2b2178a5f137a4f61908827bd
+-- hash: 1ecd86969cf1328cfbb0b34c64d687bcb7eddfe710db0d116f5d81b99cbde783
 
 name:           standoff-tools
 version:        0.1.1.1
@@ -20,7 +20,7 @@ license:        GPL-3
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
-    ChangeLog.md
+    changelog.md
 
 source-repository head
   type: git
