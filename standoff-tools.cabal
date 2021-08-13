@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b645c0390e17d67bf0604c4a9f71d61124495d2e28acc9e12e2742fa34b0a9d5
+-- hash: 1ecd86969cf1328cfbb0b34c64d687bcb7eddfe710db0d116f5d81b99cbde783
 
 name:           standoff-tools
-version:        0.1.0.0
+version:        0.1.1.1
 synopsis:       Tools for managing stand-off markup.
 description:    Please see the README on GitHub at <https://github.com/clueck/standoff-tools#readme>
 category:       Text
@@ -20,7 +20,7 @@ license:        GPL-3
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
-    ChangeLog.md
+    changelog.md
 
 source-repository head
   type: git
