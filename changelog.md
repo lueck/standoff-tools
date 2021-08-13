@@ -1,5 +1,10 @@
 # Changes #
 
+- 0.1.1.1
+  - introduce `GenericMarkup` type and `ExternalMarkup` GADT
+  - it was first planned to use the GADT in the cli, but using
+    `GenericMarkup` introduces less overhead
+
 - 0.1.1.0
   - introduced special attribute `__standoff_special__ns` for adding a
     namespace on an inserted element.
