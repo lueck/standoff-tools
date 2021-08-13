@@ -4,7 +4,10 @@ import Data.Monoid ((<>))
 import Data.Char
 import qualified Data.Csv as Csv
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString as BS
 import qualified Data.Map as Map
+import qualified Data.Text as T
+import Data.Text.Encoding (decodeUtf8)
 
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
@@ -16,20 +19,21 @@ import StandOff.AttributesMap
 import StandOff.Tag
 
 import StandOff.External.StandoffModeDump
-
+import StandOff.External.GenericCsv
 
 -- * The commands of the @standoff@ commandline program.
 
-type AnnotationsParser = Handle -> IO [GenericMarkup]
+type AnnotationsParser = (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
 
 
 -- | Formats of annotations
-data AnnotationFormat = StandoffModeELisp | StandoffModeJSON
+data AnnotationFormat = StandoffModeELisp | StandoffModeJSON | GenericCsv
   deriving (Eq, Show)
 
 getAnnotationsParser :: AnnotationFormat -> AnnotationsParser
-getAnnotationsParser StandoffModeELisp h = do { ms <- runELispDumpParser h; return $ map somToGen ms }
-getAnnotationsParser StandoffModeJSON h = do { ms <- runJsonParser h; return $ map genMrkp ms }
+getAnnotationsParser StandoffModeELisp _ h = do { ms <- runELispDumpParser h; return $ map somToGen ms }
+getAnnotationsParser StandoffModeJSON _ h = do { ms <- runJsonParser h; return $ map genMrkp ms }
+getAnnotationsParser GenericCsv dec h = do { ms <- runCsvParser dec h; return $ map genMrkp ms }
 
 somToGen :: StandoffModeRange -> GenericMarkup
 somToGen = genMrkp
@@ -127,7 +131,12 @@ internalize_ = Internalize
        (flag' StandoffModeELisp
         (short 'l'
          <> long "standoff-dump"
-         <> help "Annotations in standoff-mode's dump format (Emacs lisp).")))
+         <> help "Annotations in standoff-mode's dump format (Emacs lisp)."))
+       <|>
+       (flag' GenericCsv
+        (short 'c'
+         <> long "csv"
+         <> help "Annotations in CSV.")))
   <*> argument str (metavar "EXTERNAL")
   <*> argument str (metavar "SOURCE")
 
@@ -185,7 +194,7 @@ run (Internalize
      annFile
      xmlFile) = do
   annotsH <- openFile annFile ReadMode
-  external <- (getAnnotationsParser annFormat) annotsH
+  external <- (getAnnotationsParser annFormat) decodeUtf8 annotsH
 
   attrsMapping <- readAttrsMapping mappingFile
   let tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
