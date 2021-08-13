@@ -1,5 +1,9 @@
 # Changes #
 
+- 0.1.0.1
+  - deprecated module `StandOff.TagTypeDefs` because the type
+    definitions have gone to `StandOff.Tag`
+
 - 0.1.0.0
   - parse and internalize JSON annotations produced with standoff-mode
   - introduced attribute maps represented in YAML config files
