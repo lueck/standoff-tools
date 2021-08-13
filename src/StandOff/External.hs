@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 module StandOff.External
-  ( ToAttributes(..)
+  ( ExternalAttributes
+  , ToAttributes(..)
   , IdentifiableSplit(..)
   , ExternalMarkup(..)
   , GenericMarkup
@@ -58,7 +59,7 @@ data GenericMarkup
   = GenericMarkup
   { genmrkp_start :: Int
   , genmrkp_end :: Int
-  , genmrkp_features :: Map.Map String String
+  , genmrkp_features :: ExternalAttributes
   -- | For internal use:
   , genmrkp_splitNum :: Maybe Int  -- ^ number of the split
   } deriving (Show)
