@@ -1,4 +1,4 @@
-module StandOff.TagTypeDefs where
+module StandOff.TagTypeDefs {-# DEPRECATED "Use StandOff.Tag instead!" #-} where
 
 -- | Tag types for use in internalize.
 data TagType
