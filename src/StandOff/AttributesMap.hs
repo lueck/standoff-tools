@@ -117,6 +117,7 @@ serializeXml attr = attr_name attr <> "=\"" <> (escape $ attr_value attr) <> "\"
 -- in TEI's @prev attribute for discontinous markup.
 specialAttrs :: IdentifiableSplit a => a -> ExternalAttributes -> ExternalAttributes
 specialAttrs tag =
+  appendNamespace tag .
   appendPrevId tag .
   appendSplitId tag
 
@@ -139,6 +140,12 @@ splitIdValue Nothing _ = "unknown"
 splitIdValue (Just mid) Nothing = mid
 splitIdValue (Just mid) (Just 0) = mid
 splitIdValue (Just mid) (Just i) =  mid <> "-" <> (show i)
+
+-- | This adds the special attribute "__standoff_special__ns" with the
+-- fixed value "unknown" which can be used to add a namespace to the
+-- inserted element.
+appendNamespace :: a -> ExternalAttributes -> ExternalAttributes
+appendNamespace _ attrs = Map.insert "__standoff_special__ns" "unknown" attrs
 
 
 -- | Update splits with split numbers starting from zero.
