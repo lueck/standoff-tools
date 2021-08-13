@@ -1,5 +1,9 @@
 # Changes #
 
+- 0.1.1.0
+  - introduced special attribute `__standoff_special__ns` for adding a
+    namespace on an inserted element.
+
 - 0.1.0.1
   - deprecated module `StandOff.TagTypeDefs` because the type
     definitions have gone to `StandOff.Tag`
