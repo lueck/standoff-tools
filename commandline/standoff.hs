@@ -20,7 +20,7 @@ import StandOff.External.StandoffModeDump
 
 -- * The commands of the @standoff@ commandline program.
 
-type AnnotationsParser = Handle -> IO [StandoffModeRange]
+type AnnotationsParser = Handle -> IO [GenericMarkup]
 
 
 -- | Formats of annotations
@@ -28,8 +28,11 @@ data AnnotationFormat = StandoffModeELisp | StandoffModeJSON
   deriving (Eq, Show)
 
 getAnnotationsParser :: AnnotationFormat -> AnnotationsParser
-getAnnotationsParser StandoffModeELisp = runELispDumpParser
-getAnnotationsParser StandoffModeJSON = runJsonParser
+getAnnotationsParser StandoffModeELisp h = do { ms <- runELispDumpParser h; return $ map somToGen ms }
+getAnnotationsParser StandoffModeJSON h = do { ms <- runJsonParser h; return $ map genMrkp ms }
+
+somToGen :: StandoffModeRange -> GenericMarkup
+somToGen = genMrkp
 
 data TagSerializerType
   = ConstTagSerializer String
