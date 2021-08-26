@@ -19,8 +19,8 @@ TEI
 community](https://www.tei-c.org/release/doc/tei-p5-doc/en/html/SA.html#SASO). We
 add the term *split* (noun), which means a portion of an annotated
 text run. *Splitting* is the action of dividing an annotated text run
-in order to make non-overlapping markup. There's also the term `text
-range` which is widely used in the source code: It means the annotated
+in order to make non-overlapping markup. There's also the term *text
+range* which is widely used in the source code: It means the annotated
 text run.]
 
 
@@ -54,7 +54,8 @@ with [`standoff-mode`](https://github.com/lueck/standoff-mode), a
 tagger for [GNU Emacs](https://www.gnu.org/software/emacs/). This tool
 works with annotation schemes defined in RDFS/OWL, lets you make
 discontinuous markup, relations of text runs, and free text
-comments. `standoff-tools` enabled us to visualize our annotations in
+comments. `standoff-tools` enabled us to
+[visualize](https://github.com/lueck/standoff-viz) our annotations in
 a browser.
 
 The target in 2021 is to use `standoff-tools` in various annotation
