@@ -9,6 +9,9 @@ import qualified Data.Map as Map
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
 
+import Data.Version (showVersion)
+import Paths_standoff_tools (version)
+
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
 import StandOff.Internalize (internalize)
@@ -21,10 +24,20 @@ import StandOff.Tag
 import StandOff.External.StandoffModeDump
 import StandOff.External.GenericCsv
 
--- * The commands of the @standoff@ commandline program.
+
+-- * Parse command line options
+
+-- | A hidden \"version\" option which always aborts the program with exit code 0.
+version_ :: Parser (a -> a)
+version_ = abortOption (InfoMsg $ showVersion version) $ mconcat
+  [ long "version"
+  , help "Show the version of this program."
+  , hidden ]
+
+
+-- ** Parser for the annotations' input format
 
 type AnnotationsParser = [Int] -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
-
 
 -- | Formats of annotations
 data AnnotationFormat
@@ -119,7 +132,7 @@ offsets_ = Offsets <$> argument str (metavar "FILE")
 
 offsetsInfo_ :: ParserInfo Command
 offsetsInfo_ =
-  (info (offsets_ <**> helper)
+  (info (offsets_ <**> version_ <**> helper)
     (fullDesc
      <> progDesc "Returns the character offsets, lines and columns of the nodes of an XML file."
      <> header "standoff offsets - an xml parser returning node positions."))
@@ -158,7 +171,7 @@ internalize_ = Internalize
 
 internalizeInfo_ :: ParserInfo Command
 internalizeInfo_ =
-  (info (internalize_ <**> helper)
+  (info (internalize_ <**> version_ <**> helper)
     (fullDesc
      <> progDesc "Internalize external annotations given in EXTERNAL into SOURCE.  SOURCE must be a valid XML file, at least it must contain a root node.  EXTERNAL can have different formats.  The MAPPING file controls how the annotated features are serialized to XML."
      <> header "standoff internalize - internalize standoff markup into an xml file."))
@@ -188,7 +201,7 @@ owl2csv_ = Owl2Csv
 
 owl2csvInfo_ :: ParserInfo Command
 owl2csvInfo_ =
-  info (helper <*> owl2csv_)
+  info (owl2csv_ <**> version_ <**> helper)
   ( fullDesc
     <> progDesc "Minimalistic conversion from OWL to CSV for standoff database."
     <> header "standoff owl2csv - Converts OWL to CSV as needed by standoff database.")
@@ -244,7 +257,7 @@ run (Owl2Csv ontFilter csvDelimiter inFile) = do
 
 opts :: ParserInfo Command
 opts = info
-       (command_ <**> helper)
+       (command_  <**> version_ <**> helper)
        (fullDesc <>
          header "standoff - a tool for handling standoff annotations (aka external markup)." <>
          progDesc "standoff offers commands for parsing a dump file that contains external markup and for internalizing such external markup into an xml file. There is also a command for getting the positions of the tags of an xml file." <>
