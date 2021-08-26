@@ -1,5 +1,11 @@
 # Changes #
 
+- 0.1.1.2
+  - parse external markup from CSV with several referencing methods:
+  - referencing by start character offset and end character offset,
+	by pairs of line and column and by a pair of line and column for
+	the start position and a length for the end position.
+
 - 0.1.1.1
   - introduce `GenericMarkup` type and `ExternalMarkup` GADT
   - it was first planned to use the GADT in the cli, but using

@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1ecd86969cf1328cfbb0b34c64d687bcb7eddfe710db0d116f5d81b99cbde783
+-- hash: dca7cb8bddb74568c0ebecaa79b805dda7365cffab2deaaddeff3c85a8b75cfa
 
 name:           standoff-tools
-version:        0.1.1.1
+version:        0.1.1.2
 synopsis:       Tools for managing stand-off markup.
 description:    Please see the README on GitHub at <https://github.com/clueck/standoff-tools#readme>
 category:       Text
@@ -33,6 +33,7 @@ library
       StandOff.AttributesMap
       StandOff.DomTypeDefs
       StandOff.External
+      StandOff.External.GenericCsv
       StandOff.External.StandoffModeDump
       StandOff.Internalize
       StandOff.LineOffsets
@@ -55,10 +56,12 @@ library
     , cassava
     , containers >=0.5.8.1
     , hxt
+    , lens
     , parsec
     , text
     , time
     , uuid-types
+    , vector
     , yaml
   default-language: Haskell2010
 
@@ -77,6 +80,7 @@ executable standoff
     , containers >=0.5.8.1
     , directory >=1.2.0.1
     , hxt
+    , lens
     , optparse-applicative >=0.12.1.0
     , parsec
     , standoff-tools
@@ -85,6 +89,7 @@ executable standoff
     , time
     , transformers
     , uuid-types
+    , vector
     , yaml
   default-language: Haskell2010
 
@@ -108,11 +113,13 @@ test-suite unit-tests
     , cassava
     , containers >=0.5.8.1
     , hxt
+    , lens
     , parsec
     , standoff-tools
     , template-haskell
     , text
     , time
     , uuid-types
+    , vector
     , yaml
   default-language: Haskell2010

@@ -8,7 +8,7 @@ import StandOff.DomTypeDefs as X
 import StandOff.LineOffsets as L
 
 pos :: Int -> L.Position
-pos p = L.Position {L.offset=p, L.line=1, L.column=1}
+pos p = L.Position {L.pos_offset=p, L.pos_line=1, L.pos_column=1}
 
 elm :: String -> Int -> Int -> [XML] -> XML
 elm n s e c = (Element { name = n
