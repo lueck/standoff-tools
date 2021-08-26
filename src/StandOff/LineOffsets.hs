@@ -1,13 +1,26 @@
 module StandOff.LineOffsets
-  ( lineOffsets
+  ( offset
+  , lineOffsets
   , lineOffsets'
   , getOffset
   , Position (..)
   , posOffset
   , runLineOffsetParser
   ) where
-    
--- The lineOffsets parser returns the offsets of the lines fed to it
+
+import Text.Parsec
+import Data.List
+import Control.Lens ((^?), element)
+
+-- * Mapping a pair of line and column to character offset
+
+-- | Get the character offset for a pair of line and column.
+offset :: [Int] -> Int -> Int -> Maybe Int
+offset offsets line col = fmap (+col) $ offsets ^? element (line - 1)
+
+-- * Parser
+
+-- | The lineOffsets parser returns the offsets of the lines fed to it
 -- as a list. This list can be used to turn Parsec's SourcePos into
 -- offsets.
 
@@ -25,11 +38,9 @@ module StandOff.LineOffsets
 -- Right [0,7,19]
 
 
-import Text.Parsec
-
-data Position = Position { offset :: Int
-                         , line :: Int
-                         , column :: Int
+data Position = Position { pos_offset :: Int
+                         , pos_line :: Int
+                         , pos_column :: Int
                          } deriving (Show)
 
 posOffset :: Position -> Int
@@ -59,12 +70,12 @@ getOffset :: Int -> Parsec String [Int] Position
 getOffset cor = do
   offsets <- getState
   pos <- getPosition
-  return $ Position { line = sourceLine pos
-                    , column = sourceColumn pos
+  return $ Position { pos_line = sourceLine pos
+                    , pos_column = sourceColumn pos
                     -- parsec's column in SourcePos starts with 1, but
                     -- we say that the first char in a file has offset
                     -- of 0. So we decrement the offset by 1.
-                    , offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor - 1
+                    , pos_offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor - 1
                     }
 
 
