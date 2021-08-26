@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1ecd86969cf1328cfbb0b34c64d687bcb7eddfe710db0d116f5d81b99cbde783
+-- hash: bf79a9dc7cb9570d0c7d4fa52bea80972663f1315cd32debd36a19a25d769c6c
 
 name:           standoff-tools
 version:        0.1.1.1
@@ -56,6 +56,7 @@ library
     , cassava
     , containers >=0.5.8.1
     , hxt
+    , lens
     , parsec
     , text
     , time
@@ -79,6 +80,7 @@ executable standoff
     , containers >=0.5.8.1
     , directory >=1.2.0.1
     , hxt
+    , lens
     , optparse-applicative >=0.12.1.0
     , parsec
     , standoff-tools
@@ -111,6 +113,7 @@ test-suite unit-tests
     , cassava
     , containers >=0.5.8.1
     , hxt
+    , lens
     , parsec
     , standoff-tools
     , template-haskell
