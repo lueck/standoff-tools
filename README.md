@@ -1,6 +1,6 @@
 [![License
 GPLv3](https://img.shields.io/badge/license-GPL_3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.txt)
-![Build Status](https://travis-ci.org/lueck/scannedb-ok.svg?branch=master)](https://travis-ci.org/lueck/standoff-tools)
+[![Build Status](https://app.travis-ci.com/lueck/standoff-tools.svg?branch=master)](https://app.travis-ci.com/lueck/standoff-tools)
 
 # standoff-tools - tools for handling standoff annotations #
 
