@@ -23,17 +23,23 @@ import StandOff.External.GenericCsv
 
 -- * The commands of the @standoff@ commandline program.
 
-type AnnotationsParser = (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
+type AnnotationsParser = [Int] -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
 
 
 -- | Formats of annotations
-data AnnotationFormat = StandoffModeELisp | StandoffModeJSON | GenericCsv
+data AnnotationFormat
+  = StandoffModeELisp | StandoffModeJSON
+  | GenericCsvStartEnd | GenericCsvLineColumn | GenericCsvLineColumnLength
   deriving (Eq, Show)
 
 getAnnotationsParser :: AnnotationFormat -> AnnotationsParser
-getAnnotationsParser StandoffModeELisp _ h = runELispDumpParser h >>= return . map somToGen
-getAnnotationsParser StandoffModeJSON _ h = runJsonParser h >>= return . map genMrkp
-getAnnotationsParser GenericCsv dec h = runCsvParser startEndMarkup dec h >>= return . map genMrkp
+getAnnotationsParser StandoffModeELisp _ _ h = runELispDumpParser h >>= return . map somToGen
+getAnnotationsParser StandoffModeJSON _ _ h = runJsonParser h >>= return . map genMrkp
+getAnnotationsParser GenericCsvStartEnd _ dec h = runCsvParser startEndMarkup dec h >>= return . map genMrkp
+getAnnotationsParser GenericCsvLineColumn offsets dec h = runCsvParser (lineColumnMarkup offsets) dec h >>=
+  return . map genMrkp
+getAnnotationsParser GenericCsvLineColumnLength offsets dec h = runCsvParser (lineColumnLengthMarkup offsets) dec h >>=
+  return . map genMrkp
 
 somToGen :: StandoffModeRange -> GenericMarkup
 somToGen = genMrkp
@@ -47,6 +53,29 @@ getTagSerializer :: (ToAttributes a, IdentifiableSplit a) =>
                     TagSerializerType -> ((ExternalAttributes -> [Attribute]) -> TagSerializer a)
 getTagSerializer (ConstTagSerializer el) = constTagSerializer el
 getTagSerializer (VarTagSerializer attr el) = fail "This serializer is still undefined"
+
+-- | Parser for annotation format command line options
+annotationFormat_ :: Parser AnnotationFormat
+annotationFormat_ =
+  (flag' StandoffModeJSON
+    (long "standoff-json"
+      <> help "Annotations in standoff-mode's JSON format."))
+  <|>
+  (flag' StandoffModeELisp
+    (long "standoff-dump"
+      <> help "Annotations in standoff-mode's dump format (Emacs lisp)."))
+  <|>
+  (flag' GenericCsvStartEnd
+    (long "csv-start-end"
+      <> help "Annotations in CSV with referencing start character offset and end character offset. There must be columns named \"start\" and \"end\" and their values must be integers."))
+  <|>
+  (flag' GenericCsvLineColumn
+    (long "csv-line-column"
+      <> help "Annotations in CSV with referencing line/column-tuples. There must be columns named \"startline\", \"startcolumn\", \"endline\", and \"endcolumn\", and their values must be integers."))
+  <|>
+  (flag' GenericCsvLineColumnLength
+    (long "csv-line-column-length"
+      <> help "Annotations in CSV referencing the start by a line/column-tuple and giving the length of the text annotated range. There must be columns named \"line\", \"column\", and \"length\", and their values must be integers."))  
 
 
 readAttrsMapping :: Maybe FilePath -> IO AttributesMap
@@ -123,20 +152,7 @@ internalize_ = Internalize
                 (short 'i'
                  <> long "processing-instruction"
                  <> help "Insert a processing instruction into the result."))
-  <*> ((flag' StandoffModeJSON
-        (short 'j'
-         <> long "standoff-json"
-         <> help "Annotations in standoff-mode's JSON format."))
-       <|>
-       (flag' StandoffModeELisp
-        (short 'l'
-         <> long "standoff-dump"
-         <> help "Annotations in standoff-mode's dump format (Emacs lisp)."))
-       <|>
-       (flag' GenericCsv
-        (short 'c'
-         <> long "csv"
-         <> help "Annotations in CSV.")))
+  <*> annotationFormat_
   <*> argument str (metavar "EXTERNAL")
   <*> argument str (metavar "SOURCE")
 
@@ -193,9 +209,6 @@ run (Internalize
      annFormat
      annFile
      xmlFile) = do
-  annotsH <- openFile annFile ReadMode
-  external <- (getAnnotationsParser annFormat) decodeUtf8 annotsH
-
   attrsMapping <- readAttrsMapping mappingFile
   let tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
 
@@ -203,6 +216,9 @@ run (Internalize
   lOffsets <- runLineOffsetParser xmlFile xmlContents
   xml <- runXmlParser lOffsets xmlFile xmlContents
   let internal = filter isElementP xml
+
+  annotsH <- openFile annFile ReadMode
+  external <- (getAnnotationsParser annFormat) lOffsets decodeUtf8 annotsH
 
   let internalzd = internalize xmlContents internal external tagSlizer'
   putStr $ postProcess xml internalzd
