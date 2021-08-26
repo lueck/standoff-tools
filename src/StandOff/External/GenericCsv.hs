@@ -4,6 +4,8 @@ module StandOff.External.GenericCsv
   , parseCsv
   , runCsvParser
   , startEndMarkup
+  , lineColumnMarkup
+  , lineColumnLengthMarkup
   )
 where
 
@@ -25,7 +27,7 @@ import Control.Monad
 
 import StandOff.TextRange
 import StandOff.External
-
+import StandOff.LineOffsets (offset)
 
 -- * Type definitions
 
@@ -108,3 +110,35 @@ startEndMarkup line = NamedGenericCsvMarkup
   <*> Just line
   <*> Just Nothing
 
+-- | Make markup from CSV with the start and end expressed by tuples
+-- of line and column. "startline", "startcolumn", "endline", and
+-- "endcolumn" must be present in the CSV header and the values must
+-- be integrals.
+lineColumnMarkup :: [Int] -> Map.Map String String -> Maybe GenericCsvMarkup
+lineColumnMarkup offsets line = NamedGenericCsvMarkup
+  <$> start'
+  <*> end'
+  <*> Just line
+  <*> Just Nothing
+  where
+    start' = join $ offset offsets
+      <$> (join $ fmap readMaybe $ Map.lookup "startline" line)
+      <*> (join $ fmap readMaybe $ Map.lookup "startcolumn" line)
+    end' = join $ offset offsets
+      <$> (join $ fmap readMaybe $ Map.lookup "endline" line)
+      <*> (join $ fmap readMaybe $ Map.lookup "endcolumn" line)
+
+-- | Make markup from CSV with the start expressed by a tuple of line
+-- and column and the length of the range given. "line", "column", and
+-- "length" must be present in the CSV header and the values must be
+-- integrals.
+lineColumnLengthMarkup :: [Int] -> Map.Map String String -> Maybe GenericCsvMarkup
+lineColumnLengthMarkup offsets line = NamedGenericCsvMarkup
+  <$> start'
+  <*> ((+) <$> start' <*> (join $ fmap readMaybe $ Map.lookup "length" line))
+  <*> Just line
+  <*> Just Nothing
+  where
+    start' = join $ offset offsets
+      <$> (join $ fmap readMaybe $ Map.lookup "line" line)
+      <*> (join $ fmap readMaybe $ Map.lookup "column" line)
