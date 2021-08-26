@@ -3,6 +3,7 @@ module StandOff.External.GenericCsv
   ( GenericCsvMarkup(..)
   , parseCsv
   , runCsvParser
+  , startEndMarkup
   )
 where
 
@@ -55,16 +56,31 @@ instance IdentifiableSplit GenericCsvMarkup where
 
 -- * Parse CSV
 
--- | Parse CSV input from IO 'Handle'.
-runCsvParser :: (BS.ByteString -> T.Text) -> Handle -> IO [GenericCsvMarkup]
-runCsvParser dec h = do
+-- | Parse CSV input from IO 'Handle'. The first two arguments are
+-- passed to 'parseCsv'. See there for details.
+runCsvParser :: (Map.Map String String -> Maybe GenericCsvMarkup)
+             -> (BS.ByteString -> T.Text)
+             -> Handle                                            -- ^ IO handle
+             -> IO [GenericCsvMarkup]
+runCsvParser mkMarkup dec h = do
   c <- BL.hGetContents h
-  return $ either fail id $ parseCsv dec c
+  return $ either fail id $ parseCsv mkMarkup dec c
 
 -- | Parse CSV input from lazy bytestring. Use e.g. 'decodeUtf8' for
 -- decoding the character encoding.
-parseCsv :: (BS.ByteString -> T.Text) -> BL.ByteString -> Either String [GenericCsvMarkup]
-parseCsv dec s =
+parseCsv :: (Map.Map String String -> Maybe GenericCsvMarkup)
+         -- ^ function for making 'GenericCsvMarkup' from parsed
+         -- values. The mapping that the function takes as input maps
+         -- column names to a single row of values. If no
+         -- 'GenericCsvMarkup' can be created from this mapping, the
+         -- function should return Nothing. (Nothing values will be
+         -- removed silently from the list of external markup.)
+         -> (BS.ByteString -> T.Text)
+         -- ^ decoding input
+         -> BL.ByteString
+         -- ^ the csv input string
+         -> Either String [GenericCsvMarkup]
+parseCsv mkMarkup dec s =
   -- first line is taken as column names
   -- we zip the columns of the other lines with these names
   -- and generate a 'Map' for each line
@@ -81,11 +97,15 @@ parseCsv dec s =
     -- Note: decodeByNameWith does not work with (Vector Bytestring), does it?
     markup = C.decodeWith C.defaultDecodeOptions C.NoHeader s
 
--- | If there is not both, an integral start and end, the line will be
--- 'Nothing'.
-mkMarkup :: Map.Map String String -> Maybe GenericCsvMarkup
-mkMarkup line = NamedGenericCsvMarkup
+-- | Make markup from CSV with *start character offset and end
+-- character offset*. "start" and "end" must both be present in the
+-- CSV header und the values must be integrals. If there is not both
+-- of them the line will be 'Nothing'. This function can serve as an
+-- argument to 'runCsvParser' and 'parseCsv'.
+startEndMarkup :: Map.Map String String -> Maybe GenericCsvMarkup
+startEndMarkup line = NamedGenericCsvMarkup
   <$> (join $ fmap readMaybe $ Map.lookup "start" line)
   <*> (join $ fmap readMaybe $ Map.lookup "end" line)
   <*> Just line
   <*> Just Nothing
+

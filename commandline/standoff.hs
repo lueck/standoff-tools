@@ -33,7 +33,7 @@ data AnnotationFormat = StandoffModeELisp | StandoffModeJSON | GenericCsv
 getAnnotationsParser :: AnnotationFormat -> AnnotationsParser
 getAnnotationsParser StandoffModeELisp _ h = do { ms <- runELispDumpParser h; return $ map somToGen ms }
 getAnnotationsParser StandoffModeJSON _ h = do { ms <- runJsonParser h; return $ map genMrkp ms }
-getAnnotationsParser GenericCsv dec h = do { ms <- runCsvParser dec h; return $ map genMrkp ms }
+getAnnotationsParser GenericCsv dec h = do { ms <- runCsvParser startEndMarkup dec h; return $ map genMrkp ms }
 
 somToGen :: StandoffModeRange -> GenericMarkup
 somToGen = genMrkp
