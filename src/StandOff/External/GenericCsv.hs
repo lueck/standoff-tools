@@ -18,7 +18,6 @@ import qualified Data.ByteString as BS
 import System.IO
 import Data.Vector (Vector)
 import qualified Data.Vector as V
-import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text as T
 import Data.Maybe
 import Text.Read (readMaybe)
