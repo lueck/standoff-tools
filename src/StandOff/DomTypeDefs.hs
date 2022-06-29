@@ -1,4 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module StandOff.DomTypeDefs where
+
+import qualified Data.Csv as Csv
+import Data.Csv ((.=))
+import qualified Data.Vector as V
 
 import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
@@ -54,6 +60,69 @@ instance TR.TextRange XML where
 instance MarkupTree XML where
   getMarkupChildren (Element _ _ _ _ _ _ c) = filter isElementP c
   getMarkupChildren _ = []
+
+instance Csv.ToField XML where
+  toField (Element _ _ _ _ _ _ _) = Csv.toField (0::Int)
+  toField (EmptyElement _ _ _ _) = Csv.toField (1::Int)
+  toField (XMLDeclaration _ _ _) = Csv.toField (2::Int)
+  toField (ProcessingInstruction _ _ _ _) = Csv.toField (3::Int)
+  toField (TextNode _ _ _) = Csv.toField (4::Int)
+  toField (Comment _ _ _) = Csv.toField (5::Int)
+
+instance Csv.ToNamedRecord XML where
+  toNamedRecord x@(Element n _ so eo sc ec _) = Csv.namedRecord
+    [ "type" .= x
+    ,  "start" .= so
+    , "end" .= eo
+    , "startClose" .= sc
+    , "endClose" .= ec
+    , "lname" .= n
+    ]
+  toNamedRecord x@(EmptyElement n _ s e) = Csv.namedRecord
+    [ "type" .= x
+    , "start" .= s
+    , "end" .= e
+    , "startClose" .= (Nothing::Maybe Int)
+    , "endClose" .= (Nothing::Maybe Int)
+    , "lname" .= n
+    ]
+  toNamedRecord x@(XMLDeclaration _ s e) = Csv.namedRecord
+    [ "type" .= x
+    , "start" .= s
+    , "end" .= e
+    , "startClose" .= (Nothing::Maybe Int)
+    , "endClose" .= (Nothing::Maybe Int)
+    , "lname" .= (Nothing::Maybe String)
+    ]
+  toNamedRecord x@(ProcessingInstruction n _ s e) = Csv.namedRecord
+    [ "type" .= x
+    , "start" .= s
+    , "end" .= e
+    , "startClose" .= (Nothing::Maybe Int)
+    , "endClose" .= (Nothing::Maybe Int)
+    , "lname" .= n
+    ]
+  toNamedRecord x@(TextNode _ s e) = Csv.namedRecord
+    [ "type" .= x
+    , "start" .= s
+    , "end" .= e
+    , "startClose" .= (Nothing::Maybe Int)
+    , "endClose" .= (Nothing::Maybe Int)
+    , "lname" .= (Nothing::Maybe String)
+    ]
+  toNamedRecord x@(Comment _ s e) = Csv.namedRecord
+    [ "type" .= x
+    , "start" .= s
+    , "end" .= e
+    , "startClose" .= (Nothing::Maybe Int)
+    , "endClose" .= (Nothing::Maybe Int)
+    , "lname" .= (Nothing::Maybe String)
+    ]
+
+-- | The order of data presented in CSV
+positionHeader :: Csv.Header -- Vector String
+positionHeader = V.fromList ["type", "start", "end", "startClose", "endClose", "lname"]
+
 
 elementName :: XML -> String
 elementName (Element n _ _ _ _ _ _) = n
