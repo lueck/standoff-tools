@@ -11,6 +11,8 @@ module StandOff.LineOffsets
 import Text.Parsec
 import Data.List
 import Control.Lens ((^?), element)
+import qualified Data.Csv as Csv
+
 
 -- * Mapping a pair of line and column to character offset
 
@@ -42,6 +44,9 @@ data Position = Position { pos_offset :: Int
                          , pos_line :: Int
                          , pos_column :: Int
                          } deriving (Show)
+
+instance Csv.ToField Position where
+  toField = Csv.toField . pos_offset
 
 posOffset :: Position -> Int
 posOffset (Position o _ _) = o
