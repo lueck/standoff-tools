@@ -15,7 +15,7 @@ import Paths_standoff_tools (version)
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
 import StandOff.Internalize (internalize)
-import StandOff.DomTypeDefs (XML, isXMLDeclarationP, isElementP, xmlSpanning)
+import StandOff.DomTypeDefs (XML, positionHeader, isXMLDeclarationP, isElementP, xmlSpanning)
 import StandOff.Owl
 import StandOff.External
 import StandOff.AttributesMap
@@ -215,6 +215,7 @@ run (Offsets fileName) = do
   lOffsets <- runLineOffsetParser fileName c
   nOffsets <- runXmlParser lOffsets fileName c
   print nOffsets
+  B.putStr $ Csv.encodeByName positionHeader nOffsets
 run (Internalize
      tagSlizer
      mappingFile
