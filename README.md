@@ -23,6 +23,18 @@ in order to make non-overlapping markup. There's also the term *text
 range* which is widely used in the source code: It means the annotated
 text run.]
 
+In addition, `standoff-tools` can also generate a certain flavour of
+plain text from XML, where the text nodes have the same character
+offset from the file's beginning as in the XML file, but tags are
+stripped/replaced by filling characters. This is called equidistant
+plain text. The two programs enable us to use existing tools for text
+analysis that were written for plain text, and to feed back their
+results into the XML document using the internalizer. We can re-use
+these tools in automatic annotation pipelines for XML, e.g. TEI-XML
+documents. (See `dev` branch!)
+
+![Automatic annotation pipeline for TEI](doc/images/standoff-pipeline.jpg)
+
 
 ## Features ##
 
@@ -76,7 +88,8 @@ annotations have to be internalized into the TEI source document.
 - Implement a full blown validating internalizer.
 - Re-implement the XML-Parser (that was the first thing I've ever
   written in Haskell :-))
-- extractor of equidistant plaintext
+- extractor of equidistant plain text (see `dev` branch)
+- shrink equidistant plain text and generate a mapping of positions
 - updater of annotation references based on patches of the source
   document (very far away)
 
