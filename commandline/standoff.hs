@@ -23,6 +23,7 @@ import StandOff.Owl
 import StandOff.External
 import StandOff.AttributesMap
 import StandOff.Tag
+import StandOff.EquidistantText
 
 import StandOff.External.StandoffModeDump
 import StandOff.External.GenericCsv
@@ -105,6 +106,10 @@ readAttrsMapping (Just fname) = do
 -- | Commands and their commandline options.
 data Command
   = Offsets String
+  | EquidistantText
+    { equidist_src :: FilePath
+    , equidist_fillChar :: Int
+    }
   | Internalize
     { intlz_tagSrlzr :: TagSerializerType
     , intlz_attrMapping :: Maybe FilePath
@@ -124,6 +129,7 @@ command_ :: Parser Command
 command_ = subparser
   ( command "internalize" internalizeInfo_
     <> command "offsets" offsetsInfo_
+    <> command "equidist" equidistantInfo_
     <> command "owl2csv" owl2csvInfo_
   )
 
@@ -131,7 +137,8 @@ command_ = subparser
 -- * Options for the @offset@ command.
 
 offsets_ :: Parser Command
-offsets_ = Offsets <$> argument str (metavar "FILE")
+offsets_ = Offsets
+  <$> argument str (metavar "FILE")
 
 offsetsInfo_ :: ParserInfo Command
 offsetsInfo_ =
@@ -140,6 +147,26 @@ offsetsInfo_ =
      <> progDesc "Returns the character offsets, lines and columns of the nodes of an XML file."
      <> header "standoff offsets - an xml parser returning node positions."))
 
+
+-- * Options for the @equidist@ command.
+
+equidistant_ :: Parser Command
+equidistant_ = EquidistantText
+  <$> argument str (metavar "File")
+  <*> option auto (long "fill"
+                   <> short 'f'
+                   <> metavar "CODEPOINT"
+                   <> help "The character used to fill/replace tags with. A code point has to be given. Defaults to 0x20 (space)."
+                   <> value 0x20
+                   <> showDefault)
+
+
+equidistantInfo_ :: ParserInfo Command
+equidistantInfo_ =
+  (info (equidistant_ <**> version_ <**> helper)
+    (fullDesc
+     <> progDesc "Generates equidistant text from an XML input file."
+     <> header "standoff equidist - generate equidistant text."))
 
 -- * Options for the internalize command
 
@@ -226,6 +253,13 @@ run (Offsets fileName) = do
   nOffsets <- runXmlParser lOffsets fileName c
   B.putStr $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode])
   mapM_ (traverse_ printCSV ) nOffsets
+run (EquidistantText fileName fillChar) = do
+  c <- readFile fileName
+  lOffsets <- runLineOffsetParser fileName c
+  xml <- runXmlParser lOffsets fileName c
+  putChar $ chr fillChar
+  s <- equidistantText putStr (chr fillChar) xml c
+  return ()
 run (Internalize
      tagSlizer
      mappingFile
