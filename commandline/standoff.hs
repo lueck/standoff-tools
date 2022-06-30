@@ -6,6 +6,9 @@ import qualified Data.Csv as Csv
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString as BS
 import qualified Data.Map as Map
+import Data.Tree.Class
+import Data.Foldable
+import Data.Traversable
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
 
@@ -15,7 +18,7 @@ import Paths_standoff_tools (version)
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
 import StandOff.Internalize (internalize)
-import StandOff.DomTypeDefs (XML, positionHeader, isXMLDeclarationP, isElementP, xmlSpanning)
+import StandOff.DomTypeDefs (XMLTree, XMLTrees, XmlNode, positionHeader, isXMLDeclarationP, isElementP, xmlSpanning)
 import StandOff.Owl
 import StandOff.External
 import StandOff.AttributesMap
@@ -207,6 +210,13 @@ owl2csvInfo_ =
     <> header "standoff owl2csv - Converts OWL to CSV as needed by standoff database.")
 
 
+printCSV :: XmlNode -> IO ()
+printCSV xml =  B.putStr $ Csv.encodeByNameWith (csvEncodeOptions {Csv.encIncludeHeader = False}) positionHeader [xml]
+
+csvEncodeOptions :: Csv.EncodeOptions
+csvEncodeOptions = Csv.defaultEncodeOptions
+
+
 -- * The @standoff@ commandline program.
 
 run :: Command -> IO ()
@@ -214,8 +224,8 @@ run (Offsets fileName) = do
   c <- readFile fileName
   lOffsets <- runLineOffsetParser fileName c
   nOffsets <- runXmlParser lOffsets fileName c
-  print nOffsets
-  B.putStr $ Csv.encodeByName positionHeader nOffsets
+  B.putStr $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode])
+  mapM_ (traverse_ printCSV ) nOffsets
 run (Internalize
      tagSlizer
      mappingFile
@@ -229,13 +239,14 @@ run (Internalize
   xmlContents <- readFile xmlFile
   lOffsets <- runLineOffsetParser xmlFile xmlContents
   xml <- runXmlParser lOffsets xmlFile xmlContents
-  let internal = filter isElementP xml
+  let internal = xml --filter isElementP xml  -- FIXME: do we have to filter?
 
   annotsH <- openFile annFile ReadMode
   external <- (getAnnotationsParser annFormat) lOffsets decodeUtf8 annotsH
 
   let internalzd = internalize xmlContents internal external tagSlizer'
-  putStr $ postProcess xml internalzd
+  putStr internalzd -- $ postProcess xml internalzd
+  -- FIXME: postProcess again
   where
     postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
     insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
