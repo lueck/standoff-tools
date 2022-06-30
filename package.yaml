@@ -26,6 +26,7 @@ dependencies:
 - yaml
 - vector
 - lens
+- mtl
 
 
 library:

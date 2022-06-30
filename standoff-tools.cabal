@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dca7cb8bddb74568c0ebecaa79b805dda7365cffab2deaaddeff3c85a8b75cfa
+-- hash: 20af3af646367ef96c8c6f25617b942231705a5d46f1c708d8bff7da21636854
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -32,6 +32,7 @@ library
       StandOff.AttributeSerializer
       StandOff.AttributesMap
       StandOff.DomTypeDefs
+      StandOff.EquidistantText
       StandOff.External
       StandOff.External.GenericCsv
       StandOff.External.StandoffModeDump
@@ -40,6 +41,7 @@ library
       StandOff.MarkupTree
       StandOff.Owl
       StandOff.ResolveOverlapping
+      StandOff.StringLike
       StandOff.Tag
       StandOff.TagSerializer
       StandOff.TagTypeDefs
@@ -57,6 +59,7 @@ library
     , containers >=0.5.8.1
     , hxt
     , lens
+    , mtl
     , parsec
     , text
     , time
@@ -81,6 +84,7 @@ executable standoff
     , directory >=1.2.0.1
     , hxt
     , lens
+    , mtl
     , optparse-applicative >=0.12.1.0
     , parsec
     , standoff-tools
@@ -114,6 +118,7 @@ test-suite unit-tests
     , containers >=0.5.8.1
     , hxt
     , lens
+    , mtl
     , parsec
     , standoff-tools
     , template-haskell
