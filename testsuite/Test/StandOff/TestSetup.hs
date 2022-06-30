@@ -1,5 +1,7 @@
 module Test.StandOff.TestSetup where
 
+import qualified Data.Tree.NTree.TypeDefs as NT
+import Data.Tree.Class hiding (getNode)
 import Data.Map as Map hiding (drop)
 import Data.UUID.Types (UUID, fromString, toString)
 
@@ -10,14 +12,13 @@ import StandOff.LineOffsets as L
 pos :: Int -> L.Position
 pos p = L.Position {L.pos_offset=p, L.pos_line=1, L.pos_column=1}
 
-elm :: String -> Int -> Int -> [XML] -> XML
-elm n s e c = (Element { name = n
+elm :: String -> Int -> Int -> XMLTrees -> XMLTree
+elm n s e c = NT.NTree (Element { name = n
                        , X.attributes = []
                        , startOpenTag = pos s
                        , endOpenTag = pos (s + openTagLength - 1)
                        , startCloseTag = pos (e - openTagLength)
-                       , endCloseTag = pos e
-                       , content = c })
+                       , endCloseTag = pos e}) c
   where openTagLength = 2 + (length n)
 
 -- For easy setup of (uu)ids for unit tests:
