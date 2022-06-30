@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -5,12 +6,16 @@
 module StandOff.DomTypeDefs where
 
 import qualified Data.Tree.NTree.TypeDefs as NT
+import Data.Tree.Class hiding (getNode)
 import qualified Data.Csv as Csv
 import Data.Csv ((.=))
 import qualified Data.Vector as V
 
 import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
+import StandOff.EquidistantText
+import StandOff.StringLike (StringLike)
+import qualified StandOff.StringLike as SL
 import StandOff.MarkupTree
 
 type AttrName = String
@@ -177,3 +182,39 @@ isElementP _ = False
 isXMLDeclarationP :: XmlNode -> Bool
 isXMLDeclarationP (XMLDeclaration _ _ _) = True
 isXMLDeclarationP _ = False
+
+
+-- * Equidistant text
+
+instance EquidistantNode XmlNode where
+  -- reproduce text nodes
+  serializeOpen _ n@(TextNode _ _ _) s =
+    (SL.take l s, SL.drop l s)
+    where
+      l :: Int
+      l = openTagLength n
+  -- for all other types of nodes we use the filling character
+  serializeOpen fillChar n s =
+    (SL.pack $ take l $ repeat fillChar, SL.drop l s)
+    where
+      l :: Int
+      l = openTagLength n
+  -- close tag is relevant only for 'Element'
+  serializeClose fillChar n@(Element _ _ _ _ _ _) s =
+    (SL.pack $ take l $ repeat fillChar, SL.drop l s)
+    where
+      l :: Int
+      l = closeTagLength n
+  serializeClose _ _ s = (SL.empty, s)
+
+openTagLength :: XmlNode -> Int
+openTagLength (Element _ _ so eo _ _) = (posOffset eo) - (posOffset so) + 1
+openTagLength (EmptyElement _ _ s e) = (posOffset e) - (posOffset s) + 1
+openTagLength (XMLDeclaration _ s e) = (posOffset e) - (posOffset s) + 2 -- TODO/FIXME
+openTagLength (ProcessingInstruction _ _ s e) = (posOffset e) - (posOffset s) + 2 -- TODO/FIXME
+openTagLength (TextNode _ s e) = (posOffset e) - (posOffset s)
+openTagLength (Comment _ s e) = (posOffset e) - (posOffset s) + 1
+
+closeTagLength :: XmlNode -> Int
+closeTagLength (Element _ _ _ _ sc ec) = (posOffset ec) - (posOffset sc) + 1
+closeTagLength _ = 0
