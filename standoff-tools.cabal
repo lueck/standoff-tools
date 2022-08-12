@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f83ec1d2ee84413df4cb3e5169cf127760105606331643aec39bb9e9e59c402c
+-- hash: 38c7b20fd81032f1549e860fe91749812450542abbb1b7340a0cc9af94fb6542
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -56,6 +56,7 @@ library
   build-depends:
       aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1
@@ -80,6 +81,7 @@ executable standoff
   build-depends:
       aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1
@@ -115,6 +117,7 @@ test-suite unit-tests
       HTF >=0.10.1
     , aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1

@@ -27,6 +27,7 @@ dependencies:
 - vector
 - lens
 - mtl
+- binary
 
 
 library:

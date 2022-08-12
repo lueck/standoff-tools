@@ -1,9 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
 import System.IO
 import Options.Applicative
 import Data.Monoid ((<>))
 import Data.Char
 import qualified Data.Csv as Csv
-import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as BS
 import qualified Data.Map as Map
 import Data.Tree.Class
@@ -11,6 +12,9 @@ import Data.Foldable
 import Data.Traversable
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
+import qualified Data.Binary as Bin
+import Control.Monad.Writer
+import Data.Maybe
 
 import Data.Version (showVersion)
 import Paths_standoff_tools (version)
@@ -24,6 +28,7 @@ import StandOff.External
 import StandOff.AttributesMap
 import StandOff.Tag
 import StandOff.EquidistantText
+import StandOff.ShrinkedText
 
 import StandOff.External.StandoffModeDump
 import StandOff.External.GenericCsv
@@ -92,7 +97,7 @@ annotationFormat_ =
   <|>
   (flag' GenericCsvLineColumnLength
     (long "csv-line-column-length"
-      <> help "Annotations in CSV referencing the start by a line/column-tuple and giving the length of the text annotated range. There must be columns named \"line\", \"column\", and \"length\", and their values must be integers."))  
+      <> help "Annotations in CSV referencing the start by a line/column-tuple and giving the length of the text annotated range. There must be columns named \"line\", \"column\", and \"length\", and their values must be integers."))
 
 
 readAttrsMapping :: Maybe FilePath -> IO AttributesMap
@@ -103,12 +108,44 @@ readAttrsMapping (Just fname) = do
     Left err -> fail $ show err
     Right m -> return m
 
+data OffsetFormat = OffsetsAsBin | OffsetsAsCsv
+  deriving (Eq, Show)
+
+offsetFormat_ :: Parser OffsetFormat
+offsetFormat_ =
+  (flag OffsetsAsBin OffsetsAsBin
+    (long "offsets-bin"
+     <> help "Output offset mapping in binary format."))
+  <|>
+  (flag' OffsetsAsCsv
+    (long "offsets-csv"
+     <> help "Use CSV as output format of the offset mapping. Print the offset in the shrinked plain text file as the second column."))
+
+
+data IntegerFormat = Decimal | Hex deriving (Eq, Show)
+
+integerFormat_ =
+  (flag Decimal Decimal
+    (long "decimal"
+     <> help "Decimal numbers"))
+  <|>
+  (flag' Hex
+    (long "hex"
+     <> help "Hexadecimal numbers"))
+
+
 -- | Commands and their commandline options.
 data Command
   = Offsets String
   | EquidistantText
     { equidist_src :: FilePath
     , equidist_fillChar :: Int
+    }
+  | ShrinkedText
+    { shrinked_src :: FilePath
+    , shrinked_offsetMapping :: FilePath
+    , shrinked_offsetFormat :: OffsetFormat
+    , shrinked_offsetIntegers :: IntegerFormat
     }
   | Internalize
     { intlz_tagSrlzr :: TagSerializerType
@@ -130,8 +167,41 @@ command_ = subparser
   ( command "internalize" internalizeInfo_
     <> command "offsets" offsetsInfo_
     <> command "equidist" equidistantInfo_
+    <> command "shrink" shrinkInfo_
     <> command "owl2csv" owl2csvInfo_
   )
+
+-- * Parsers for input and output file
+
+data SingleInput = Stdin | InputFile FilePath
+  deriving (Eq, Show)
+
+data SingleOutput = Stdout | OutputFile FilePath
+  deriving (Eq, Show)
+
+singleInput_ :: Parser SingleInput
+singleInput_ = fromMaybe Stdin <$> optional
+  (InputFile <$> strOption
+   (long "input"
+     <> short 'i'
+     <> help "The input file"
+     <> metavar "INFILE"))
+
+singleOutput_ :: Parser SingleOutput
+singleOutput_ = fromMaybe Stdout <$> optional
+  (OutputFile <$> strOption
+   (long "output"
+     <> short 'i'
+     <> help "The output file"
+     <> metavar "OUTFILE"))
+
+singleInputHandle :: SingleInput -> IO Handle
+singleInputHandle Stdin = return stdin
+singleInputHandle (InputFile fname) = openFile fname ReadMode
+
+singleOutputHandle :: SingleOutput -> IO Handle
+singleOutputHandle Stdout = return stdout
+singleOutputHandle (OutputFile fname) = openFile fname WriteMode
 
 
 -- * Options for the @offset@ command.
@@ -152,7 +222,7 @@ offsetsInfo_ =
 
 equidistant_ :: Parser Command
 equidistant_ = EquidistantText
-  <$> argument str (metavar "File")
+  <$> argument str (metavar "FILE")
   <*> option auto (long "fill"
                    <> short 'f'
                    <> metavar "CODEPOINT"
@@ -167,6 +237,24 @@ equidistantInfo_ =
     (fullDesc
      <> progDesc "Generates equidistant text from an XML input file."
      <> header "standoff equidist - generate equidistant text."))
+
+
+-- * Options for the @shrink@ command.
+
+shrinkInfo_ :: ParserInfo Command
+shrinkInfo_ =
+  (info (shrink_ <**> version_ <**> helper)
+    (fullDesc
+     <> progDesc "Generates shrinked text from an XML input file."
+     <> header "standoff shrink - generate shrinked text."))
+
+shrink_ :: Parser Command
+shrink_ = ShrinkedText
+  <$> argument str (metavar "XML")
+  <*> argument str (metavar "OFFSET_MAPPING")
+  <*> offsetFormat_
+  <*> integerFormat_
+
 
 -- * Options for the internalize command
 
@@ -238,7 +326,7 @@ owl2csvInfo_ =
 
 
 printCSV :: XmlNode -> IO ()
-printCSV xml =  B.putStr $ Csv.encodeByNameWith (csvEncodeOptions {Csv.encIncludeHeader = False}) positionHeader [xml]
+printCSV xml =  BL.putStr $ Csv.encodeByNameWith (csvEncodeOptions {Csv.encIncludeHeader = False}) positionHeader [xml]
 
 csvEncodeOptions :: Csv.EncodeOptions
 csvEncodeOptions = Csv.defaultEncodeOptions
@@ -251,7 +339,7 @@ run (Offsets fileName) = do
   c <- readFile fileName
   lOffsets <- runLineOffsetParser fileName c
   nOffsets <- runXmlParser lOffsets fileName c
-  B.putStr $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode])
+  BL.putStr $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode])
   mapM_ (traverse_ printCSV ) nOffsets
 run (EquidistantText fileName fillChar) = do
   c <- readFile fileName
@@ -259,6 +347,20 @@ run (EquidistantText fileName fillChar) = do
   xml <- runXmlParser lOffsets fileName c
   putChar $ chr fillChar
   s <- equidistantText putStr (chr fillChar) xml c
+  return ()
+run (ShrinkedText xmlSrc offsetOut OffsetsAsBin _) = do
+  c <- readFile xmlSrc
+  lOffsets <- runLineOffsetParser xmlSrc c
+  xml <- runXmlParser lOffsets xmlSrc c
+  offsets <- shrinkedText putStr defaultShrinkingConfig xml c
+  BL.writeFile offsetOut $ foldl (<>) "" $ map Bin.encode offsets
+  return ()
+run (ShrinkedText xmlSrc offsetOut OffsetsAsCsv integerFormat) = do
+  c <- readFile xmlSrc
+  lOffsets <- runLineOffsetParser xmlSrc c
+  xml <- runXmlParser lOffsets xmlSrc c
+  (offsets, txt) <- runWriterT (shrinkedText tell defaultShrinkingConfig xml c)
+  BL.writeFile offsetOut $ Csv.encode $ zip3 offsets txt ([1 ..] :: [Int])
   return ()
 run (Internalize
      tagSlizer
@@ -291,7 +393,7 @@ run (Internalize
       where decl = filter isXMLDeclarationP x
 run (Owl2Csv ontFilter csvDelimiter inFile) = do
   parsed <- runOwlParser inFile
-  B.putStr $ Csv.encodeWith csvOpts $ map ReadOwl $ filter (predicate ontFilter) parsed
+  BL.putStr $ Csv.encodeWith csvOpts $ map ReadOwl $ filter (predicate ontFilter) parsed
   where
     csvOpts = Csv.defaultEncodeOptions {
       Csv.encDelimiter = fromIntegral $ ord $ head csvDelimiter
