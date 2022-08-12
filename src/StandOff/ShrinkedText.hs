@@ -5,10 +5,12 @@ where
 
 import Control.Monad.State
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Tree.Class
 
 import StandOff.LineOffsets
 import StandOff.StringLike (StringLike)
+import qualified StandOff.StringLike as SL
 import StandOff.XTraverse
 
 
@@ -115,3 +117,9 @@ shrinkedText writeM nodeCfg xml s = do
     g n = uncurry (shrinkClose nodeCfg n)
 
 
+-- * Parsing the config from yaml
+
+defaultShrinkingConfig :: StringLike s => ShrinkingNodeConfig s
+defaultShrinkingConfig = ShrinkingNodeConfig Map.empty tagRepl SL.empty Map.empty SL.empty
+  where
+    tagRepl = ShrinkingNodeReplacement SL.empty SL.empty SL.empty
