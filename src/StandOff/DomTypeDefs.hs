@@ -10,10 +10,14 @@ import Data.Tree.Class hiding (getNode)
 import qualified Data.Csv as Csv
 import Data.Csv ((.=))
 import qualified Data.Vector as V
+import qualified Data.Map as Map
+import Data.Maybe
+import Data.Monoid ((<>))
 
 import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
 import StandOff.EquidistantText
+import StandOff.ShrinkedText
 import StandOff.StringLike (StringLike)
 import qualified StandOff.StringLike as SL
 import StandOff.MarkupTree
@@ -207,6 +211,79 @@ instance EquidistantNode XmlNode where
       l = closeTagLength n
   serializeClose _ _ s = (SL.empty, s)
 
+
+-- * Shrinked text
+
+instance ShrinkingNode XmlNode where
+  -- reproduce text nodes
+  shrinkOpen _ n@(TextNode _ _ _) s offsets =
+    (SL.take l s, (SL.drop l s, offsets <> mapOpenOffsets n l))
+    where
+      l = openTagLength n
+  -- TODO: char refs and entity refs
+  -- use replacements for all other kinds of nodes
+  shrinkOpen cfg n s offsets =
+    (txt, (SL.drop seen s, offsets <> mapOpenOffsets n l))
+    where
+      txt = shrinkingOpenNodeReplacement cfg n
+      l = SL.length txt
+      seen = openTagLength n -- length of input seen
+  shrinkClose cfg n s offsets = (txt, (SL.drop seen s, offsets <> mapCloseOffsets n l))
+    where
+      txt = shrinkingCloseNodeReplacement cfg n
+      l = SL.length txt
+      seen = closeTagLength n -- length of input seen
+
+
+-- | How to map the offsets of an open tag to a count of new offsets.
+-- Should it be [666, 667, 668] or [666, 666, 666] ?
+mapOpenOffsets :: XmlNode -> Int -> [Int]
+mapOpenOffsets n@(TextNode _ _ _) len = map (+ (TR.start n)) $ take len [0..]
+mapOpenOffsets node len = take len $ repeat $ TR.start node
+-- mapOffsets strt len = map (+ (TR.start node)) $ take len [0..]
+
+-- | How to map the offsets of a close tag to a count of new offsets.
+-- Should it be [666, 667, 668] or [666, 666, 666] ?
+mapCloseOffsets :: XmlNode -> Int -> [Int]
+mapCloseOffsets node len = take len $ repeat $ TR.end node
+-- mapOffsets strt len = map (+ (TR.close node)) $ take len [0..]
+
+
+-- | Get the replacement for a node's open tag from the config.
+shrinkingOpenNodeReplacement
+  :: (StringLike s) =>
+     ShrinkingNodeConfig s
+  -> XmlNode
+  -> s
+shrinkingOpenNodeReplacement cfg (Element name' _ _ _ _ _) =
+  _shrinkRepl_open $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
+shrinkingOpenNodeReplacement cfg (EmptyElement name' _ _ _) =
+  _shrinkRepl_empty $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
+shrinkingOpenNodeReplacement _ (TextNode txt _ _) =
+  SL.pack txt
+shrinkingOpenNodeReplacement cfg (XMLDeclaration _ _ _) =
+  _shrinkCfg_defaultPiReplacement cfg
+shrinkingOpenNodeReplacement cfg (ProcessingInstruction _ _ _ _) =
+  _shrinkCfg_defaultPiReplacement cfg
+shrinkingOpenNodeReplacement _ (Comment _ _ _) =
+  SL.empty
+
+
+-- | Get the replacement for a node's close tag from the config.
+shrinkingCloseNodeReplacement
+  :: (StringLike s) =>
+     ShrinkingNodeConfig s
+  -> XmlNode
+  -> s
+shrinkingCloseNodeReplacement cfg (Element name' _ _ _ _ _) =
+  _shrinkRepl_close $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
+shrinkingCloseNodeReplacement _ _ = SL.empty
+
+
+-- * Helper functions
+
+-- | Get the length of the open tag. This returns the length of the
+-- open tag of an element node and the length of all other nodes.
 openTagLength :: XmlNode -> Int
 openTagLength (Element _ _ so eo _ _) = (posOffset eo) - (posOffset so) + 1
 openTagLength (EmptyElement _ _ s e) = (posOffset e) - (posOffset s) + 1
@@ -215,6 +292,8 @@ openTagLength (ProcessingInstruction _ _ s e) = (posOffset e) - (posOffset s) + 
 openTagLength (TextNode _ s e) = (posOffset e) - (posOffset s)
 openTagLength (Comment _ s e) = (posOffset e) - (posOffset s) + 1
 
+-- | Get the length of the close tag. This returns the length of the
+-- close tag of an element node and 0 for all other nodes.
 closeTagLength :: XmlNode -> Int
 closeTagLength (Element _ _ _ _ sc ec) = (posOffset ec) - (posOffset sc) + 1
 closeTagLength _ = 0
