@@ -15,6 +15,7 @@ import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Binary as Bin
 import Control.Monad.Writer
 import Data.Maybe
+import Numeric (showInt, showHex)
 
 import Data.Version (showVersion)
 import Paths_standoff_tools (version)
@@ -29,6 +30,7 @@ import StandOff.AttributesMap
 import StandOff.Tag
 import StandOff.EquidistantText
 import StandOff.ShrinkedText
+import qualified StandOff.StringLike as SL
 
 import StandOff.External.StandoffModeDump
 import StandOff.External.GenericCsv
@@ -108,30 +110,6 @@ readAttrsMapping (Just fname) = do
     Left err -> fail $ show err
     Right m -> return m
 
-data OffsetFormat = OffsetsAsBin | OffsetsAsCsv
-  deriving (Eq, Show)
-
-offsetFormat_ :: Parser OffsetFormat
-offsetFormat_ =
-  (flag OffsetsAsBin OffsetsAsBin
-    (long "offsets-bin"
-     <> help "Output offset mapping in binary format."))
-  <|>
-  (flag' OffsetsAsCsv
-    (long "offsets-csv"
-     <> help "Use CSV as output format of the offset mapping. Print the offset in the shrinked plain text file as the second column."))
-
-
-data IntegerFormat = Decimal | Hex deriving (Eq, Show)
-
-integerFormat_ =
-  (flag Decimal Decimal
-    (long "decimal"
-     <> help "Decimal numbers"))
-  <|>
-  (flag' Hex
-    (long "hex"
-     <> help "Hexadecimal numbers"))
 
 
 data GlobalOptions = GlobalOptions
@@ -149,8 +127,10 @@ data Command
     }
   | ShrinkedText
     { shrinked_offsetMapping :: FilePath
-    , shrinked_offsetFormat :: OffsetFormat
-    , shrinked_offsetIntegers :: IntegerFormat
+    }
+  | ShrinkedTextSingleOutput
+    { shrinkedSingle_integerFormat :: IntegerFormat
+    , shrinkedSingle_newlineRepl :: Char
     }
   | Internalize
     { intlz_tagSrlzr :: TagSerializerType
@@ -203,6 +183,17 @@ streamableOutputHandle Stdout = return stdout
 streamableOutputHandle (OutputFile fname) = openFile fname WriteMode
 
 
+-- * Parsers for the integer format
+
+data IntegerFormat = Decimal | Hex deriving (Eq, Show)
+
+integerFormat_ =
+  (flag Decimal Hex
+    (long "hex"
+     <> help "Hexadecimal numbers instead of decimals."))
+
+
+
 -- * Options for the @offset@ command.
 
 offsets_ :: Parser Command
@@ -242,14 +233,31 @@ shrinkInfo_ :: ParserInfo Command
 shrinkInfo_ =
   (info (shrink_ <**> version_ <**> helper)
     (fullDesc
-     <> progDesc "Generates shrinked plain text from an XML input file."
+     <> progDesc "Generates shrinked plain text from an XML input file. If no mapping of tags to replacement characters is given, the default mapping will replace every character inside a tag or processing instruction with the empty string."
      <> header "standoff shrink - generate shrinked text."))
 
 shrink_ :: Parser Command
-shrink_ = ShrinkedText
-  <$> argument str (metavar "OFFSET_MAPPING")
-  <*> offsetFormat_
-  <*> integerFormat_
+shrink_ =
+  fromMaybe defaultFormat <$> optional
+  (ShrinkedText <$> strOption
+    (long "offsets"
+     <> short 'f'
+     <> help "Output the offset mapping into an extra file."
+     <> metavar "OFFSET_MAPPING"))
+  <|>
+  (flag' defaultFormat
+    (long "csv"
+     <> short 'c'
+     <> help "Output the offset mapping and the shrinked text as CSV. (Default)")
+    *> (ShrinkedTextSingleOutput
+        <$> integerFormat_
+        <*> ((head . (<> "!")) <$> strOption -- ++"!" : assert that 'head' does not fail
+             (long "newline-replacement"
+              <> help "Replace newline characters with this one."
+              <> value ['\n']
+              <> metavar "CHARACTER"))))
+  where
+    defaultFormat = (ShrinkedTextSingleOutput Decimal '\n')
 
 
 -- * Options for the internalize command
@@ -319,7 +327,7 @@ run (GlobalOptions input output (EquidistantText fillChar)) = do
   putChar $ chr fillChar
   s <- equidistantText putStr (chr fillChar) xml c
   return ()
-run (GlobalOptions input output (ShrinkedText offsetOut OffsetsAsBin _)) = do
+run (GlobalOptions input output (ShrinkedText offsetOut)) = do
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
@@ -328,15 +336,22 @@ run (GlobalOptions input output (ShrinkedText offsetOut OffsetsAsBin _)) = do
   offsets <- shrinkedText (hPutStr outputH) defaultShrinkingConfig xml c
   BL.writeFile offsetOut $ foldl (<>) "" $ map Bin.encode offsets
   return ()
-run (GlobalOptions input output (ShrinkedText offsetOut OffsetsAsCsv integerFormat)) = do
+run (GlobalOptions input output (ShrinkedTextSingleOutput integerFormat newlineRepl)) = do
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
   lOffsets <- runLineOffsetParser (show inputH) c
   xml <- runXmlParser lOffsets (show inputH) c
   (offsets, txt) <- runWriterT (shrinkedText tell defaultShrinkingConfig xml c)
-  BL.writeFile offsetOut $ Csv.encode $ zip3 offsets txt ([1 ..] :: [Int])
+  BL.hPut outputH $ Csv.encode $
+    zip3 (map formatInt offsets) (map replaceNewlines $ SL.unpack txt) (map formatInt ([1 ..] :: [Int]))
   return ()
+  where
+    replaceNewlines '\n' = newlineRepl
+    replaceNewlines c = c
+    formatInt i
+      | integerFormat == Hex = showHex i ""
+      | otherwise = showInt i ""
 run (GlobalOptions input output
      (Internalize
      tagSlizer
