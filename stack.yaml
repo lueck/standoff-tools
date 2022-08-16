@@ -1,6 +1,7 @@
 resolver: lts-11.22
 packages:
 - '.'
-extra-deps: []
+extra-deps:
+- HsYAML-0.2.1.0@sha256:6ccdfc108bc94c0cec7975825017dc547eb7b7fc59bab1a7c5b4d2efe431e838,5469
 flags: {}
 extra-package-dbs: []

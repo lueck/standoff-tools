@@ -1,5 +1,7 @@
-{-# LANGUAGE DatatypeContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE DeriveGeneric #-}
 module StandOff.ShrinkedText
 where
 
@@ -7,6 +9,13 @@ import Control.Monad.State
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Tree.Class
+import qualified Data.YAML as Y
+import Data.YAML ((.:), (.!=), (.:?))
+import qualified Data.Aeson as J
+import GHC.Generics
+import Data.Maybe
+import qualified Data.Text as T
+import qualified Data.ByteString.Lazy as BL
 
 import StandOff.LineOffsets
 import StandOff.StringLike (StringLike)
@@ -30,7 +39,7 @@ initialOffsetMapping = []
 
 -- | A record for the configuration that determines shrinking of
 -- all kinds of nodes.
-data (StringLike s) => ShrinkingNodeConfig s = ShrinkingNodeConfig
+data ShrinkingNodeConfig s = ShrinkingNodeConfig
   { _shrinkCfg_tagReplacements :: (ShrinkingNodeReplacements s)
   , _shrinkCfg_defaultTagReplacement :: ShrinkingNodeReplacement s
   , _shrinkCfg_defaultPiReplacement :: s
@@ -38,16 +47,18 @@ data (StringLike s) => ShrinkingNodeConfig s = ShrinkingNodeConfig
   , _shrinkCfg_entityReplacements :: EntityResolver s
   , _shrinkCfg_defaultEntityReplacements :: s
   }
+  deriving (Show, Generic)
 
 -- | A config of node qnames to replacement strings.
 type ShrinkingNodeReplacements s = Map String (ShrinkingNodeReplacement s)
 -- TODO: replace String key type with QName
 
-data (StringLike s) => ShrinkingNodeReplacement s = ShrinkingNodeReplacement
+data ShrinkingNodeReplacement s = ShrinkingNodeReplacement
   { _shrinkRepl_open :: s
   , _shrinkRepl_close :: s
   , _shrinkRepl_empty :: s
   }
+  deriving (Show, Generic)
 
 -- | A mapping of entity names to resolved strings.
 type EntityResolver s = Map String s
@@ -120,6 +131,34 @@ shrinkedText writeM nodeCfg xml s = do
 -- * Parsing the config from yaml
 
 defaultShrinkingConfig :: StringLike s => ShrinkingNodeConfig s
-defaultShrinkingConfig = ShrinkingNodeConfig Map.empty tagRepl SL.empty Map.empty SL.empty
-  where
-    tagRepl = ShrinkingNodeReplacement SL.empty SL.empty SL.empty
+defaultShrinkingConfig = ShrinkingNodeConfig Map.empty defaultShrinkingNodeReplacement SL.empty Map.empty SL.empty
+
+defaultShrinkingNodeReplacement :: StringLike s => ShrinkingNodeReplacement s
+defaultShrinkingNodeReplacement = ShrinkingNodeReplacement SL.empty SL.empty SL.empty
+
+
+-- Note: There is no instance FromYAML String!
+instance (StringLike s, Y.FromYAML s) => Y.FromYAML (ShrinkingNodeConfig s) where
+  parseYAML = Y.withMap "shrink" $ \m -> ShrinkingNodeConfig
+    <$> (fmap (Map.mapKeys T.unpack) $ m .:? "tags" .!= Map.empty)
+    <*> m .:? "tagDefault" .!= defaultShrinkingNodeReplacement
+    <*> m .:? "piDefault" .!= SL.empty
+    <*> (fmap (Map.mapKeys T.unpack) $ m .:? "entities" .!= Map.empty)
+    <*> m .:? "entityDefault" .!= SL.empty
+
+instance (StringLike s, Y.FromYAML s) => Y.FromYAML (ShrinkingNodeReplacement s) where
+  parseYAML = Y.withMap "element" $ \m -> ShrinkingNodeReplacement
+    <$> m .:? "open" .!= SL.empty
+    <*> m .:? "close" .!= SL.empty
+    <*> m .:? "empty" .!= SL.empty
+
+-- | USAGE:
+--
+-- > do { BL.readFile "mappings/shrink-tei.yaml" >>= parseShrinkingConfig }
+parseShrinkingConfig :: BL.ByteString -> IO (ShrinkingNodeConfig T.Text)
+parseShrinkingConfig c = do
+  case Y.decode c of
+    Left (pos, err) -> do
+      fail $ show pos ++ " " ++ show err
+    Right cfg -> do
+      return $ head cfg

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 38c7b20fd81032f1549e860fe91749812450542abbb1b7340a0cc9af94fb6542
+-- hash: dfaf56b042b8c6cbbf0623c970f8815042358b2e8f7555976e4e3e83d5ed7b29
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -54,7 +54,8 @@ library
   hs-source-dirs:
       src
   build-depends:
-      aeson >=1.1
+      HsYAML
+    , aeson >=1.1
     , base >=4.9 && <5
     , binary
     , bytestring
@@ -79,7 +80,8 @@ executable standoff
       commandline
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson >=1.1
+      HsYAML
+    , aeson >=1.1
     , base >=4.9 && <5
     , binary
     , bytestring
@@ -107,6 +109,7 @@ test-suite unit-tests
   other-modules:
       Test.StandOff.DataXML
       Test.StandOff.MarkupRange
+      Test.StandOff.ShrinkedText
       Test.StandOff.TagSerializer
       Test.StandOff.TestSetup
       Test.StandOff.TextRange
@@ -115,6 +118,7 @@ test-suite unit-tests
       testsuite
   build-depends:
       HTF >=0.10.1
+    , HsYAML
     , aeson >=1.1
     , base >=4.9 && <5
     , binary
