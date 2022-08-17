@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dfaf56b042b8c6cbbf0623c970f8815042358b2e8f7555976e4e3e83d5ed7b29
+-- hash: 3922af23cd9201d9c14d187bef5127a3f2ee4a841f52ea55342b5b68b937abd3
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -47,6 +47,7 @@ library
       StandOff.TagSerializer
       StandOff.TagTypeDefs
       StandOff.TextRange
+      StandOff.Utils
       StandOff.XmlParsec
       StandOff.XTraverse
   other-modules:
