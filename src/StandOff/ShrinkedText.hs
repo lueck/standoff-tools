@@ -4,24 +4,29 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveGeneric #-}
 module StandOff.ShrinkedText
-where
+  ( OffsetMapping
+  , ShrinkingNodeConfig(..)
+  , ShrinkingNodeReplacements
+  , ShrinkingNodeReplacement(..)
+  , ShrinkingNode(..)
+  , shrinkedText
+  , parseShrinkingConfig
+  , adaptShrinkingConfig
+  ) where
 
 import Control.Monad.State
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Tree.Class
 import qualified Data.YAML as Y
-import Data.YAML ((.:), (.!=), (.:?))
-import qualified Data.Aeson as J
+import Data.YAML ((.!=), (.:?))
 import GHC.Generics
-import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as BL
 
-import StandOff.LineOffsets
 import StandOff.StringLike (StringLike)
-import qualified StandOff.StringLike as SL
 import StandOff.XTraverse
+import StandOff.Utils
 
 
 -- | A mapping of offsets in the XML file to offsets in the generated
