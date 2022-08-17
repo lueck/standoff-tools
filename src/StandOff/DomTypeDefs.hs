@@ -189,7 +189,7 @@ isXMLDeclarationP _ = False
 
 -- * Equidistant text
 
-instance EquidistantNode (XmlNode n s) where
+instance StringLike s => EquidistantNode (XmlNode n) s where
   -- reproduce text nodes
   serializeOpen _ n@(TextNode _ _ _) s =
     (SL.take l s, SL.drop l s)
