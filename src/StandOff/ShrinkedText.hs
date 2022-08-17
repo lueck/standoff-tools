@@ -127,27 +127,22 @@ shrinkedText writeM nodeCfg xml s = do
 
 -- * Parsing the config from yaml
 
-defaultShrinkingConfig :: StringLike s => ShrinkingNodeConfig k s
-defaultShrinkingConfig = ShrinkingNodeConfig Map.empty defaultShrinkingNodeReplacement SL.empty Map.empty SL.empty
-
-defaultShrinkingNodeReplacement :: StringLike s => ShrinkingNodeReplacement s
-defaultShrinkingNodeReplacement = ShrinkingNodeReplacement SL.empty SL.empty SL.empty
-
-
 -- Note: There is no instance FromYAML String!
-instance (StringLike s, Y.FromYAML s) => Y.FromYAML (ShrinkingNodeConfig T.Text s) where
+instance Y.FromYAML (ShrinkingNodeConfig T.Text T.Text) where
   parseYAML = Y.withMap "shrink" $ \m -> ShrinkingNodeConfig
     <$> m .:? "tags" .!= Map.empty
     <*> m .:? "tagDefault" .!= defaultShrinkingNodeReplacement
-    <*> m .:? "piDefault" .!= SL.empty
+    <*> m .:? "piDefault" .!= ""
     <*> (fmap (Map.mapKeys T.unpack) $ m .:? "entities" .!= Map.empty)
-    <*> m .:? "entityDefault" .!= SL.empty
+    <*> m .:? "entityDefault" .!= ""
+    where
+      defaultShrinkingNodeReplacement = ShrinkingNodeReplacement "" "" ""
 
-instance (StringLike s, Y.FromYAML s) => Y.FromYAML (ShrinkingNodeReplacement s) where
+instance Y.FromYAML (ShrinkingNodeReplacement T.Text) where
   parseYAML = Y.withMap "element" $ \m -> ShrinkingNodeReplacement
-    <$> m .:? "open" .!= SL.empty
-    <*> m .:? "close" .!= SL.empty
-    <*> m .:? "empty" .!= SL.empty
+    <$> m .:? "open" .!= ""
+    <*> m .:? "close" .!= ""
+    <*> m .:? "empty" .!= ""
 
 -- | USAGE:
 --
@@ -159,3 +154,35 @@ parseShrinkingConfig c = do
       fail $ show pos ++ " " ++ show err
     Right cfg -> do
       return $ head cfg
+
+
+-- | Make a 'ShrinkingNodeConfig' with the right types from the one
+-- parsed with 'parseShrinkingConfig'.
+adaptShrinkingConfig
+  :: (Ord n) =>
+     (T.Text -> Either String n) -- ^ function for making the right
+                                 -- node name type from 'Text'
+  -> (T.Text -> Either String s) -- ^ function for making the right
+                                 -- replacement string type from
+                                 -- 'Text'
+  -> ShrinkingNodeConfig T.Text T.Text -- ^ the parsed config
+  -> Either String (ShrinkingNodeConfig n s)
+adaptShrinkingConfig nameFun sFun cfg = ShrinkingNodeConfig
+  <$> (join $
+       fmap (traverseKeys nameFun) $
+       traverse (adaptShrinkingNodeReplacement sFun) $
+       _shrinkCfg_tagReplacements cfg)
+  <*> (adaptShrinkingNodeReplacement sFun $ _shrinkCfg_defaultTagReplacement cfg)
+  <*> (sFun $ _shrinkCfg_defaultPiReplacement cfg)
+  <*> (pure Map.empty)
+  <*> (sFun $ _shrinkCfg_defaultEntityReplacements cfg)
+
+
+adaptShrinkingNodeReplacement
+  :: (T.Text -> Either String s)
+  -> ShrinkingNodeReplacement T.Text
+  -> Either String (ShrinkingNodeReplacement s)
+adaptShrinkingNodeReplacement f rpl = ShrinkingNodeReplacement
+  <$> (f $ _shrinkRepl_open rpl)
+  <*> (f $ _shrinkRepl_close rpl)
+  <*> (f $ _shrinkRepl_empty rpl)
