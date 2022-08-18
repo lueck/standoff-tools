@@ -23,7 +23,7 @@ import Paths_standoff_tools (version)
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
 import StandOff.Internalize (internalize)
-import StandOff.DomTypeDefs (XMLTree, XMLTrees, XmlNode, positionHeader, isXMLDeclarationP, isElementP, xmlSpanning)
+import StandOff.DomTypeDefs hiding (Attribute)
 import StandOff.Owl
 import StandOff.External
 import StandOff.AttributesMap
@@ -126,11 +126,8 @@ data Command
     { equidist_fillChar :: Int
     }
   | ShrinkedText
-    { shrinked_offsetMapping :: FilePath
-    }
-  | ShrinkedTextSingleOutput
-    { shrinkedSingle_integerFormat :: IntegerFormat
-    , shrinkedSingle_newlineRepl :: Char
+    { shrinked_cfgFile :: FilePath
+    , shrinked_outputMode :: ShrinkedOutputMode
     }
   | Internalize
     { intlz_tagSrlzr :: TagSerializerType
@@ -140,6 +137,10 @@ data Command
     , intlz_ann :: FilePath
     }
   deriving (Eq, Show)
+
+
+-- * Parsers for CLI
+
 
 -- | Parser for the commands of the standoff commandline program.
 command_ :: Parser Command
@@ -237,9 +238,29 @@ shrinkInfo_ =
      <> header "standoff shrink - generate shrinked text."))
 
 shrink_ :: Parser Command
-shrink_ =
+shrink_ = ShrinkedText
+  <$> strOption
+  (long "config"
+    <> metavar "CONFIG_FILE"
+    <> help "Shrinking configuration in yaml format.")
+  <*> shrinkedOutputMode_
+
+
+data ShrinkedOutputMode
+  = ShrinkedOffsetMapping
+    { shrinked_offsetsOut :: FilePath
+    }
+  | ShrinkedSingleCSV
+    { shrinkedSingle_integerFormat :: IntegerFormat
+    , shrinkedSingle_newlineRepl :: Char
+    }
+  deriving (Eq, Show)
+
+
+shrinkedOutputMode_ :: Parser ShrinkedOutputMode
+shrinkedOutputMode_ =
   fromMaybe defaultFormat <$> optional
-  (ShrinkedText <$> strOption
+  (ShrinkedOffsetMapping <$> strOption
     (long "offsets"
      <> short 'f'
      <> help "Output the offset mapping into an extra file."
@@ -249,7 +270,7 @@ shrink_ =
     (long "csv"
      <> short 'c'
      <> help "Output the offset mapping and the shrinked text as CSV. (Default)")
-    *> (ShrinkedTextSingleOutput
+    *> (ShrinkedSingleCSV
         <$> integerFormat_
         <*> ((head . (<> "!")) <$> strOption -- ++"!" : assert that 'head' does not fail
              (long "newline-replacement"
@@ -257,7 +278,7 @@ shrink_ =
               <> value ['\n']
               <> metavar "CHARACTER"))))
   where
-    defaultFormat = (ShrinkedTextSingleOutput Decimal '\n')
+    defaultFormat = (ShrinkedSingleCSV Decimal '\n')
 
 
 -- * Options for the internalize command
@@ -300,7 +321,7 @@ internalizeInfo_ =
 
 
 
-printCSV :: XmlNode -> IO ()
+printCSV :: (SL.StringLike s, Show s) => XmlNode s s -> IO ()
 printCSV xml =  BL.putStr $ Csv.encodeByNameWith (csvEncodeOptions {Csv.encIncludeHeader = False}) positionHeader [xml]
 
 csvEncodeOptions :: Csv.EncodeOptions
@@ -316,7 +337,7 @@ run (GlobalOptions input output Offsets) = do
   c <- hGetContents inputH
   lOffsets <- runLineOffsetParser (show inputH) c
   nOffsets <- runXmlParser lOffsets (show inputH) c
-  BL.hPutStr outputH $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode])
+  BL.hPutStr outputH $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode String String])
   mapM_ (traverse_ printCSV ) nOffsets
 run (GlobalOptions input output (EquidistantText fillChar)) = do
   inputH <- streamableInputHandle input
@@ -327,22 +348,26 @@ run (GlobalOptions input output (EquidistantText fillChar)) = do
   putChar $ chr fillChar
   s <- equidistantText putStr (chr fillChar) xml c
   return ()
-run (GlobalOptions input output (ShrinkedText offsetOut)) = do
+run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedOffsetMapping offsetOut))) = do
+  shrinkingCfg <- BL.readFile cfgFile >>=
+    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
   lOffsets <- runLineOffsetParser (show inputH) c
   xml <- runXmlParser lOffsets (show inputH) c
-  offsets <- shrinkedText (hPutStr outputH) defaultShrinkingConfig xml c
+  offsets <- shrinkedText (hPutStr outputH) shrinkingCfg xml c
   BL.writeFile offsetOut $ foldl (<>) "" $ map Bin.encode offsets
   return ()
-run (GlobalOptions input output (ShrinkedTextSingleOutput integerFormat newlineRepl)) = do
+run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedSingleCSV integerFormat newlineRepl))) = do
+  shrinkingCfg <- BL.readFile cfgFile >>=
+    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
   lOffsets <- runLineOffsetParser (show inputH) c
   xml <- runXmlParser lOffsets (show inputH) c
-  (offsets, txt) <- runWriterT (shrinkedText tell defaultShrinkingConfig xml c)
+  (offsets, txt) <- runWriterT (shrinkedText tell shrinkingCfg xml c)
   BL.hPut outputH $ Csv.encode $
     zip3 (map formatInt offsets) (map replaceNewlines $ SL.unpack txt) (map formatInt ([1 ..] :: [Int]))
   return ()
