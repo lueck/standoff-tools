@@ -10,6 +10,10 @@ import qualified Data.Tree.NTree.TypeDefs as NT
 import StandOff.LineOffsets
 import StandOff.DomTypeDefs
 
+-- | An 'XMLTree' parametrized with a types for names and text
+-- nodes. This is what this parser produces.
+type XMLTree' = XMLTree String String
+
 isTagNameCharP :: Char -> Bool
 isTagNameCharP '-' = True
 isTagNameCharP c = isAlphaNum c
@@ -30,7 +34,7 @@ closeTag elName = do
   skipMany space
   char '>'
 
-elementNode :: Parsec String [Int] XMLTree
+elementNode :: Parsec String [Int] XMLTree'
 elementNode = do
   openStartPos <- getOffset 0
   nameAndAttrs <- openTag
@@ -44,7 +48,7 @@ elementNode = do
   -- calculate the length of a tag, it is _EndPos - _StartPos + 1
   return $ NT.NTree (Element (fst nameAndAttrs) (snd nameAndAttrs) openStartPos openEndPos closeStartPos closeEndPos) inner
 
-emptyElementNode :: Parsec String [Int] XMLTree
+emptyElementNode :: Parsec String [Int] XMLTree'
 emptyElementNode = do
   startPos <- getOffset 0
   char '<'
@@ -80,14 +84,14 @@ attributeNode = do
   spaces -- Why is this needed?
   return $ Attribute (attrName, (concat value))
 
-textNode :: Parsec String [Int] XMLTree
+textNode :: Parsec String [Int] XMLTree'
 textNode = do
   s <- getOffset 0
   t <- many1 (noneOf "<")
   e <- getOffset 0
   return $ NT.NTree (TextNode t s e) []
 
-comment :: Parsec String [Int] XMLTree
+comment :: Parsec String [Int] XMLTree'
 comment = do
   startPos <- getOffset 0
   string "<!--"
@@ -95,7 +99,7 @@ comment = do
   endPos <- getOffset (-1)
   return $ NT.NTree (Comment ("<!--"++c++"-->") startPos endPos) []
 
-xmlDecl :: Parsec String [Int] XMLTree
+xmlDecl :: Parsec String [Int] XMLTree'
 xmlDecl = do
   s <- getOffset 0
   string "<?xml"
@@ -105,7 +109,7 @@ xmlDecl = do
   e <- getOffset (-1)
   return $ NT.NTree (XMLDeclaration attrs s e) []
 
-processingInstruction :: Parsec String [Int] XMLTree
+processingInstruction :: Parsec String [Int] XMLTree'
 processingInstruction = do
   s <- getOffset 0
   string "<?"
@@ -116,18 +120,18 @@ processingInstruction = do
   e <- getOffset (-1)
   return $ NT.NTree (ProcessingInstruction t attrs s e) []
 
-processingInstructionMaybeSpace :: Parsec String [Int] XMLTree
+processingInstructionMaybeSpace :: Parsec String [Int] XMLTree'
 processingInstructionMaybeSpace = do
   p <- processingInstruction
   spaces
   return p
 
-xmlNode :: Parsec String [Int] XMLTree
+xmlNode :: Parsec String [Int] XMLTree'
 xmlNode = try emptyElementNode <|> try elementNode <|> try textNode <|> try comment
 
 -- Parser for XML documents.
 -- FIXME: Arbitrary many comments are allowed beside the root element.
-xmlDocument :: Parsec String [Int] [XMLTree]
+xmlDocument :: Parsec String [Int] [XMLTree']
 xmlDocument = do
   skipMany space
   decl <- optionMaybe $ try xmlDecl
@@ -141,7 +145,7 @@ xmlDocument = do
              _ -> pInstr++[tree]
 
 -- | Run the parser in the IO monad.
-runXmlParser :: [Int] -> FilePath -> String -> IO [XMLTree]
+runXmlParser :: [Int] -> FilePath -> String -> IO [XMLTree']
 runXmlParser offsets location contents = do
   return $ either (fail . (err++) . show) id $ runParser xmlDocument offsets location contents
   where
