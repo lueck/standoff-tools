@@ -29,47 +29,7 @@ import StandOff.XTraverse
 import StandOff.Utils
 
 
--- | A mapping of offsets in the XML file to offsets in the generated
--- plain text file. The list index represents the XML offset, the
--- element value the offset in the plain text file.
-type OffsetMapping = [Int]
-
--- data OffsetMapping = OffsetMapping
---   { offsetMap_offsetMapping :: [Int] -- ^ mapping of character offsets
---   , offsetMap_byteMapping :: [Int]   -- ^ mapping of byte offsets
---   }
-
-initialOffsetMapping :: OffsetMapping
--- initialOffsetMapping = OffsetMapping [] []
-initialOffsetMapping = []
-
--- | A record for the configuration that determines shrinking of
--- all kinds of nodes.
-data ShrinkingNodeConfig k s = ShrinkingNodeConfig
-  { _shrinkCfg_tagReplacements :: (ShrinkingNodeReplacements k s)
-  , _shrinkCfg_defaultTagReplacement :: ShrinkingNodeReplacement s
-  , _shrinkCfg_defaultPiReplacement :: s
-  -- replacing entities should be done by the parser!?
-  , _shrinkCfg_entityReplacements :: EntityResolver s
-  , _shrinkCfg_defaultEntityReplacements :: s
-  }
-  deriving (Show, Generic)
-
--- | A config of nodes to replacement strings. There are type
--- parameters for the nodes' names (@k@) and the replacement strings
--- (@s@).
-type ShrinkingNodeReplacements k s = Map k (ShrinkingNodeReplacement s)
-
-data ShrinkingNodeReplacement s = ShrinkingNodeReplacement
-  { _shrinkRepl_open :: s
-  , _shrinkRepl_close :: s
-  , _shrinkRepl_empty :: s
-  }
-  deriving (Show, Generic)
-
--- | A mapping of entity names to resolved strings.
-type EntityResolver s = Map String s
-
+-- * Classes
 
 -- | The class 'ShrinkingNode' for markup the nodes of which are
 -- shrinkable.
@@ -103,6 +63,23 @@ class (StringLike s, Ord k) => ShrinkingNode n k s where
     -> (s, (s, OffsetMapping))
 
 
+-- | A mapping of offsets in the XML file to offsets in the generated
+-- plain text file. The list index represents the XML offset, the
+-- element value the offset in the plain text file.
+type OffsetMapping = [Int]
+
+-- data OffsetMapping = OffsetMapping
+--   { offsetMap_offsetMapping :: [Int] -- ^ mapping of character offsets
+--   , offsetMap_byteMapping :: [Int]   -- ^ mapping of byte offsets
+--   }
+
+initialOffsetMapping :: OffsetMapping
+-- initialOffsetMapping = OffsetMapping [] []
+initialOffsetMapping = []
+
+
+-- * Generate shrinked text
+
 -- | Generate shrinked text.
 --
 -- Note, that the equidistant nodes, the serialized representation of
@@ -130,7 +107,43 @@ shrinkedText writeM nodeCfg xml s = do
     g n = uncurry (shrinkClose nodeCfg n)
 
 
--- * Parsing the config from yaml
+-- * Configuration
+
+-- Maybe the configuration types etc. should be move to XmlNode and
+-- we should only use @c k s@ as an abstract configuration with type
+-- parameters.
+
+-- ** Types
+
+-- | A record for the configuration that determines shrinking of
+-- all kinds of nodes.
+data ShrinkingNodeConfig k s = ShrinkingNodeConfig
+  { _shrinkCfg_tagReplacements :: (ShrinkingNodeReplacements k s)
+  , _shrinkCfg_defaultTagReplacement :: ShrinkingNodeReplacement s
+  , _shrinkCfg_defaultPiReplacement :: s
+  -- replacing entities should be done by the parser!?
+  , _shrinkCfg_entityReplacements :: EntityResolver s
+  , _shrinkCfg_defaultEntityReplacements :: s
+  }
+  deriving (Show, Generic)
+
+-- | A config of nodes to replacement strings. There are type
+-- parameters for the nodes' names (@k@) and the replacement strings
+-- (@s@).
+type ShrinkingNodeReplacements k s = Map k (ShrinkingNodeReplacement s)
+
+data ShrinkingNodeReplacement s = ShrinkingNodeReplacement
+  { _shrinkRepl_open :: s
+  , _shrinkRepl_close :: s
+  , _shrinkRepl_empty :: s
+  }
+  deriving (Show, Generic)
+
+-- | A mapping of entity names to resolved strings.
+type EntityResolver s = Map String s
+
+
+-- ** Parsing the config from yaml
 
 -- Note: There is no instance FromYAML String!
 instance Y.FromYAML (ShrinkingNodeConfig T.Text T.Text) where
@@ -149,10 +162,13 @@ instance Y.FromYAML (ShrinkingNodeReplacement T.Text) where
     <*> m .:? "close" .!= ""
     <*> m .:? "empty" .!= ""
 
--- | USAGE:
+-- | Parse the configuration from yaml. Use 'adaptShrinkingConfig' to
+-- get a configuration parametrized with the correct types.
+--
+-- USAGE:
 --
 -- > do { BL.readFile "mappings/shrink-tei.yaml" >>= parseShrinkingConfig }
-parseShrinkingConfig :: BL.ByteString -> IO (ShrinkingNodeConfig T.Text T.Text)
+parseShrinkingConfig :: Monad m => BL.ByteString -> m (ShrinkingNodeConfig T.Text T.Text)
 parseShrinkingConfig c = do
   case Y.decode c of
     Left (pos, err) -> do
