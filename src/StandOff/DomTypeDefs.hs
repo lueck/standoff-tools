@@ -12,6 +12,14 @@ import qualified Data.Vector as V
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Monoid ((<>))
+import Data.Text (Text)
+import qualified Data.Text as T
+import Text.XML.HXT.DOM.QualifiedName (QName, XName)
+import qualified Text.XML.HXT.DOM.QualifiedName as QN
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.YAML as Y
+import Data.YAML ((.!=), (.:?))
+import Data.Either
 
 import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
@@ -275,6 +283,79 @@ shrinkingCloseNodeReplacement
 shrinkingCloseNodeReplacement cfg (Element name' _ _ _ _ _) =
   _shrinkRepl_close $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
 shrinkingCloseNodeReplacement _ _ = SL.empty
+
+
+-- * Qualified names
+
+-- | Albeit it may be slower than using Data.Text and Data.Map, we use
+-- 'QName' and 'QN.NsEnv' from the hxt package to represent qualified
+-- names. In configuration files we often need namespace
+-- declarations. To parse them from yaml we have @parseNamespaceDecl@.
+--
+-- Usage notes:
+--
+-- @validateQName . mkQNameWithNsEnv (mkNsEnv nsDecl)@ where
+-- @nsDecl::NamespaceDecl@ can be composed this way to make qualified
+-- names in a 'ShrinkingNodeConfig' using 'adaptShrinkingConfig'.
+
+
+-- | A type for namespace declarations. It has a default namespace and
+-- a mapping of prefixes to namespaces.
+data NamespaceDecl s = NamespaceDecl (Maybe s) (Map.Map s s)
+  deriving (Eq, Show)
+
+instance Y.FromYAML (NamespaceDecl Text) where
+  parseYAML = Y.withMap "namespaces" $ \m -> NamespaceDecl
+    <$> m .:? "default-namespace" .!= Just "Hallo"
+    <*> m .:? "prefixes" .!= Map.empty
+
+-- | Parse a namespace declaration from yaml.
+parseNamespaceDecl :: Monad m => BL.ByteString -> m (NamespaceDecl Text)
+parseNamespaceDecl c = do
+  case Y.decode c of
+    Left (pos, err) -> fail $ show err ++ " " ++ show pos
+    Right cfg -> do
+      return $ head cfg
+
+-- | Make a 'QN.NsEnv' out of a (parsed) namespace declaration.
+mkNsEnv :: StringLike s => NamespaceDecl s -> QN.NsEnv
+mkNsEnv (NamespaceDecl def decl) =
+  QN.toNsEnv $ map ((,) <$> SL.unpack . fst <*> SL.unpack . snd) $ appendDefault def $ Map.toList decl
+  where
+    appendDefault Nothing = id
+    appendDefault (Just d) = ((SL.empty,d):)
+
+-- | Albeit it's slow, we want to use 'QN.NsEnv' and most of hxt's
+-- module for qualified names for propagating namespaces.
+mkNsEnv' :: Map.Map Text Text -> QN.NsEnv
+mkNsEnv' nss = map ((,) <$> QN.newXName . T.unpack . fst <*> QN.newXName . T.unpack . snd) $ Map.toList nss
+
+-- | Make a 'QName' from a string and a mapping of prefixes to
+-- namespace names.
+mkQNameWithNsEnv :: StringLike s => QN.NsEnv -> s -> QName
+mkQNameWithNsEnv nsEnv = QN.setNamespace nsEnv . QN.mkName . SL.unpack
+
+-- | Validate a 'QName' and report errors if it's invalid.
+validateQName :: QName -> Either String QName
+validateQName qn
+  | not $ QN.isDeclaredNamespace qn = Left $ "Undefined prefix: " ++ show qn
+  | not $ QN.isWellformedNameSpaceName qn = Left $ "No wellformed namespace name: " ++ show qn
+  | not $ QN.isWellformedQName qn = Left $ "No wellformed NCname: " ++ show qn
+  | otherwise = Right qn
+
+
+mkShrinkingNodeConfig
+  :: (Ord n, Monad m) =>
+     (NamespaceDecl Text -> Text -> Either String n)
+  -> (Text -> Either String s)
+  -> BL.ByteString
+  -> m (ShrinkingNodeConfig n s)
+mkShrinkingNodeConfig nameFun textFun c = do
+  nsDecl <- parseNamespaceDecl c
+  shrinkCfg <- parseShrinkingConfig c
+  case adaptShrinkingConfig (nameFun nsDecl) textFun shrinkCfg of
+    Left err -> fail err
+    Right cfg -> return cfg
 
 
 -- * Helper functions
