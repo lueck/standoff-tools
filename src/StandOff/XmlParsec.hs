@@ -8,7 +8,7 @@ import Data.Char (isAlphaNum)
 import qualified Data.Tree.NTree.TypeDefs as NT
 
 import StandOff.LineOffsets
-import StandOff.DomTypeDefs
+import StandOff.DomTypeDefs hiding (char)
 
 -- | An 'XMLTree' parametrized with a types for names and text
 -- nodes. This is what this parser produces.
@@ -74,7 +74,7 @@ quoteChar = fmap return nonEscape <|> escape <|> (many1 space)
 attributeNode :: Parsec String [Int] Attribute
 attributeNode = do
   spaces
-  attrName <- many1 (noneOf "= />")  
+  attrName <- many1 (noneOf "= />")
   spaces
   char '='
   spaces
@@ -88,7 +88,7 @@ textNode :: Parsec String [Int] XMLTree'
 textNode = do
   s <- getOffset 0
   t <- many1 (noneOf "<")
-  e <- getOffset 0
+  e <- getOffset (-1)
   return $ NT.NTree (TextNode t s e) []
 
 comment :: Parsec String [Int] XMLTree'
