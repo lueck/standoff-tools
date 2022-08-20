@@ -345,7 +345,6 @@ run (GlobalOptions input output (EquidistantText fillChar)) = do
   c <- hGetContents inputH
   lOffsets <- runLineOffsetParser (show inputH) c
   xml <- runXmlParser lOffsets (show inputH) c
-  putChar $ chr fillChar
   s <- equidistantText putStr (chr fillChar) xml c
   return ()
 run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedOffsetMapping offsetOut))) = do
@@ -405,7 +404,7 @@ run (GlobalOptions input output
     insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
     insertAt s Nothing _ = s
     behindXMLDeclOrTop x
-      | length decl == 1 = (posOffset $ snd $ xmlSpanning $ head decl) - 1
+      | length decl == 1 = (posOffset $ snd $ nodeRange $ head decl) - 1
       | otherwise = 0
       where decl = filter isXMLDeclarationP x
 
