@@ -4,15 +4,34 @@ module StandOff.XmlParsec
   ) where
 
 import Text.Parsec
-import Data.Char (isAlphaNum)
+import Data.Char (isAlphaNum, isDigit, isAlpha)
 import qualified Data.Tree.NTree.TypeDefs as NT
+import Numeric (readHex, readDec)
 
 import StandOff.LineOffsets
-import StandOff.DomTypeDefs hiding (char)
+import StandOff.DomTypeDefs hiding (char, name)
 
 -- | An 'XMLTree' parametrized with a types for names and text
 -- nodes. This is what this parser produces.
 type XMLTree' = XMLTree String String
+
+
+name :: Parsec String [Int] String
+name = do
+  c1 <- satisfy nameStartCharP
+  cs <- many (satisfy nameCharP)
+  return $ [c1] ++ cs
+
+nameStartCharP :: Char -> Bool
+nameStartCharP ':' = True
+nameStartCharP '_' = True
+nameStartCharP c = isAlpha c -- TODO: add other ranges
+
+nameCharP :: Char -> Bool
+nameCharP '-' = True
+nameCharP '.' = True
+nameCharP '\135' = True
+nameCharP c = nameStartCharP c || isDigit c
 
 isTagNameCharP :: Char -> Bool
 isTagNameCharP '-' = True
@@ -87,7 +106,7 @@ attributeNode = do
 textNode :: Parsec String [Int] XMLTree'
 textNode = do
   s <- getOffset 0
-  t <- many1 (noneOf "<")
+  t <- many1 (noneOf "<&")
   e <- getOffset (-1)
   return $ NT.NTree (TextNode t s e) []
 
@@ -98,6 +117,48 @@ comment = do
   c <- manyTill anyChar (try (string "-->"))
   endPos <- getOffset (-1)
   return $ NT.NTree (Comment ("<!--"++c++"-->") startPos endPos) []
+
+cdata :: Parsec String [Int] XMLTree'
+cdata = do
+  startPos <- getOffset 0
+  string "<![CDATA["
+  c <- manyTill anyChar (try (string "]]>"))
+  endPos <- getOffset (-3)
+  return $ NT.NTree (CData c startPos endPos) []
+
+charRefHex :: Parsec String [Int] XMLTree'
+charRefHex = do
+  startPos <- getOffset 0
+  string "&#x"
+  c <- many1 hexDigit
+  char ';'
+  endPos <- getOffset (-1)
+  i <- case readHex c of
+    ((i, ""):[]) -> return i
+    _ -> fail $ "Bad character reference &#x" ++ c ++ ";"
+  return $ NT.NTree (CharRef i startPos endPos) []
+
+charRefDec :: Parsec String [Int] XMLTree'
+charRefDec = do
+  startPos <- getOffset 0
+  string "&#"
+  c <- many1 digit
+  char ';'
+  endPos <- getOffset (-1)
+  i <- case readDec c of
+    ((i, ""):[]) -> return i
+    _ -> fail $ "Bad character reference &#" ++ c ++ ";"
+  return $ NT.NTree (CharRef i startPos endPos) []
+
+entityRef :: Parsec String [Int] XMLTree'
+entityRef = do
+  startPos <- getOffset 0
+  char '&'
+  c <- name
+  char ';'
+  endPos <- getOffset (-1)
+  return $ NT.NTree (EntityRef c startPos endPos) []
+
 
 xmlDecl :: Parsec String [Int] XMLTree'
 xmlDecl = do
@@ -127,7 +188,15 @@ processingInstructionMaybeSpace = do
   return p
 
 xmlNode :: Parsec String [Int] XMLTree'
-xmlNode = try emptyElementNode <|> try elementNode <|> try textNode <|> try comment
+xmlNode =
+  try emptyElementNode
+  <|> try elementNode
+  <|> try charRefHex
+  <|> try charRefDec
+  <|> try entityRef
+  <|> try textNode
+  <|> try cdata
+  <|> try comment
 
 -- Parser for XML documents.
 -- FIXME: Arbitrary many comments are allowed beside the root element.
