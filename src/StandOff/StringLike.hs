@@ -19,6 +19,7 @@ class StringLike s where
   unpack :: s -> String
   take :: Int -> s -> s
   drop :: Int -> s -> s
+  head :: s -> Char
   equals :: (StringLike s2) => s -> s2 -> Bool
   equals this other = unpack this == unpack other
   length :: s -> Int
@@ -40,6 +41,7 @@ instance StringLike T.Text where
   unpack = T.unpack
   take = T.take
   drop = T.drop
+  head = T.head
   length = T.length
   hPutStr h = T.hPutStr h
 
@@ -52,5 +54,6 @@ instance StringLike [Char] where
   unpack = id
   take = L.take
   drop = L.drop
+  head = L.head
   length = L.length
   hPutStr h = Sys.hPutStr h
