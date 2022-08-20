@@ -43,7 +43,12 @@ offset offsets line col = fmap (+col) $ offsets ^? element (line - 1)
 data Position = Position { pos_offset :: Int
                          , pos_line :: Int
                          , pos_column :: Int
-                         } deriving (Show)
+                         }
+
+instance Show Position where
+  show p = "Line " ++ (show $ pos_line p) ++
+           ", Column " ++ (show $ pos_column p) ++
+           " (character offset " ++ (show $ pos_offset p) ++ ")"
 
 instance Csv.ToField Position where
   toField = Csv.toField . pos_offset
