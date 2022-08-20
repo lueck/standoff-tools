@@ -4,9 +4,10 @@ module StandOff.XmlParsec
   ) where
 
 import Text.Parsec
-import Data.Char (isAlphaNum, isDigit, isAlpha)
+import Data.Char (isAlphaNum, isDigit, isAlpha, isSpace)
 import qualified Data.Tree.NTree.TypeDefs as NT
 import Numeric (readHex, readDec)
+import Data.Maybe
 
 import StandOff.LineOffsets
 import StandOff.DomTypeDefs hiding (char, name)
@@ -36,6 +37,13 @@ nameCharP c = nameStartCharP c || isDigit c
 isTagNameCharP :: Char -> Bool
 isTagNameCharP '-' = True
 isTagNameCharP c = isAlphaNum c
+
+whiteSpaceNode :: Parsec String [Int] XMLTree'
+whiteSpaceNode = do
+  startPos <- getOffset 0
+  ws <- many1 (satisfy isSpace)
+  endPos <- getOffset 0
+  return $ NT.NTree (TextNode ws startPos endPos) []
 
 openTag :: Parsec String [Int] (String, [Attribute])
 openTag = do
@@ -198,20 +206,28 @@ xmlNode =
   <|> try cdata
   <|> try comment
 
+
+prolog :: Parsec String [Int] [XMLTree']
+prolog = do
+  decl <- optionMaybe (try xmlDecl)
+  misc1 <- many misc
+  -- dtype <- dtd
+  -- misc2 <- misc
+  return $ maybeToList decl ++ misc1
+
+misc :: Parsec String [Int] XMLTree'
+misc =
+  try processingInstruction
+  <|> try whiteSpaceNode
+  <|> try comment
+
 -- Parser for XML documents.
--- FIXME: Arbitrary many comments are allowed beside the root element.
 xmlDocument :: Parsec String [Int] [XMLTree']
 xmlDocument = do
-  skipMany space
-  decl <- optionMaybe $ try xmlDecl
-  skipMany space
-  pInstr <- many $ try processingInstructionMaybeSpace
-  skipMany space
+  prlg <- prolog
   tree <- try emptyElementNode <|> try elementNode
-  skipMany space
-  return $ case decl of
-             Just d@(NT.NTree (XMLDeclaration _ _ _) []) -> [d]++pInstr++[tree]
-             _ -> pInstr++[tree]
+  msc <- many misc
+  return $ prlg ++ [tree] ++ msc
 
 -- | Run the parser in the IO monad.
 runXmlParser :: [Int] -> FilePath -> String -> IO [XMLTree']

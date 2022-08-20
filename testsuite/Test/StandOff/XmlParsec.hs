@@ -93,6 +93,14 @@ test_positionsSimple2 = do
 test_positionsSimple3 = do
   assertEqual (Right True) =<< validatePositionsForFile "testsuite/simple3.xml"
 
+test_forrestSimple = do
+  let fPath = "testsuite/simple.xml"
+  c <- readFile fPath
+  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
+  xml <- runXmlParser lOffsets (show fPath) c
+  assertEqual [ElementNode, TextNodeType] $ map (nodeType . getNode) xml
+
+
 -- | Assert ground truth manually.
 test_zeroIndexed = do
   let fPath = "testsuite/simple.xml"
