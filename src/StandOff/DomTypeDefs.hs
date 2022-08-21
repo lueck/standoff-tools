@@ -83,8 +83,8 @@ data XmlNode n s
     }
   -- | a processing instruction (leaf)
   | ProcessingInstruction
-    { name :: n
-    , declaration :: [Attribute]
+    { target :: n
+    , instruction :: s
     , start :: Position
     , end :: Position
     }

@@ -2,7 +2,6 @@ module StandOff.LineOffsets
   ( offset
   , lineOffsets
   , lineOffsets'
-  , getOffset
   , Position (..)
   , posOffset
   , runLineOffsetParser
@@ -74,19 +73,6 @@ lineOffsets :: Parsec String () [Int]
 lineOffsets = do
   ls <- lineLens
   return $ init $ scanl (+) 0 ls
-
-
-getOffset :: Int -> Parsec String [Int] Position
-getOffset cor = do
-  offsets <- getState
-  pos <- getPosition
-  return $ Position { pos_line = sourceLine pos
-                    , pos_column = sourceColumn pos
-                    -- parsec's column in SourcePos starts with 1, but
-                    -- we say that the first char in a file has offset
-                    -- of 0. So we decrement the offset by 1.
-                    , pos_offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor - 1
-                    }
 
 
 offsetsFromString :: Int -> String -> [Int]
