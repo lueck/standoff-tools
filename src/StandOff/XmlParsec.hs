@@ -7,6 +7,7 @@ module StandOff.XmlParsec
   , runXmlParser
   ) where
 
+import Prelude hiding (pi)
 import Text.Parsec
 import Data.Char (isAlphaNum, isDigit, isAlpha, isSpace)
 import qualified Data.Tree.NTree.TypeDefs as NT
@@ -68,10 +69,6 @@ nameCharP '.' = True
 nameCharP '\135' = True
 nameCharP c = nameStartCharP c || isDigit c
 
-isTagNameCharP :: Char -> Bool
-isTagNameCharP '-' = True
-isTagNameCharP c = isAlphaNum c
-
 whiteSpaceNode :: XmlParsec s XMLTree'
 whiteSpaceNode = do
   startPos <- getOffset 0
@@ -100,7 +97,7 @@ elementNode = do
   openStartPos <- getOffset 0
   nameAndAttrs <- openTag
   openEndPos <- getOffset (-1)
-  inner <- many xmlNode
+  inner <- many content
   closeStartPos <- getOffset 0
   closeTag (fst nameAndAttrs)
   closeEndPos <- getOffset (-1)
@@ -158,14 +155,14 @@ comment = do
   string "<!--"
   c <- manyTill anyChar (try (string "-->"))
   endPos <- getOffset (-1)
-  return $ NT.NTree (Comment ("<!--"++c++"-->") startPos endPos) []
+  return $ NT.NTree (Comment c startPos endPos) []
 
 cdata :: XmlParsec s XMLTree'
 cdata = do
   startPos <- getOffset 0
   string "<![CDATA["
   c <- manyTill anyChar (try (string "]]>"))
-  endPos <- getOffset (-3)
+  endPos <- getOffset (-1)
   return $ NT.NTree (CData c startPos endPos) []
 
 charRefHex :: XmlParsec s XMLTree'
@@ -212,25 +209,18 @@ xmlDecl = do
   e <- getOffset (-1)
   return $ NT.NTree (XMLDeclaration attrs s e) []
 
-processingInstruction :: XmlParsec s XMLTree'
-processingInstruction = do
+pi :: XmlParsec s XMLTree'
+pi = do
   s <- getOffset 0
   string "<?"
-  t <- many1 $ satisfy isTagNameCharP
-  attrs <- many1 $ try attributeNode
+  t <- name
   spaces
-  string "?>"
+  i <- manyTill anyChar (try (string "?>"))
   e <- getOffset (-1)
-  return $ NT.NTree (ProcessingInstruction t attrs s e) []
+  return $ NT.NTree (ProcessingInstruction t i s e) []
 
-processingInstructionMaybeSpace :: XmlParsec s XMLTree'
-processingInstructionMaybeSpace = do
-  p <- processingInstruction
-  spaces
-  return p
-
-xmlNode :: XmlParsec s XMLTree'
-xmlNode =
+content :: XmlParsec s XMLTree'
+content =
   try emptyElementNode
   <|> try elementNode
   <|> try charRefHex
@@ -239,19 +229,22 @@ xmlNode =
   <|> try textNode
   <|> try cdata
   <|> try comment
+  <|> try pi
 
 
 prolog :: XmlParsec s [XMLTree']
 prolog = do
+  -- TODO: What about BOM?
   decl <- optionMaybe (try xmlDecl)
   misc1 <- many misc
+  -- TODO
   -- dtype <- dtd
   -- misc2 <- misc
   return $ maybeToList decl ++ misc1
 
 misc :: XmlParsec s XMLTree'
 misc =
-  try processingInstruction
+  try pi
   <|> try whiteSpaceNode
   <|> try comment
 
