@@ -16,8 +16,11 @@ import StandOff.DomTypeDefs hiding (char, name)
 -- nodes. This is what this parser produces.
 type XMLTree' = XMLTree String String
 
+-- | The type for user state of the XML parser.
+type XmlParserState = [Int]
 
-name :: Parsec String [Int] String
+
+name :: Parsec String XmlParserState String
 name = do
   c1 <- satisfy nameStartCharP
   cs <- many (satisfy nameCharP)
@@ -38,14 +41,14 @@ isTagNameCharP :: Char -> Bool
 isTagNameCharP '-' = True
 isTagNameCharP c = isAlphaNum c
 
-whiteSpaceNode :: Parsec String [Int] XMLTree'
+whiteSpaceNode :: Parsec String XmlParserState XMLTree'
 whiteSpaceNode = do
   startPos <- getOffset 0
   ws <- many1 (satisfy isSpace)
   endPos <- getOffset 0
   return $ NT.NTree (TextNode ws startPos endPos) []
 
-openTag :: Parsec String [Int] (String, [Attribute])
+openTag :: Parsec String XmlParserState (String, [Attribute])
 openTag = do
   char '<'
   elName <- many1 alphaNum
@@ -54,14 +57,14 @@ openTag = do
   char '>'
   return (elName, attrs)
 
-closeTag :: String -> Parsec String [Int] Char
+closeTag :: String -> Parsec String XmlParserState Char
 closeTag elName = do
   string "</"
   string elName
   skipMany space
   char '>'
 
-elementNode :: Parsec String [Int] XMLTree'
+elementNode :: Parsec String XmlParserState XMLTree'
 elementNode = do
   openStartPos <- getOffset 0
   nameAndAttrs <- openTag
@@ -75,7 +78,7 @@ elementNode = do
   -- calculate the length of a tag, it is _EndPos - _StartPos + 1
   return $ NT.NTree (Element (fst nameAndAttrs) (snd nameAndAttrs) openStartPos openEndPos closeStartPos closeEndPos) inner
 
-emptyElementNode :: Parsec String [Int] XMLTree'
+emptyElementNode :: Parsec String XmlParserState XMLTree'
 emptyElementNode = do
   startPos <- getOffset 0
   char '<'
@@ -86,19 +89,19 @@ emptyElementNode = do
   endPos <- getOffset (-1)
   return $ NT.NTree (EmptyElement elName attrs startPos endPos) []
 
-escape :: Parsec String [Int] String
+escape :: Parsec String XmlParserState String
 escape = do
   d <- char '\\'
   c <- oneOf "\\\"\0\n\r\v\t\b\f"
   return [d, c]
 
-nonEscape :: Parsec String [Int] Char
+nonEscape :: Parsec String XmlParserState Char
 nonEscape = noneOf "\\\"\0\n\r\v\t\b\f"
 
-quoteChar :: Parsec String [Int] String
+quoteChar :: Parsec String XmlParserState String
 quoteChar = fmap return nonEscape <|> escape <|> (many1 space)
 
-attributeNode :: Parsec String [Int] Attribute
+attributeNode :: Parsec String XmlParserState Attribute
 attributeNode = do
   spaces
   attrName <- many1 (noneOf "= />")
@@ -111,14 +114,14 @@ attributeNode = do
   spaces -- Why is this needed?
   return $ Attribute (attrName, (concat value))
 
-textNode :: Parsec String [Int] XMLTree'
+textNode :: Parsec String XmlParserState XMLTree'
 textNode = do
   s <- getOffset 0
   t <- many1 (noneOf "<&")
   e <- getOffset (-1)
   return $ NT.NTree (TextNode t s e) []
 
-comment :: Parsec String [Int] XMLTree'
+comment :: Parsec String XmlParserState XMLTree'
 comment = do
   startPos <- getOffset 0
   string "<!--"
@@ -126,7 +129,7 @@ comment = do
   endPos <- getOffset (-1)
   return $ NT.NTree (Comment ("<!--"++c++"-->") startPos endPos) []
 
-cdata :: Parsec String [Int] XMLTree'
+cdata :: Parsec String XmlParserState XMLTree'
 cdata = do
   startPos <- getOffset 0
   string "<![CDATA["
@@ -134,7 +137,7 @@ cdata = do
   endPos <- getOffset (-3)
   return $ NT.NTree (CData c startPos endPos) []
 
-charRefHex :: Parsec String [Int] XMLTree'
+charRefHex :: Parsec String XmlParserState XMLTree'
 charRefHex = do
   startPos <- getOffset 0
   string "&#x"
@@ -146,7 +149,7 @@ charRefHex = do
     _ -> fail $ "Bad character reference &#x" ++ c ++ ";"
   return $ NT.NTree (CharRef i startPos endPos) []
 
-charRefDec :: Parsec String [Int] XMLTree'
+charRefDec :: Parsec String XmlParserState XMLTree'
 charRefDec = do
   startPos <- getOffset 0
   string "&#"
@@ -158,7 +161,7 @@ charRefDec = do
     _ -> fail $ "Bad character reference &#" ++ c ++ ";"
   return $ NT.NTree (CharRef i startPos endPos) []
 
-entityRef :: Parsec String [Int] XMLTree'
+entityRef :: Parsec String XmlParserState XMLTree'
 entityRef = do
   startPos <- getOffset 0
   char '&'
@@ -168,7 +171,7 @@ entityRef = do
   return $ NT.NTree (EntityRef c startPos endPos) []
 
 
-xmlDecl :: Parsec String [Int] XMLTree'
+xmlDecl :: Parsec String XmlParserState XMLTree'
 xmlDecl = do
   s <- getOffset 0
   string "<?xml"
@@ -178,7 +181,7 @@ xmlDecl = do
   e <- getOffset (-1)
   return $ NT.NTree (XMLDeclaration attrs s e) []
 
-processingInstruction :: Parsec String [Int] XMLTree'
+processingInstruction :: Parsec String XmlParserState XMLTree'
 processingInstruction = do
   s <- getOffset 0
   string "<?"
@@ -189,13 +192,13 @@ processingInstruction = do
   e <- getOffset (-1)
   return $ NT.NTree (ProcessingInstruction t attrs s e) []
 
-processingInstructionMaybeSpace :: Parsec String [Int] XMLTree'
+processingInstructionMaybeSpace :: Parsec String XmlParserState XMLTree'
 processingInstructionMaybeSpace = do
   p <- processingInstruction
   spaces
   return p
 
-xmlNode :: Parsec String [Int] XMLTree'
+xmlNode :: Parsec String XmlParserState XMLTree'
 xmlNode =
   try emptyElementNode
   <|> try elementNode
@@ -207,7 +210,7 @@ xmlNode =
   <|> try comment
 
 
-prolog :: Parsec String [Int] [XMLTree']
+prolog :: Parsec String XmlParserState [XMLTree']
 prolog = do
   decl <- optionMaybe (try xmlDecl)
   misc1 <- many misc
@@ -215,14 +218,14 @@ prolog = do
   -- misc2 <- misc
   return $ maybeToList decl ++ misc1
 
-misc :: Parsec String [Int] XMLTree'
+misc :: Parsec String XmlParserState XMLTree'
 misc =
   try processingInstruction
   <|> try whiteSpaceNode
   <|> try comment
 
 -- Parser for XML documents.
-xmlDocument :: Parsec String [Int] [XMLTree']
+xmlDocument :: Parsec String XmlParserState [XMLTree']
 xmlDocument = do
   prlg <- prolog
   tree <- try emptyElementNode <|> try elementNode
@@ -230,7 +233,7 @@ xmlDocument = do
   return $ prlg ++ [tree] ++ msc
 
 -- | Run the parser in the IO monad.
-runXmlParser :: [Int] -> FilePath -> String -> IO [XMLTree']
+runXmlParser :: XmlParserState -> FilePath -> String -> IO [XMLTree']
 runXmlParser offsets location contents = do
   return $ either (fail . (err++) . show) id $ runParser xmlDocument offsets location contents
   where
