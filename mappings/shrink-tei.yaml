@@ -1,0 +1,18 @@
+## Configuration with mapping of TEI elements to replacements in
+## shrinked text
+
+default-namespace: "http://www.tei-c.org/ns/1.0"
+prefixes:
+  tei: "http://www.tei-c.org/ns/1.0"
+
+tags:
+  tei:p:
+    open: "\n\n"
+
+  tei:caesura:
+    empty: " "
+
+tagDefault:
+  open: ""
+  close: ""
+  empty: " EMPTY! "
