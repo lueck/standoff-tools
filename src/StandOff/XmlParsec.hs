@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts, RankNTypes #-}
 module StandOff.XmlParsec
   ( xmlDocument
   , runXmlParser
@@ -8,19 +9,44 @@ import Data.Char (isAlphaNum, isDigit, isAlpha, isSpace)
 import qualified Data.Tree.NTree.TypeDefs as NT
 import Numeric (readHex, readDec)
 import Data.Maybe
+import Data.Functor.Identity (Identity)
 
-import StandOff.LineOffsets
+import StandOff.LineOffsets (Position(..))
 import StandOff.DomTypeDefs hiding (char, name)
-
--- | An 'XMLTree' parametrized with a types for names and text
--- nodes. This is what this parser produces.
-type XMLTree' = XMLTree String String
 
 -- | The type for user state of the XML parser.
 type XmlParserState = [Int]
 
+-- | A type alias for the Parser used for hiding the details. A
+-- @XmlParsec s a@ reads an input stream of type s, e.g. 'String' or
+-- 'Data.Text'.
+--
+-- The strings produced by it is '[Char]'. This holds true even if the
+-- input stream is of 'Data.Text', because the 'Data.Text' unfolds to
+-- a stream of 'Char' as defined by the instance of 'Stream'.
+type XmlParsec s a = (Stream s Identity Char) => Parsec s XmlParserState a
 
-name :: Parsec String XmlParserState String
+-- | An 'XMLTree' parametrized with a types for names and text
+-- nodes. This is what this parser produces, regardless of the type
+-- fed to the parser. Cf. 'XmlParsec'.
+type XMLTree' = XMLTree String String
+
+
+-- | Get the parsers current position.
+getOffset :: Int -> XmlParsec s Position
+getOffset cor = do
+  offsets <- getState
+  pos <- getPosition
+  return $ Position { pos_line = sourceLine pos
+                    , pos_column = sourceColumn pos
+                    -- parsec's column in SourcePos starts with 1, but
+                    -- we say that the first char in a file has offset
+                    -- of 0. So we decrement the offset by 1.
+                    , pos_offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor - 1
+                    }
+
+--name :: (Stream s Identity Char) => Parsec s XmlParserState String
+name :: XmlParsec s String
 name = do
   c1 <- satisfy nameStartCharP
   cs <- many (satisfy nameCharP)
@@ -41,14 +67,14 @@ isTagNameCharP :: Char -> Bool
 isTagNameCharP '-' = True
 isTagNameCharP c = isAlphaNum c
 
-whiteSpaceNode :: Parsec String XmlParserState XMLTree'
+whiteSpaceNode :: XmlParsec s XMLTree'
 whiteSpaceNode = do
   startPos <- getOffset 0
   ws <- many1 (satisfy isSpace)
   endPos <- getOffset 0
   return $ NT.NTree (TextNode ws startPos endPos) []
 
-openTag :: Parsec String XmlParserState (String, [Attribute])
+openTag :: XmlParsec s (String, [Attribute])
 openTag = do
   char '<'
   elName <- many1 alphaNum
@@ -57,14 +83,14 @@ openTag = do
   char '>'
   return (elName, attrs)
 
-closeTag :: String -> Parsec String XmlParserState Char
+closeTag :: String -> XmlParsec s Char
 closeTag elName = do
   string "</"
   string elName
   skipMany space
   char '>'
 
-elementNode :: Parsec String XmlParserState XMLTree'
+elementNode :: XmlParsec s XMLTree'
 elementNode = do
   openStartPos <- getOffset 0
   nameAndAttrs <- openTag
@@ -78,7 +104,7 @@ elementNode = do
   -- calculate the length of a tag, it is _EndPos - _StartPos + 1
   return $ NT.NTree (Element (fst nameAndAttrs) (snd nameAndAttrs) openStartPos openEndPos closeStartPos closeEndPos) inner
 
-emptyElementNode :: Parsec String XmlParserState XMLTree'
+emptyElementNode :: XmlParsec s XMLTree'
 emptyElementNode = do
   startPos <- getOffset 0
   char '<'
@@ -89,19 +115,19 @@ emptyElementNode = do
   endPos <- getOffset (-1)
   return $ NT.NTree (EmptyElement elName attrs startPos endPos) []
 
-escape :: Parsec String XmlParserState String
+escape :: XmlParsec s String
 escape = do
   d <- char '\\'
   c <- oneOf "\\\"\0\n\r\v\t\b\f"
   return [d, c]
 
-nonEscape :: Parsec String XmlParserState Char
+nonEscape :: XmlParsec s Char
 nonEscape = noneOf "\\\"\0\n\r\v\t\b\f"
 
-quoteChar :: Parsec String XmlParserState String
+quoteChar :: XmlParsec s String
 quoteChar = fmap return nonEscape <|> escape <|> (many1 space)
 
-attributeNode :: Parsec String XmlParserState Attribute
+attributeNode :: XmlParsec s Attribute
 attributeNode = do
   spaces
   attrName <- many1 (noneOf "= />")
@@ -114,14 +140,14 @@ attributeNode = do
   spaces -- Why is this needed?
   return $ Attribute (attrName, (concat value))
 
-textNode :: Parsec String XmlParserState XMLTree'
+textNode :: XmlParsec s XMLTree'
 textNode = do
   s <- getOffset 0
   t <- many1 (noneOf "<&")
   e <- getOffset (-1)
   return $ NT.NTree (TextNode t s e) []
 
-comment :: Parsec String XmlParserState XMLTree'
+comment :: XmlParsec s XMLTree'
 comment = do
   startPos <- getOffset 0
   string "<!--"
@@ -129,7 +155,7 @@ comment = do
   endPos <- getOffset (-1)
   return $ NT.NTree (Comment ("<!--"++c++"-->") startPos endPos) []
 
-cdata :: Parsec String XmlParserState XMLTree'
+cdata :: XmlParsec s XMLTree'
 cdata = do
   startPos <- getOffset 0
   string "<![CDATA["
@@ -137,7 +163,7 @@ cdata = do
   endPos <- getOffset (-3)
   return $ NT.NTree (CData c startPos endPos) []
 
-charRefHex :: Parsec String XmlParserState XMLTree'
+charRefHex :: XmlParsec s XMLTree'
 charRefHex = do
   startPos <- getOffset 0
   string "&#x"
@@ -149,7 +175,7 @@ charRefHex = do
     _ -> fail $ "Bad character reference &#x" ++ c ++ ";"
   return $ NT.NTree (CharRef i startPos endPos) []
 
-charRefDec :: Parsec String XmlParserState XMLTree'
+charRefDec :: XmlParsec s XMLTree'
 charRefDec = do
   startPos <- getOffset 0
   string "&#"
@@ -161,7 +187,7 @@ charRefDec = do
     _ -> fail $ "Bad character reference &#" ++ c ++ ";"
   return $ NT.NTree (CharRef i startPos endPos) []
 
-entityRef :: Parsec String XmlParserState XMLTree'
+entityRef :: XmlParsec s XMLTree'
 entityRef = do
   startPos <- getOffset 0
   char '&'
@@ -171,7 +197,7 @@ entityRef = do
   return $ NT.NTree (EntityRef c startPos endPos) []
 
 
-xmlDecl :: Parsec String XmlParserState XMLTree'
+xmlDecl :: XmlParsec s XMLTree'
 xmlDecl = do
   s <- getOffset 0
   string "<?xml"
@@ -181,7 +207,7 @@ xmlDecl = do
   e <- getOffset (-1)
   return $ NT.NTree (XMLDeclaration attrs s e) []
 
-processingInstruction :: Parsec String XmlParserState XMLTree'
+processingInstruction :: XmlParsec s XMLTree'
 processingInstruction = do
   s <- getOffset 0
   string "<?"
@@ -192,13 +218,13 @@ processingInstruction = do
   e <- getOffset (-1)
   return $ NT.NTree (ProcessingInstruction t attrs s e) []
 
-processingInstructionMaybeSpace :: Parsec String XmlParserState XMLTree'
+processingInstructionMaybeSpace :: XmlParsec s XMLTree'
 processingInstructionMaybeSpace = do
   p <- processingInstruction
   spaces
   return p
 
-xmlNode :: Parsec String XmlParserState XMLTree'
+xmlNode :: XmlParsec s XMLTree'
 xmlNode =
   try emptyElementNode
   <|> try elementNode
@@ -210,7 +236,7 @@ xmlNode =
   <|> try comment
 
 
-prolog :: Parsec String XmlParserState [XMLTree']
+prolog :: XmlParsec s [XMLTree']
 prolog = do
   decl <- optionMaybe (try xmlDecl)
   misc1 <- many misc
@@ -218,35 +244,23 @@ prolog = do
   -- misc2 <- misc
   return $ maybeToList decl ++ misc1
 
-misc :: Parsec String XmlParserState XMLTree'
+misc :: XmlParsec s XMLTree'
 misc =
   try processingInstruction
   <|> try whiteSpaceNode
   <|> try comment
 
 -- Parser for XML documents.
-xmlDocument :: Parsec String XmlParserState [XMLTree']
+xmlDocument :: XmlParsec s [XMLTree']
 xmlDocument = do
   prlg <- prolog
   tree <- try emptyElementNode <|> try elementNode
   msc <- many misc
   return $ prlg ++ [tree] ++ msc
 
--- | Run the parser in the IO monad.
-runXmlParser :: XmlParserState -> FilePath -> String -> IO [XMLTree']
+-- | Run the parser.
+runXmlParser :: (Monad m, Stream s Identity Char) => XmlParserState -> FilePath -> s -> m [XMLTree']
 runXmlParser offsets location contents = do
   return $ either (fail . (err++) . show) id $ runParser xmlDocument offsets location contents
   where
     err = "Error parsing XML input (" ++ location ++ "): "
-
-
--- | A simple xml parser that prints the positions of tags.
---
--- Usage:
--- > runhaskell XMLOffsets.hs < document.xml
-main :: IO ()
-main = do
-  c <- getContents
-  offsets <- runLineOffsetParser "(stdin)" c
-  rc <- runXmlParser offsets "(stdin)" c
-  print rc
