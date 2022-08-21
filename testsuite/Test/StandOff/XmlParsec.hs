@@ -95,8 +95,8 @@ test_positionsSimple = do
 test_positionsSimple2 = do
   assertEqual (Right True) =<< validatePositionsForFile "testsuite/simple2.xml"
 
-test_positionsSimple3 = do
-  assertEqual (Right True) =<< validatePositionsForFile "testsuite/simple3.xml"
+test_positionsCharRef = do
+  assertEqual (Right True) =<< validatePositionsForFile "testsuite/charref.xml"
 
 test_forrestSimple = do
   let fPath = "testsuite/simple.xml"
@@ -135,19 +135,19 @@ test_textNodePositions = do
   assertEqual 0x52 $ end headerTxt
 
 test_charRefDec = do
-  let fPath = "testsuite/simple3.xml"
+  let fPath = "testsuite/charref.xml"
   c <- readFile fPath
   lOffsets <- LOFF.runLineOffsetParser (show fPath) c
   xml <- runXmlParser lOffsets (show fPath) c
-  let n = getNode $ getNthNode [4, 3, 3, 1] xml
+  let n = getNode $ getNthNode [0, 1] xml
   assertEqual CharRefNode $ nodeType n
   assertEqual 0x64 $ char n
 
 test_charRefHex = do
-  let fPath = "testsuite/simple3.xml"
+  let fPath = "testsuite/charref.xml"
   c <- readFile fPath
   lOffsets <- LOFF.runLineOffsetParser (show fPath) c
   xml <- runXmlParser lOffsets (show fPath) c
-  let n = getNode $ getNthNode [4, 3, 3, 3] xml
+  let n = getNode $ getNthNode [0, 3] xml
   assertEqual CharRefNode $ nodeType n
   assertEqual 0x64 $ char n
