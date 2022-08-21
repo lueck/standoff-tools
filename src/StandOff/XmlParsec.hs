@@ -1,6 +1,9 @@
 {-# LANGUAGE FlexibleContexts, RankNTypes #-}
 module StandOff.XmlParsec
-  ( xmlDocument
+  ( XmlParserState
+  , XmlParsec
+  , XMLTree'
+  , document
   , runXmlParser
   ) where
 
@@ -14,12 +17,14 @@ import Data.Functor.Identity (Identity)
 import StandOff.LineOffsets (Position(..))
 import StandOff.DomTypeDefs hiding (char, name)
 
+-- * Combinators
+
 -- | The type for user state of the XML parser.
 type XmlParserState = [Int]
 
--- | A type alias for the Parser used for hiding the details. A
--- @XmlParsec s a@ reads an input stream of type s, e.g. 'String' or
--- 'Data.Text'.
+-- | A type alias for Parser combinators. This is used for hiding the
+-- details. A @XmlParsec s a@ reads an input stream of type s,
+-- e.g. 'String' or 'Data.Text'.
 --
 -- The strings produced by it is '[Char]'. This holds true even if the
 -- input stream is of 'Data.Text', because the 'Data.Text' unfolds to
@@ -77,7 +82,7 @@ whiteSpaceNode = do
 openTag :: XmlParsec s (String, [Attribute])
 openTag = do
   char '<'
-  elName <- many1 alphaNum
+  elName <- name
   attrs <- many $ try attributeNode
   spaces
   char '>'
@@ -108,7 +113,7 @@ emptyElementNode :: XmlParsec s XMLTree'
 emptyElementNode = do
   startPos <- getOffset 0
   char '<'
-  elName <- many1 alphaNum
+  elName <- name
   attrs <- many $ try attributeNode
   spaces
   string "/>"
@@ -251,16 +256,18 @@ misc =
   <|> try comment
 
 -- Parser for XML documents.
-xmlDocument :: XmlParsec s [XMLTree']
-xmlDocument = do
+document :: XmlParsec s [XMLTree']
+document = do
   prlg <- prolog
   tree <- try emptyElementNode <|> try elementNode
   msc <- many misc
   return $ prlg ++ [tree] ++ msc
 
--- | Run the parser.
+-- * Parser
+
+-- | Run the parser in a monad. This calls fail on parse errors.
 runXmlParser :: (Monad m, Stream s Identity Char) => XmlParserState -> FilePath -> s -> m [XMLTree']
 runXmlParser offsets location contents = do
-  return $ either (fail . (err++) . show) id $ runParser xmlDocument offsets location contents
+  return $ either (fail . (err++) . show) id $ runParser document offsets location contents
   where
     err = "Error parsing XML input (" ++ location ++ "): "
