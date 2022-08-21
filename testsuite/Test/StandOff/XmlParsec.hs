@@ -81,6 +81,11 @@ validatePositionsForFile fPath = do
   return r
 
 
+getNthNode :: [Int] -> XMLTrees n s -> XMLTree n s
+getNthNode (n:[]) ts = ts !! n
+getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
+
+
 -- * Tests
 
 
@@ -128,3 +133,21 @@ test_textNodePositions = do
   assertEqual "First Heading" $ text headerTxt
   assertEqual 0x46 $ start headerTxt
   assertEqual 0x52 $ end headerTxt
+
+test_charRefDec = do
+  let fPath = "testsuite/simple3.xml"
+  c <- readFile fPath
+  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
+  xml <- runXmlParser lOffsets (show fPath) c
+  let n = getNode $ getNthNode [4, 3, 3, 1] xml
+  assertEqual CharRefNode $ nodeType n
+  assertEqual 0x64 $ char n
+
+test_charRefHex = do
+  let fPath = "testsuite/simple3.xml"
+  c <- readFile fPath
+  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
+  xml <- runXmlParser lOffsets (show fPath) c
+  let n = getNode $ getNthNode [4, 3, 3, 3] xml
+  assertEqual CharRefNode $ nodeType n
+  assertEqual 0x64 $ char n
