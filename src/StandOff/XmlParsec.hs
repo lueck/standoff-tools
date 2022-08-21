@@ -73,7 +73,7 @@ whiteSpaceNode :: XmlParsec s XMLTree'
 whiteSpaceNode = do
   startPos <- getOffset 0
   ws <- many1 (satisfy isSpace)
-  endPos <- getOffset 0
+  endPos <- getOffset (-1)
   return $ NT.NTree (TextNode ws startPos endPos) []
 
 openTag :: XmlParsec s (String, [Attribute])

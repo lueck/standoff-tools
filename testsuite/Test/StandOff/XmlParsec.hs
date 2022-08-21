@@ -15,6 +15,7 @@ import qualified StandOff.LineOffsets as LOFF
 import qualified StandOff.StringLike as SL
 import StandOff.XTraverse
 import StandOff.TextRange
+import StandOff.LineOffsets (Position(..))
 
 
 -- * Helpers
@@ -93,6 +94,9 @@ getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
 test_positionsSimple = do
   assertEqual (Right True) =<< validatePositionsForFile "testsuite/simple.xml"
 
+test_positionsAdvanced = do
+  assertEqual (Right True) =<< validatePositionsForFile "testsuite/advanced.xml"
+
 test_positionsPI = do
   assertEqual (Right True) =<< validatePositionsForFile "testsuite/pi.xml"
 
@@ -141,6 +145,21 @@ test_textNodePositions = do
   assertEqual "First Heading" $ text headerTxt
   assertEqual 0x46 $ start headerTxt
   assertEqual 0x52 $ end headerTxt
+
+-- | for text nodes we need to test manually. We have an extrac parser
+-- for whitespace nodes for the prolog.
+test_whitespaceNodePositions = do
+  let fPath = "testsuite/pi.xml"
+  c <- readFile fPath
+  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
+  xml <- runXmlParser lOffsets (show fPath) c
+  -- /document[1]/body[1]/header[1]/text()
+  let ws = getNode $ getNthNode [1] xml
+  assertEqual TextNodeType $ nodeType ws
+  assertEqual "\n" $ take 1 $ flip drop c $ start ws
+  assertEqual "\n" $ take 1 $ flip drop c $ end ws
+  assertEqual ">" $ take 1 $ flip drop c $ (\i -> i - 1) $ start ws
+  assertEqual "<" $ take 1 $ flip drop c $ (\i -> i + 1) $ end ws
 
 test_pi = do
   let fPath = "testsuite/pi.xml"
