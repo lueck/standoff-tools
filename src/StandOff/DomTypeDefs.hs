@@ -58,15 +58,18 @@ type AttrVal  = String
 
 data Attribute = Attribute (AttrName, AttrVal) deriving (Show)
 
-data XmlNode n s
+-- | For representind XML nodes 'XmlNode' is parametrized with a
+-- position @p@, a node name type @n@ and a string-like type for text
+-- nodes @s@.
+data XmlNode p n s
   -- | an element node with text or element children
   = Element
     { name :: n
     , attributes ::  [Attribute]
-    , startOpenTag :: Position
-    , endOpenTag :: Position
-    , startCloseTag :: Position
-    , endCloseTag :: Position
+    , startOpenTag :: p
+    , endOpenTag :: p
+    , startCloseTag :: p
+    , endCloseTag :: p
     }
   -- | an empty element (leaf). We introduce this only because it is
   -- distinct from Element in regard to 'TextRange'. This will speed
@@ -74,57 +77,57 @@ data XmlNode n s
   | EmptyElement
     { name :: n
     , attributes :: [Attribute]
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   -- | an XML declaration (leaf)
   | XMLDeclaration
     { declaration :: [Attribute]
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   -- | a processing instruction (leaf)
   | ProcessingInstruction
     { target :: n
     , instruction :: s
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   -- | a text node (leaf)
   | TextNode
     { text :: s
-    , start :: Position
-    , end :: Position }
+    , start :: p
+    , end :: p }
   -- | a comment (leaf)
   | Comment
     { text :: s
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   -- | a character reference (leaf)
   | CharRef
     { char :: Int
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   -- | an entity reference (leaf)
   | EntityRef
     { entity :: String -- we use string in order to work with XNT.DTDElem
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   -- | an CData section (leaf)
   | CData
     { text :: s
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   -- | a DTD element with an associative list of elements
   | DTD
     { element :: XNT.DTDElem
     , attrs :: XNT.Attributes
-    , start :: Position
-    , end :: Position
+    , start :: p
+    , end :: p
     }
   deriving (Show)
 
@@ -155,7 +158,7 @@ instance Show NodeType where
 
 
 -- | A mapping of 'XmlNode' constructors to 'NodeType'.
-nodeType :: XmlNode n s -> NodeType
+nodeType :: XmlNode p n s -> NodeType
 nodeType (Element _ _ _ _ _ _) = ElementNode
 nodeType (EmptyElement _ _ _ _) = EmptyElementNode
 nodeType (XMLDeclaration _ _ _) = XMLDeclarationNode
@@ -168,19 +171,19 @@ nodeType (CData _ _ _) = CDataNode
 nodeType (DTD _ _ _ _) = DTDNode
 
 -- | An n-ary tree of 'XML' nodes
-type XMLTree n s = NT.NTree (XmlNode n s)
+type XMLTree p n s = NT.NTree (XmlNode p n s)
 
 -- | Forest of 'XMLTree'
-type XMLTrees n s = NT.NTrees (XmlNode n s)
+type XMLTrees p n s = NT.NTrees (XmlNode p n s)
 
 -- | Get the (current) root node of a 'NTree' subtree.
 getNode :: NT.NTree a -> a
 getNode (NT.NTree n _) = n
 
 
-instance TR.TextRange (XmlNode n s) where
-  start x = posOffset $ fst $ nodeRange x
-  end x = posOffset $ snd $ nodeRange x
+instance TR.TextRange ((XmlNode Int) n s) where
+  start x = fst $ nodeRange x
+  end x = snd $ nodeRange x
   -- Split points have to be corrected. The first part of the split
   -- should always end right before the open tag and the second part
   -- of the split should always start right after a tag, but not at
@@ -188,29 +191,26 @@ instance TR.TextRange (XmlNode n s) where
   -- all markup types?
   splitPoints x = ((so-1, eo+1), (sc-1, ec+1))
     where
-      (so, eo) = myMapTuple posOffset $ openTagRange x
-      (sc, ec) = myMapTuple posOffset $ closeTagRange x
-
-      myMapTuple :: (a -> b) -> (a, a) -> (b, b)
-      myMapTuple f (a1, a2) = (f a1, f a2)
+      (so, eo) = openTagRange x
+      (sc, ec) = closeTagRange x
 
   split _ _ = error "Cannot split internal markup"
 
-instance MarkupTree (XMLTree n s) where
+instance MarkupTree (XMLTree p n s) where
   getMarkupChildren (NT.NTree (Element _ _ _ _ _ _) cs) = cs
   getMarkupChildren (NT.NTree _ _) = []
 
-instance (Show n) => Csv.ToNamedRecord (XmlNode n s) where
+instance (Show n, Show p) => Csv.ToNamedRecord (XmlNode p n s) where
   toNamedRecord n = Csv.namedRecord
     [ "type" .= (show $ nodeType n)
-    , "start" .= (fst $ openTagRange n)
-    , "end" .= (snd $ openTagRange n)
-    , "startClose" .= (fst $ closeTagRange n)
-    , "endClose" .= (snd $ closeTagRange n)
+    , "start" .= (show $ fst $ openTagRange n)
+    , "end" .= (show $ snd $ openTagRange n)
+    , "startClose" .= (show $ fst $ closeTagRange n)
+    , "endClose" .= (show $ snd $ closeTagRange n)
     , "lname" .= tagName n
     ]
     where
-      tagName :: Show k => XmlNode k s -> Maybe String
+      tagName :: Show k => XmlNode p k s -> Maybe String
       tagName (Element name _ _ _ _ _) = Just $ show name
       tagName (EmptyElement name _ _ _) = Just $ show name
       tagName _ = Nothing
@@ -224,47 +224,47 @@ positionHeader = V.fromList ["type", "start", "end", "startClose", "endClose", "
 
 -- Is the node an XML element? False for white space, text nodes,
 -- processing instructions, xml declarations, comments etc.
-isElementP :: (XmlNode n s) -> Bool
+isElementP :: (XmlNode p n s) -> Bool
 isElementP (Element _ _ _ _ _ _) = True
 isElementP (EmptyElement _ _ _ _) = True
 isElementP _ = False
 
-isXMLDeclarationP :: (XmlNode n s) -> Bool
+isXMLDeclarationP :: (XmlNode p n s) -> Bool
 isXMLDeclarationP (XMLDeclaration _ _ _) = True
 isXMLDeclarationP _ = False
 
 
 -- * Equidistant text
 
-instance StringLike s => EquidistantNode (XmlNode n) s where
+instance StringLike s => EquidistantNode (XmlNode Int n) s where
   -- reproduce text nodes
   serializeOpen _ n@(TextNode _ _ _) s =
     (SL.take l s, SL.drop l s)
     where
       l :: Int
-      l = openTagLength n
+      l = openTagLength id n
   -- for all other types of nodes we use the filling character
   serializeOpen fillChar n s =
     (SL.pack $ take l $ repeat fillChar, SL.drop l s)
     where
       l :: Int
-      l = openTagLength n
+      l = openTagLength id n
   -- close tag is relevant only for 'Element'
   serializeClose fillChar n@(Element _ _ _ _ _ _) s =
     (SL.pack $ take l $ repeat fillChar, SL.drop l s)
     where
       l :: Int
-      l = closeTagLength n
+      l = closeTagLength id n
   serializeClose _ _ s = (SL.empty, s)
 
 
 -- * Shrinked text
 
-instance (Eq n, Ord n, StringLike s) => ShrinkingNode XmlNode n s where
+instance (Eq n, Ord n, StringLike s) => ShrinkingNode (XmlNode Int) n s where
   shrinkOpen _ n@(TextNode _ _ _) s offsets =
     (SL.take l s, (SL.drop l s, offsets <> mapOpenOffsets n l))
     where
-      l = openTagLength n
+      l = openTagLength id n
   -- TODO: char refs and entity refs
   -- use replacements for all other kinds of nodes
   shrinkOpen cfg n s offsets =
@@ -272,24 +272,24 @@ instance (Eq n, Ord n, StringLike s) => ShrinkingNode XmlNode n s where
     where
       txt = shrinkingOpenNodeReplacement cfg n
       l = SL.length txt
-      seen = openTagLength n -- length of input seen
+      seen = openTagLength id n -- length of input seen
   shrinkClose cfg n s offsets = (txt, (SL.drop seen s, offsets <> mapCloseOffsets n l))
     where
       txt = shrinkingCloseNodeReplacement cfg n
       l = SL.length txt
-      seen = closeTagLength n -- length of input seen
+      seen = closeTagLength id n -- length of input seen
 
 
 -- | How to map the offsets of an open tag to a count of new offsets.
 -- Should it be [666, 667, 668] or [666, 666, 666] ?
-mapOpenOffsets :: (XmlNode n s) -> Int -> [Int]
+mapOpenOffsets :: (XmlNode Int n s) -> Int -> [Int]
 mapOpenOffsets n@(TextNode _ _ _) len = map (+ (TR.start n)) $ take len [0..]
 mapOpenOffsets node len = take len $ repeat $ TR.start node
 -- mapOffsets strt len = map (+ (TR.start node)) $ take len [0..]
 
 -- | How to map the offsets of a close tag to a count of new offsets.
 -- Should it be [666, 667, 668] or [666, 666, 666] ?
-mapCloseOffsets :: (XmlNode n s) -> Int -> [Int]
+mapCloseOffsets :: (XmlNode Int n s) -> Int -> [Int]
 mapCloseOffsets node len = take len $ repeat $ TR.end node
 -- mapOffsets strt len = map (+ (TR.close node)) $ take len [0..]
 
@@ -298,7 +298,7 @@ mapCloseOffsets node len = take len $ repeat $ TR.end node
 shrinkingOpenNodeReplacement
   :: (StringLike s, Ord k) =>
      ShrinkingNodeConfig k s
-  -> (XmlNode k s)
+  -> (XmlNode p k s)
   -> s
 shrinkingOpenNodeReplacement cfg (Element name' _ _ _ _ _) =
   _shrinkRepl_open $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
@@ -315,7 +315,7 @@ shrinkingOpenNodeReplacement _ _ = SL.empty
 shrinkingCloseNodeReplacement
   :: (StringLike s, Ord k) =>
      ShrinkingNodeConfig k s
-  -> (XmlNode k s)
+  -> (XmlNode p k s)
   -> s
 shrinkingCloseNodeReplacement cfg (Element name' _ _ _ _ _) =
   _shrinkRepl_close $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
@@ -398,14 +398,14 @@ mkShrinkingNodeConfig nameFun textFun c = do
 -- * Helper functions
 
 -- | The starting and ending position of the overall node.
-nodeRange :: (XmlNode n s) -> (Position, Position)
+nodeRange :: (XmlNode p n s) -> (p, p)
 nodeRange (Element _ _ s _ _ e) = (s, e)
 nodeRange n = openTagRange n
 
 -- | The starting and ending position of the open tag in case of
 -- non-empty element nodes and the overall nodes in case of a leaf
 -- node.
-openTagRange :: (XmlNode n s) -> (Position, Position)
+openTagRange :: (XmlNode p n s) -> (p, p)
 openTagRange (Element _ _ s e _ _) = (s, e)
 openTagRange (EmptyElement _ _ s e) = (s, e)
 openTagRange (XMLDeclaration _ s e) = (s, e)
@@ -419,20 +419,20 @@ openTagRange (DTD _ _ s e) = (s, e)
 
 -- | The starting and ending position of the close tag in case of
 -- non-empty element nodes *and the same as 'opentag' otherwise.
-closeTagRange :: (XmlNode n s) -> (Position, Position)
+closeTagRange :: (XmlNode p n s) -> (p, p)
 closeTagRange (Element _ _ _ _ s e) = (s, e)
 closeTagRange n = openTagRange n
 
 
 -- | Get the length of the open tag. This returns the length of the
 -- open tag of an element node and the length of all other nodes.
-openTagLength :: XmlNode n s -> Int
-openTagLength n = posOffset e - posOffset s + 1
+openTagLength :: (p -> Int) -> XmlNode p n s -> Int
+openTagLength f n = f e - f s + 1
   where
     (s, e) = openTagRange n
 
 -- | Get the length of the close tag. This returns the length of the
 -- close tag of an element node and 0 for all other nodes.
-closeTagLength :: (XmlNode n s) -> Int
-closeTagLength (Element _ _ _ _ sc ec) = (posOffset ec) - (posOffset sc) + 1
-closeTagLength _ = 0
+closeTagLength :: (p -> Int) -> (XmlNode p n s) -> Int
+closeTagLength f (Element _ _ _ _ sc ec) = (f ec) - (f sc) + 1
+closeTagLength _ _ = 0
