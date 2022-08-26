@@ -7,6 +7,9 @@ import Data.Traversable
 import Data.Foldable
 import Control.Monad.State
 import Data.Tree.Class
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.ByteString as BS
 
 import StandOff.DomTypeDefs hiding (start, end, getNode)
 import StandOff.XmlParsec
@@ -15,7 +18,7 @@ import qualified StandOff.LineOffsets as LOFF
 import qualified StandOff.StringLike as SL
 import StandOff.XTraverse
 import StandOff.TextRange
-import StandOff.LineOffsets (Position(..))
+import StandOff.LineOffsets (Position(..), posOffset)
 
 
 -- * Helpers
@@ -86,6 +89,10 @@ getNthNode :: [Int] -> XMLTrees n s -> XMLTree n s
 getNthNode [] ts = head ts
 getNthNode (n:[]) ts = ts !! n
 getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
+
+
+myMapTuple :: (a -> b) -> (a, a) -> (b, b)
+myMapTuple f (a1, a2) = (f a1, f a2)
 
 
 -- * Tests
@@ -181,13 +188,17 @@ test_comment = do
   lOffsets <- LOFF.runLineOffsetParser (show fPath) c
   xml <- runXmlParser lOffsets (show fPath) c
   let c1 = getNode $ getNthNode [2] xml
+  assertEqual (0x27, 0x34) $ spans c1
   assertEqual CommentNode $ nodeType c1
   let c2 = getNode $ getNthNode [4, 3, 3] xml
+  assertEqual (0x93, 0x9f) $ spans c2
   assertEqual CommentNode $ nodeType c2
   let c3 = getNode $ getNthNode [6] xml
   assertEqual CommentNode $ nodeType c3
+  assertEqual (0x350, 0x35a) $ spans c3
   let c4 = getNode $ getNthNode [8] xml
   assertEqual CommentNode $ nodeType c4
+  assertEqual (0x35c, 0x368) $ spans c4
 
 test_cdata = do
   let fPath = "testsuite/cdata.xml"
@@ -215,3 +226,89 @@ test_charRefHex = do
   let n = getNode $ getNthNode [0, 3] xml
   assertEqual CharRefNode $ nodeType n
   assertEqual 0x64 $ char n
+
+test_advancedNodes = do
+  unitTestPending "Parsec updates the position on \\t characters in a special way."
+  let fPath = "testsuite/advanced.xml"
+  c <- readFile fPath
+  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
+  xml <- runXmlParser lOffsets (show fPath) c
+  assertEqual XMLDeclarationNode $ nodeType $ getNode $ getNthNode [0] xml
+  assertEqual (0, 0x25) $ spans $ getNode $ getNthNode [0] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [1] xml
+  assertEqual (0x26, 0x26) $ spans $ getNode $ getNthNode [1] xml
+  assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2] xml
+  assertEqual (0x27, 0xec) $ spans $ getNode $ getNthNode [2] xml
+  assertEqual (0x27, 0x30) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2] xml
+  assertEqual (0xe2, 0xec) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,0] xml
+  assertEqual (0x31, 0x33) $ spans $ getNode $ getNthNode [2,0] xml
+  assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,1] xml
+  assertEqual (0x34, 0x3a) $ spans $ getNode $ getNthNode [2,1] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,2] xml
+  assertEqual (0x3b, 0x3d) $ spans $ getNode $ getNthNode [2,2] xml
+  assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2,3] xml
+  assertEqual (0x3e, 0xe0) $ spans $ getNode $ getNthNode [2,3] xml
+  assertEqual (0x3e, 0x43) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual (0xda, 0xe0) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,0] xml
+  assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,3,1] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,2] xml
+  assertEqual CommentNode $ nodeType $ getNode $ getNthNode [2,3,3] xml
+  assertEqual (0x63, 0x8f) $ spans $ getNode $ getNthNode [2,3,3] xml -- <<<
+  assertEqual " missing? ---\n    <h1\n\t>First Head</h1" $ text $ getNode $ getNthNode [2,3,3] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,4] xml
+  assertEqual (0x90, 0x94) $ spans $ getNode $ getNthNode [2,3,4] xml -- <<<
+  assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2,3,5] xml
+  assertEqual (0x95, 0xd6) $ spans $ getNode $ getNthNode [2,3,5] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,5,0] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,6] xml
+  -- assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,7] xml -- does not exist
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,4] xml
+
+-- | We to work around the problem of parsec and tabs, we replace
+-- every tab character on the input stream with a space.
+test_advancedNodesWithoutTabs = do
+  let fPath = "testsuite/advanced.xml"
+  c' <- BS.readFile fPath
+  let withtabs =  T.decodeUtf8 c'
+  let c = T.map replaceTab withtabs
+  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
+  xml <- runXmlParser lOffsets (show fPath) c
+  assertEqual XMLDeclarationNode $ nodeType $ getNode $ getNthNode [0] xml
+  assertEqual (0, 0x25) $ spans $ getNode $ getNthNode [0] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [1] xml
+  assertEqual (0x26, 0x26) $ spans $ getNode $ getNthNode [1] xml
+  assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2] xml
+  assertEqual (0x27, 0xec) $ spans $ getNode $ getNthNode [2] xml
+  assertEqual (0x27, 0x30) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2] xml
+  assertEqual (0xe2, 0xec) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,0] xml
+  assertEqual (0x31, 0x33) $ spans $ getNode $ getNthNode [2,0] xml
+  assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,1] xml
+  assertEqual (0x34, 0x3a) $ spans $ getNode $ getNthNode [2,1] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,2] xml
+  assertEqual (0x3b, 0x3d) $ spans $ getNode $ getNthNode [2,2] xml
+  assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2,3] xml
+  assertEqual (0x3e, 0xe0) $ spans $ getNode $ getNthNode [2,3] xml
+  assertEqual (0x3e, 0x43) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual (0xda, 0xe0) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,0] xml
+  assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,3,1] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,2] xml
+  assertEqual CommentNode $ nodeType $ getNode $ getNthNode [2,3,3] xml
+  assertEqual (0x63, 0x8f) $ spans $ getNode $ getNthNode [2,3,3] xml -- <<<
+  -- \t was replaced with space
+  assertEqual " missing? ---\n    <h1\n >First Head</h1" $ text $ getNode $ getNthNode [2,3,3] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,4] xml
+  assertEqual (0x90, 0x94) $ spans $ getNode $ getNthNode [2,3,4] xml -- <<<
+  assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2,3,5] xml
+  assertEqual (0x95, 0xd6) $ spans $ getNode $ getNthNode [2,3,5] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,5,0] xml
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,6] xml
+  -- assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,7] xml -- does not exist
+  assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,4] xml
+  where
+    replaceTab :: Char -> Char
+    replaceTab '\t' = ' '
+    replaceTab c = c

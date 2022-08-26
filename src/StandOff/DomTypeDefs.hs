@@ -23,6 +23,8 @@ module StandOff.DomTypeDefs
   , validateQName
   , mkShrinkingNodeConfig
   , nodeRange
+  , openTagRange
+  , closeTagRange
   ) where
 
 import qualified Data.Tree.NTree.TypeDefs as NT
