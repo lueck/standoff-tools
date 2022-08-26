@@ -15,13 +15,13 @@ import Numeric (readHex, readDec)
 import Data.Maybe
 import Data.Functor.Identity (Identity)
 
-import StandOff.LineOffsets (Position(..))
 import StandOff.DomTypeDefs hiding (char, name)
+import StandOff.OffsetMapping (OffsetMapping)
 
 -- * Combinators
 
 -- | The type for user state of the XML parser.
-type XmlParserState = [Int]
+type XmlParserState = OffsetMapping -- [(Int, SourcePos)]
 
 -- | A type alias for Parser combinators. This is used for hiding the
 -- details. A @XmlParsec s a@ reads an input stream of type s,
@@ -32,24 +32,35 @@ type XmlParserState = [Int]
 -- a stream of 'Char' as defined by the instance of 'Stream'.
 type XmlParsec s a = (Stream s Identity Char) => Parsec s XmlParserState a
 
+type NodePosition = Int
+
 -- | An 'XMLTree' parametrized with a types for names and text
 -- nodes. This is what this parser produces, regardless of the type
 -- fed to the parser. Cf. 'XmlParsec'.
-type XMLTree' = XMLTree String String
+type XMLTree' = XMLTree NodePosition String String
 
 
--- | Get the parsers current position.
-getOffset :: Int -> XmlParsec s Position
+intPosition :: Monad m => Int -> SourcePos -> XmlParserState -> m (NodePosition, XmlParserState)
+intPosition _ pos [] = fail $ "EOF while resolving positions" ++ show pos
+-- when the position is identified, we return the (x:xs) as state
+-- because getOffset may be called multiple times at the same position:
+intPosition _corr pos (x@(i, iPos):[])
+  | iPos /= pos = fail $ "EOF-1 while resolving position " ++ show pos
+  | otherwise = return (i, (x:[])) -- i is the index of the last character
+intPosition corr pos (x@(i, iPos):xs)
+  | iPos /= pos = intPosition corr pos xs  -- recursivly search rest of mapping
+  | otherwise = return $ (i + corr, (x:xs))
+
+
+-- | Get the parser's current position.
+getOffset :: Int -> XmlParsec s NodePosition
 getOffset cor = do
-  offsets <- getState
-  pos <- getPosition
-  return $ Position { pos_line = sourceLine pos
-                    , pos_column = sourceColumn pos
-                    -- parsec's column in SourcePos starts with 1, but
-                    -- we say that the first char in a file has offset
-                    -- of 0. So we decrement the offset by 1.
-                    , pos_offset = (offsets !! ((sourceLine pos)-1)) + (sourceColumn pos) + cor - 1
-                    }
+  posMap <- getState
+  srcPos <- getPosition
+  (pos, posMap') <- intPosition cor srcPos posMap
+  putState posMap'
+  return pos
+
 
 --name :: (Stream s Identity Char) => Parsec s XmlParserState String
 name :: XmlParsec s String
