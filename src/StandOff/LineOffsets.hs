@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module StandOff.LineOffsets
   ( offset
   , lineOffsets
@@ -11,6 +12,7 @@ import Text.Parsec
 import Data.List
 import Control.Lens ((^?), element)
 import qualified Data.Csv as Csv
+import Data.Functor.Identity (Identity)
 
 
 -- * Mapping a pair of line and column to character offset
@@ -55,7 +57,7 @@ instance Csv.ToField Position where
 posOffset :: Position -> Int
 posOffset (Position o _ _) = o
 
-lineLens :: Parsec String () [Int]
+lineLens :: (Stream s Identity Char) => Parsec s () [Int]
 lineLens = do
   l <- lineLen
   ls <- many $ do
@@ -64,12 +66,12 @@ lineLens = do
   eof
   return $ l:ls
 
-lineLen :: Parsec String () Int
+lineLen :: (Stream s Identity Char) => Parsec s () Int
 lineLen = do
   l <- many $ noneOf "\n"
   return $ length l + 1
 
-lineOffsets :: Parsec String () [Int]
+lineOffsets :: (Stream s Identity Char) => Parsec s () [Int]
 lineOffsets = do
   ls <- lineLens
   return $ init $ scanl (+) 0 ls
@@ -83,7 +85,7 @@ offsetsFromString seen (_:xs) = offsetsFromString (seen + 1) xs
 lineOffsets' :: String -> [Int]
 lineOffsets' s = 0 : offsetsFromString 0 s
 
-runLineOffsetParser :: String -> String -> IO [Int]
+runLineOffsetParser :: (Monad m, Stream s Identity Char) => String -> s -> m [Int]
 runLineOffsetParser location contents = do
   return $ either (fail . (err++) . show) id (parse lineOffsets location contents)
   where
