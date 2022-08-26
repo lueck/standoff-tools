@@ -32,5 +32,5 @@ test_elementImplementsTextRange = do
   assertEqual True (d `rightOverlaps` (getNode $ elm "div" 90 130 []))
   assertEqual False (d `rightOverlaps` (getNode $ elm "div" 210 300 []))
   where
-    d :: XmlNode String String
-    d = getNode $ elm "div" 100 200 ([]::XMLTrees String String)
+    d :: XmlNode Int String String
+    d = getNode $ elm "div" 100 200 ([]::XMLTrees Int String String)
