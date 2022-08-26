@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 20af3af646367ef96c8c6f25617b942231705a5d46f1c708d8bff7da21636854
+-- hash: 019a6a8d3544454a17e9316803ce9dc53bf88dc4d3da95a29654713486309f2d
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -41,19 +41,24 @@ library
       StandOff.MarkupTree
       StandOff.Owl
       StandOff.ResolveOverlapping
+      StandOff.ShrinkedText
       StandOff.StringLike
       StandOff.Tag
       StandOff.TagSerializer
       StandOff.TagTypeDefs
       StandOff.TextRange
+      StandOff.Utils
       StandOff.XmlParsec
+      StandOff.XTraverse
   other-modules:
       Paths_standoff_tools
   hs-source-dirs:
       src
   build-depends:
-      aeson >=1.1
+      HsYAML
+    , aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1
@@ -76,8 +81,10 @@ executable standoff
       commandline
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson >=1.1
+      HsYAML
+    , aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1
@@ -102,17 +109,22 @@ test-suite unit-tests
   main-is: TestMain.hs
   other-modules:
       Test.StandOff.DataXML
+      Test.StandOff.EquidistantText
       Test.StandOff.MarkupRange
+      Test.StandOff.ShrinkedText
       Test.StandOff.TagSerializer
       Test.StandOff.TestSetup
       Test.StandOff.TextRange
+      Test.StandOff.XmlParsec
       Paths_standoff_tools
   hs-source-dirs:
       testsuite
   build-depends:
       HTF >=0.10.1
+    , HsYAML
     , aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1

@@ -1,47 +1,52 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module StandOff.EquidistantText
 where
 
 import Data.Tree.Class
-import Control.Monad.State
 
 import StandOff.StringLike
+import StandOff.XTraverse
 
 
 -- | The first in the resulting tuple is the string to be printed for
 -- this node, the second is the new state.
-class EquidistantNode n where
-  serializeOpen :: (StringLike s) => Char -> n -> s -> (s, s)
-  serializeClose :: (StringLike s) => Char -> n -> s -> (s, s)
+--
+-- An equidistant node is parametrized with a string-like type used
+-- for text nodes.
+class (StringLike s) => EquidistantNode n s where
+  -- | Make an equidistant representation of an opening tag. For XML
+  -- this is the replacement for the opening tag of an non-empty
+  -- element node, or a complete equidistant representation of any
+  -- other node.
+  serializeOpen
+    :: Char -- ^ the filling character
+    -> n s  -- ^ the current node
+    -> s    -- ^ state: the portion of the input file not yet seen
+    -> (s, s) -- ^ returns the equidistant representation of the
+              -- current node and the new state, i.e. the portion of
+              -- the input file not yet processed
+  -- | Make an equidistant representation of a closing tag. For XML
+  -- this is the empty string for every type of node but a non-empty
+  -- element.
+  serializeClose :: Char -> n s -> s -> (s, s)
 
 
--- | An in-order traversal with one monadic function applied on the
--- open tag and an other monadic function applied the close tag.
-xtraverse_
-  :: (Monad m, Tree t, StringLike s) =>
-     (s -> m ())
-  -> (n -> s -> (s, s)) -- ^ the function applied on the open tag
-  -> (n -> s -> (s, s)) -- ^ the function applied on the close tag
-  -> t n           -- ^ the parsed 'XMLTree'
-  -> StateT s m ()
-xtraverse_ write_ f g xml = do
-  state (f node) >>= (lift . write_)
-  mapM_ (xtraverse_ write_ f g) $ getChildren xml
-  state (g node) >>= (lift . write_)
-  where
-    node = getNode xml
-
-
+-- | Generate equidistant text.
+--
+-- Note, that the equidistant nodes and the serialized representation
+-- of the source document share the same string-like type.
+--
+-- Implementation notice: This traverses the XML tree with a
+-- state. The state object is just the XML document as a string. The
+-- current state is the portion of the string not yet processed. Each
+-- node's equidistant string representation is written to a monad,
+-- e.g. IO.
 equidistantText
-  :: (StringLike s, Monoid s, Monad m, Tree t, EquidistantNode n) =>
+  :: (StringLike s, Monoid s, Monad m, Tree t, EquidistantNode n s) =>
      (s -> m ())  -- ^ monadic action
   -> Char         -- ^ the filling character
-  -> [t n]        -- ^ the parsed XML document
+  -> [t (n s)]    -- ^ the parsed XML document
   -> s            -- ^ the XML document as a string
   -> m ()
-equidistantText writeM fillChar xml s = do
-  final <- execStateT (mapM_ (xtraverse_ writeM f g) xml) s
-  writeM final
-  -- Should we do a test on the final state or write what is left over?
-  where
-    f = serializeOpen fillChar
-    g = serializeClose fillChar
+equidistantText writeM fillChar xml s =
+  xtraverseWithState writeM (serializeOpen fillChar) (serializeClose fillChar) xml s >>= writeM

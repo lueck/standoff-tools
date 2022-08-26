@@ -27,6 +27,8 @@ dependencies:
 - vector
 - lens
 - mtl
+- binary
+- HsYAML
 
 
 library:

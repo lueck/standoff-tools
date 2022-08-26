@@ -12,7 +12,7 @@ import StandOff.LineOffsets as L
 pos :: Int -> L.Position
 pos p = L.Position {L.pos_offset=p, L.pos_line=1, L.pos_column=1}
 
-elm :: String -> Int -> Int -> XMLTrees -> XMLTree
+elm :: String -> Int -> Int -> XMLTrees String String -> XMLTree String String
 elm n s e c = NT.NTree (Element { name = n
                        , X.attributes = []
                        , startOpenTag = pos s

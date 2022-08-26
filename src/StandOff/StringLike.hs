@@ -16,8 +16,13 @@ class StringLike s where
   append :: s -> s -> s
   singleton :: Char -> s
   pack :: String -> s
+  unpack :: s -> String
   take :: Int -> s -> s
   drop :: Int -> s -> s
+  head :: s -> Char
+  equals :: (StringLike s2) => s -> s2 -> Bool
+  equals this other = unpack this == unpack other
+  length :: s -> Int
   hPutStr :: Handle -> s -> IO ()
 
 
@@ -33,8 +38,11 @@ instance StringLike T.Text where
   append = T.append
   singleton = T.singleton
   pack = T.pack
+  unpack = T.unpack
   take = T.take
   drop = T.drop
+  head = T.head
+  length = T.length
   hPutStr h = T.hPutStr h
 
 -- | Make 'String' an instance of 'StringLike'
@@ -43,6 +51,9 @@ instance StringLike [Char] where
   append = (++)
   singleton = (:[])
   pack = id
+  unpack = id
   take = L.take
   drop = L.drop
+  head = L.head
+  length = L.length
   hPutStr h = Sys.hPutStr h
