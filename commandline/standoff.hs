@@ -21,8 +21,7 @@ import Data.Version (showVersion)
 import Paths_standoff_tools (version)
 
 import StandOff.XmlParsec (runXmlParser)
-import StandOff.OffsetMapping
-import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
+import StandOff.SourcePosMapping
 import StandOff.Internalize (internalize)
 import StandOff.DomTypeDefs hiding (Attribute)
 import StandOff.Owl
@@ -49,7 +48,7 @@ version_ = abortOption (InfoMsg $ showVersion version) $ mconcat
 
 -- ** Parser for the annotations' input format
 
-type AnnotationsParser = [Int] -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
+type AnnotationsParser = LineColumnOffsetMapping -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
 
 -- | Formats of annotations
 data AnnotationFormat
@@ -397,20 +396,19 @@ run (GlobalOptions input output
   let internal = xml --filter isElementP xml  -- FIXME: do we have to filter?
 
   annotsH <- openFile annFile ReadMode
-  lOffsets <- runLineOffsetParser (show inputH) xmlContents
-  external <- (getAnnotationsParser annFormat) lOffsets decodeUtf8 annotsH
+  external <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping offsetMapping) decodeUtf8 annotsH
 
   let internalzd = internalize xmlContents internal external tagSlizer'
   hPutStr outputH internalzd -- $ postProcess xml internalzd
   -- FIXME: postProcess again
-  where
-    postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
-    insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
-    insertAt s Nothing _ = s
-    behindXMLDeclOrTop x
-      | length decl == 1 = (posOffset $ snd $ nodeRange $ head decl) - 1
-      | otherwise = 0
-      where decl = filter isXMLDeclarationP x
+  -- where
+  --   postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
+  --   insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
+  --   insertAt s Nothing _ = s
+  --   behindXMLDeclOrTop x
+  --     | length decl == 1 = (posOffset $ snd $ nodeRange $ head decl) - 1
+  --     | otherwise = 0
+  --     where decl = filter isXMLDeclarationP x
 
 
 globalOpts_ :: Parser GlobalOptions
