@@ -14,14 +14,15 @@ import qualified Data.ByteString as BS
 import StandOff.DomTypeDefs hiding (start, end, getNode)
 import StandOff.XmlParsec
 import StandOff.StringLike (StringLike)
-import qualified StandOff.LineOffsets as LOFF
+import StandOff.SourcePosMapping
 import qualified StandOff.StringLike as SL
 import StandOff.XTraverse
 import StandOff.TextRange
-import StandOff.LineOffsets (Position(..), posOffset)
 
 
 -- * Helpers
+
+indexed = 0
 
 -- traverseWithState
 --   :: (Monad m, StringLike s) =>
@@ -36,7 +37,7 @@ import StandOff.LineOffsets (Position(..), posOffset)
 validatePositions
   :: (StringLike s, Show n, Eq s) =>
      s
-  -> XmlNode n s
+  -> XmlNode Int n s
   -> Either String Bool
   -> ((), Either String Bool)
 validatePositions doc (Element n _ so eo sc ec) (Right st)
@@ -72,20 +73,20 @@ validatePositions doc (CData _ so eo) (Right st)
 -- TODO: other node types
 validatePositions _ _ st = ((), st)
 
-charAt :: StringLike s => LOFF.Position -> s -> Char
-charAt pos = SL.head . SL.drop (LOFF.posOffset pos)
+charAt :: StringLike s => Int -> s -> Char
+charAt pos = SL.head . SL.drop pos
 
 
 validatePositionsForFile :: FilePath -> IO (Either String Bool)
 validatePositionsForFile fPath = do
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   r <- xtraverseWithState (const (return ())) (validatePositions c) (validatePositions c) xml (Right True)
   return r
 
 
-getNthNode :: [Int] -> XMLTrees n s -> XMLTree n s
+getNthNode :: [Int] -> XMLTrees p n s -> XMLTree p n s
 getNthNode [] ts = head ts
 getNthNode (n:[]) ts = ts !! n
 getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
@@ -118,10 +119,11 @@ test_positionsCData = do
 
 
 test_forrestSimple = do
+  unitTestPending "Is there a trailing white space text node?"
   let fPath = "testsuite/simple.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   assertEqual [ElementNode, TextNodeType] $ map (nodeType . getNode) xml
 
 
@@ -129,8 +131,8 @@ test_forrestSimple = do
 test_zeroIndexed = do
   let fPath = "testsuite/simple.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   -- /document
   let root = getNode $ head xml
   assertEqual 0 $ start root
@@ -144,8 +146,8 @@ test_zeroIndexed = do
 test_textNodePositions = do
   let fPath = "testsuite/simple.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   -- /document[1]/body[1]/header[1]/text()
   let headerTxt = getNode $ head $ getChildren $ (!! 1) $ getChildren $ (!! 3) $ getChildren $ head xml
   assertEqual TextNodeType $ nodeType headerTxt
@@ -158,8 +160,8 @@ test_textNodePositions = do
 test_whitespaceNodePositions = do
   let fPath = "testsuite/pi.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   -- /document[1]/body[1]/header[1]/text()
   let ws = getNode $ getNthNode [1] xml
   assertEqual TextNodeType $ nodeType ws
@@ -171,8 +173,8 @@ test_whitespaceNodePositions = do
 test_pi = do
   let fPath = "testsuite/pi.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   let decl = getNode $ getNthNode [0] xml
   assertEqual XMLDeclarationNode $ nodeType decl
   let pi1 = getNode $ getNthNode [2] xml
@@ -185,8 +187,8 @@ test_pi = do
 test_comment = do
   let fPath = "testsuite/comment.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   let c1 = getNode $ getNthNode [2] xml
   assertEqual (0x27, 0x34) $ spans c1
   assertEqual CommentNode $ nodeType c1
@@ -203,8 +205,8 @@ test_comment = do
 test_cdata = do
   let fPath = "testsuite/cdata.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   let c1 = getNode $ getNthNode [0, 3] xml
   assertEqual CDataNode $ nodeType c1
 
@@ -212,8 +214,8 @@ test_cdata = do
 test_charRefDec = do
   let fPath = "testsuite/charref.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   let n = getNode $ getNthNode [0, 1] xml
   assertEqual CharRefNode $ nodeType n
   assertEqual 0x64 $ char n
@@ -221,26 +223,26 @@ test_charRefDec = do
 test_charRefHex = do
   let fPath = "testsuite/charref.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   let n = getNode $ getNthNode [0, 3] xml
   assertEqual CharRefNode $ nodeType n
   assertEqual 0x64 $ char n
 
 test_advancedNodes = do
-  unitTestPending "Parsec updates the position on \\t characters in a special way."
+  --unitTestPending "Parsec updates the position on \\t characters in a special way."
   let fPath = "testsuite/advanced.xml"
   c <- readFile fPath
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   assertEqual XMLDeclarationNode $ nodeType $ getNode $ getNthNode [0] xml
   assertEqual (0, 0x25) $ spans $ getNode $ getNthNode [0] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [1] xml
   assertEqual (0x26, 0x26) $ spans $ getNode $ getNthNode [1] xml
   assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2] xml
   assertEqual (0x27, 0xec) $ spans $ getNode $ getNthNode [2] xml
-  assertEqual (0x27, 0x30) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2] xml
-  assertEqual (0xe2, 0xec) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2] xml
+  assertEqual (0x27, 0x30)  $ openTagRange $ getNode $ getNthNode [2] xml
+  assertEqual (0xe2, 0xec)  $ closeTagRange $ getNode $ getNthNode [2] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,0] xml
   assertEqual (0x31, 0x33) $ spans $ getNode $ getNthNode [2,0] xml
   assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,1] xml
@@ -249,8 +251,8 @@ test_advancedNodes = do
   assertEqual (0x3b, 0x3d) $ spans $ getNode $ getNthNode [2,2] xml
   assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2,3] xml
   assertEqual (0x3e, 0xe0) $ spans $ getNode $ getNthNode [2,3] xml
-  assertEqual (0x3e, 0x43) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2,3] xml
-  assertEqual (0xda, 0xe0) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual (0x3e, 0x43)  $ openTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual (0xda, 0xe0)  $ closeTagRange $ getNode $ getNthNode [2,3] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,0] xml
   assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,3,1] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,2] xml
@@ -273,16 +275,16 @@ test_advancedNodesWithoutTabs = do
   c' <- BS.readFile fPath
   let withtabs =  T.decodeUtf8 c'
   let c = T.map replaceTab withtabs
-  lOffsets <- LOFF.runLineOffsetParser (show fPath) c
-  xml <- runXmlParser lOffsets (show fPath) c
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
   assertEqual XMLDeclarationNode $ nodeType $ getNode $ getNthNode [0] xml
   assertEqual (0, 0x25) $ spans $ getNode $ getNthNode [0] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [1] xml
   assertEqual (0x26, 0x26) $ spans $ getNode $ getNthNode [1] xml
   assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2] xml
   assertEqual (0x27, 0xec) $ spans $ getNode $ getNthNode [2] xml
-  assertEqual (0x27, 0x30) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2] xml
-  assertEqual (0xe2, 0xec) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2] xml
+  assertEqual (0x27, 0x30)  $ openTagRange $ getNode $ getNthNode [2] xml
+  assertEqual (0xe2, 0xec)  $ closeTagRange $ getNode $ getNthNode [2] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,0] xml
   assertEqual (0x31, 0x33) $ spans $ getNode $ getNthNode [2,0] xml
   assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,1] xml
@@ -291,8 +293,8 @@ test_advancedNodesWithoutTabs = do
   assertEqual (0x3b, 0x3d) $ spans $ getNode $ getNthNode [2,2] xml
   assertEqual ElementNode $ nodeType $ getNode $ getNthNode [2,3] xml
   assertEqual (0x3e, 0xe0) $ spans $ getNode $ getNthNode [2,3] xml
-  assertEqual (0x3e, 0x43) $ myMapTuple posOffset $ openTagRange $ getNode $ getNthNode [2,3] xml
-  assertEqual (0xda, 0xe0) $ myMapTuple posOffset $ closeTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual (0x3e, 0x43)  $ openTagRange $ getNode $ getNthNode [2,3] xml
+  assertEqual (0xda, 0xe0)  $ closeTagRange $ getNode $ getNthNode [2,3] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,0] xml
   assertEqual EmptyElementNode $ nodeType $ getNode $ getNthNode [2,3,1] xml
   assertEqual TextNodeType $ nodeType $ getNode $ getNthNode [2,3,2] xml

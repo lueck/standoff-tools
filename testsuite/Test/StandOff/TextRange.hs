@@ -140,7 +140,7 @@ test_mergeCrossOverTags = do
 -- corner case: test markup in a single closing tag
 test_mergeIntoPlaintext = do
   assertEqual [(10, 20)] (map spans resolved)
-  where resolved = merge ([]::XMLTrees String String) (mRng "a" "a" "a" 10 20)
+  where resolved = merge ([]::XMLTrees Int String String) (mRng "a" "a" "a" 10 20)
 
 
 external = [ (mRng "a1" "m1" "root" 1 100)

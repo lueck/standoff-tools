@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 module StandOff.LineOffsets
+  {-# DEPRECATED "Getting line offsets is broken due to Parsec's special handling of the tab character. Use StandOff.OffsetMapping instead." #-}
   ( offset
   , lineOffsets
   , lineOffsets'

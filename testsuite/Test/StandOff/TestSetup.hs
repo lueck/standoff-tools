@@ -9,10 +9,10 @@ import StandOff.AnnotationTypeDefs as A
 import StandOff.DomTypeDefs as X
 import StandOff.LineOffsets as L
 
-pos :: Int -> L.Position
-pos p = L.Position {L.pos_offset=p, L.pos_line=1, L.pos_column=1}
+pos :: Int -> Int
+pos p = p -- L.Position {L.pos_offset=p, L.pos_line=1, L.pos_column=1}
 
-elm :: String -> Int -> Int -> XMLTrees String String -> XMLTree String String
+elm :: String -> Int -> Int -> XMLTrees Int String String -> XMLTree Int String String
 elm n s e c = NT.NTree (Element { name = n
                        , X.attributes = []
                        , startOpenTag = pos s

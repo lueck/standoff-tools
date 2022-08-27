@@ -21,7 +21,7 @@ import Data.Version (showVersion)
 import Paths_standoff_tools (version)
 
 import StandOff.XmlParsec (runXmlParser)
-import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
+import StandOff.SourcePosMapping
 import StandOff.Internalize (internalize)
 import StandOff.DomTypeDefs hiding (Attribute)
 import StandOff.Owl
@@ -48,7 +48,7 @@ version_ = abortOption (InfoMsg $ showVersion version) $ mconcat
 
 -- ** Parser for the annotations' input format
 
-type AnnotationsParser = [Int] -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
+type AnnotationsParser = LineColumnOffsetMapping -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
 
 -- | Formats of annotations
 data AnnotationFormat
@@ -321,7 +321,7 @@ internalizeInfo_ =
 
 
 
-printCSV :: (SL.StringLike s, Show s) => XmlNode s s -> IO ()
+printCSV :: (SL.StringLike s, Show s, Show p) => XmlNode p s s -> IO ()
 printCSV xml =  BL.putStr $ Csv.encodeByNameWith (csvEncodeOptions {Csv.encIncludeHeader = False}) positionHeader [xml]
 
 csvEncodeOptions :: Csv.EncodeOptions
@@ -330,21 +330,23 @@ csvEncodeOptions = Csv.defaultEncodeOptions
 
 -- * The @standoff@ commandline program.
 
+indexed = 0
+
 run :: GlobalOptions -> IO ()
 run (GlobalOptions input output Offsets) = do
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
-  lOffsets <- runLineOffsetParser (show inputH) c
-  nOffsets <- runXmlParser lOffsets (show inputH) c
-  BL.hPutStr outputH $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode String String])
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  nOffsets <- runXmlParser offsetMapping (show inputH) c
+  BL.hPutStr outputH $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode Int String String])
   mapM_ (traverse_ printCSV ) nOffsets
 run (GlobalOptions input output (EquidistantText fillChar)) = do
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
-  lOffsets <- runLineOffsetParser (show inputH) c
-  xml <- runXmlParser lOffsets (show inputH) c
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  xml <- runXmlParser offsetMapping (show inputH) c
   s <- equidistantText putStr (chr fillChar) xml c
   return ()
 run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedOffsetMapping offsetOut))) = do
@@ -353,8 +355,8 @@ run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedOffsetMapping off
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
-  lOffsets <- runLineOffsetParser (show inputH) c
-  xml <- runXmlParser lOffsets (show inputH) c
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  xml <- runXmlParser offsetMapping (show inputH) c
   offsets <- shrinkedText (hPutStr outputH) shrinkingCfg xml c
   BL.writeFile offsetOut $ foldl (<>) "" $ map Bin.encode offsets
   return ()
@@ -364,8 +366,8 @@ run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedSingleCSV integer
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
-  lOffsets <- runLineOffsetParser (show inputH) c
-  xml <- runXmlParser lOffsets (show inputH) c
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  xml <- runXmlParser offsetMapping (show inputH) c
   (offsets, txt) <- runWriterT (shrinkedText tell shrinkingCfg xml c)
   BL.hPut outputH $ Csv.encode $
     zip3 (map formatInt offsets) (map replaceNewlines $ SL.unpack txt) (map formatInt ([1 ..] :: [Int]))
@@ -389,24 +391,24 @@ run (GlobalOptions input output
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   xmlContents <- hGetContents inputH
-  lOffsets <- runLineOffsetParser (show inputH) xmlContents
-  xml <- runXmlParser lOffsets (show inputH) xmlContents
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) xmlContents
+  xml <- runXmlParser offsetMapping (show inputH) xmlContents
   let internal = xml --filter isElementP xml  -- FIXME: do we have to filter?
 
   annotsH <- openFile annFile ReadMode
-  external <- (getAnnotationsParser annFormat) lOffsets decodeUtf8 annotsH
+  external <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping offsetMapping) decodeUtf8 annotsH
 
   let internalzd = internalize xmlContents internal external tagSlizer'
   hPutStr outputH internalzd -- $ postProcess xml internalzd
   -- FIXME: postProcess again
-  where
-    postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
-    insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
-    insertAt s Nothing _ = s
-    behindXMLDeclOrTop x
-      | length decl == 1 = (posOffset $ snd $ nodeRange $ head decl) - 1
-      | otherwise = 0
-      where decl = filter isXMLDeclarationP x
+  -- where
+  --   postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
+  --   insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
+  --   insertAt s Nothing _ = s
+  --   behindXMLDeclOrTop x
+  --     | length decl == 1 = (posOffset $ snd $ nodeRange $ head decl) - 1
+  --     | otherwise = 0
+  --     where decl = filter isXMLDeclarationP x
 
 
 globalOpts_ :: Parser GlobalOptions
