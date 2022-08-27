@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b89c99a09afa95d36ec4c1d4e72f75485a78708948e6dbafee4eda08975425d8
+-- hash: d7a8f1e008f2c04a98cca322fd4fa5f153af5d4d816312911a4bcada2a57853b
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -113,6 +113,7 @@ test-suite unit-tests
       Test.StandOff.EquidistantText
       Test.StandOff.MarkupRange
       Test.StandOff.ShrinkedText
+      Test.StandOff.SourcePosMapping
       Test.StandOff.TagSerializer
       Test.StandOff.TestSetup
       Test.StandOff.TextRange
