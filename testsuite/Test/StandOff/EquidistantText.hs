@@ -16,7 +16,7 @@ import StandOff.DomTypeDefs hiding (start, end, getNode)
 import StandOff.XmlParsec
 import StandOff.EquidistantText
 import StandOff.StringLike (StringLike)
-import StandOff.OffsetMapping
+import StandOff.SourcePosMapping
 import qualified StandOff.StringLike as SL
 import StandOff.XTraverse
 import StandOff.TextRange
