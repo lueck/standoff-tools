@@ -5,7 +5,7 @@
 -- mapping it is possible to map parsec's position to integers no
 -- matter of parsec's special handling of the tab character.
 
-module StandOff.OffsetMapping
+module StandOff.SourcePosMapping
   ( OffsetMapping
   , parsecOffsetMapping
   , offsetFromSourcePos

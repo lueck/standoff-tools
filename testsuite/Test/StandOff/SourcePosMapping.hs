@@ -5,7 +5,7 @@ import Test.Framework
 
 import qualified Data.Map as Map
 
-import StandOff.OffsetMapping
+import StandOff.SourcePosMapping
 
 indexed = 0
 
