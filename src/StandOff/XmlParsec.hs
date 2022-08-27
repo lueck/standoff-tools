@@ -16,7 +16,7 @@ import Data.Maybe
 import Data.Functor.Identity (Identity)
 
 import StandOff.DomTypeDefs hiding (char, name)
-import StandOff.OffsetMapping (OffsetMapping)
+import StandOff.SourcePosMapping (OffsetMapping, offsetFromSourcePos)
 
 -- * Combinators
 
@@ -40,24 +40,13 @@ type NodePosition = Int
 type XMLTree' = XMLTree NodePosition String String
 
 
-intPosition :: Monad m => Int -> SourcePos -> XmlParserState -> m (NodePosition, XmlParserState)
-intPosition _ pos [] = fail $ "EOF while resolving positions" ++ show pos
--- when the position is identified, we return the (x:xs) as state
--- because getOffset may be called multiple times at the same position:
-intPosition corr pos (x@(i, iPos):[])
-  | iPos /= pos = fail $ "EOF-1 while resolving position " ++ show pos
-  | otherwise = return (i + corr, (x:[])) -- i is the index of the last character
-intPosition corr pos (x@(i, iPos):xs)
-  | iPos /= pos = intPosition corr pos xs  -- recursivly search rest of mapping
-  | otherwise = return $ (i + corr, (x:xs))
-
 
 -- | Get the parser's current position.
 getOffset :: Int -> XmlParsec s NodePosition
 getOffset cor = do
   posMap <- getState
   srcPos <- getPosition
-  (pos, posMap') <- intPosition cor srcPos posMap
+  (pos, posMap') <- offsetFromSourcePos cor srcPos posMap
   putState posMap'
   return pos
 
