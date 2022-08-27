@@ -45,7 +45,6 @@ import qualified Data.YAML as Y
 import Data.YAML ((.!=), (.:?))
 import Data.Char (chr)
 
-import StandOff.LineOffsets
 import qualified StandOff.TextRange as TR
 import StandOff.EquidistantText
 import StandOff.ShrinkedText
