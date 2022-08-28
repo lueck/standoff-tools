@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 92c301bfb153873fcd836605de6387eb5fa8f827d5df4d3c6de67cfd4be77905
+-- hash: 5c67e34eeb4cd56ea3882928d3ea3ea8b3fd4d957cef744bb95e8d1bd0f95f31
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -110,7 +110,7 @@ test-suite unit-tests
   type: exitcode-stdio-1.0
   main-is: TestMain.hs
   other-modules:
-      Test.StandOff.DataXML
+      Test.StandOff.DomTypeDefs
       Test.StandOff.EquidistantText
       Test.StandOff.MarkupRange
       Test.StandOff.MarkupTree
