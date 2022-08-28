@@ -50,6 +50,20 @@ getOffset cor = do
   putState posMap'
   return pos
 
+-- | double quotes
+dq :: XmlParsec s Char
+dq = char '"'
+
+-- | single quotes
+sq :: XmlParsec s Char
+sq = char '\''
+
+-- | ascii letters a-z and A-Z
+asciiLetter :: XmlParsec s Char
+asciiLetter = satisfy (\c -> (c >= 'A' && c <= 'Z' ||
+                              c >= 'a' && c <= 'z'))
+              <?> "ASCII letter"
+
 
 --name :: (Stream s Identity Char) => Parsec s XmlParserState String
 name :: XmlParsec s String
