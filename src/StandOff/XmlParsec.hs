@@ -39,6 +39,8 @@ type NodePosition = Int
 -- fed to the parser. Cf. 'XmlParsec'.
 type XMLTree' = XMLTree NodePosition String String
 
+-- | As 'XMLTree'' the parser produces Attributes with concrete types.
+type Attribute' = Attribute String String
 
 
 -- | Get the parser's current position.
@@ -90,35 +92,36 @@ whiteSpaceNode = do
   endPos <- getOffset (-1)
   return $ NT.NTree (TextNode ws startPos endPos) []
 
-openTag :: XmlParsec s (String, [Attribute])
-openTag = do
+sTag :: XmlParsec s (String, [Attribute'])
+sTag = do
   char '<'
   elName <- name
   attrs <- many $ try attributeNode
-  spaces
+  skipMany space
   char '>'
   return (elName, attrs)
 
-closeTag :: String -> XmlParsec s Char
-closeTag elName = do
+eTag :: String -> XmlParsec s ()
+eTag elName = do
   string "</"
   string elName
   skipMany space
   char '>'
+  return ()
 
 elementNode :: XmlParsec s XMLTree'
 elementNode = do
   openStartPos <- getOffset 0
-  nameAndAttrs <- openTag
+  (n, as) <- sTag
   openEndPos <- getOffset (-1)
   inner <- many content
   closeStartPos <- getOffset 0
-  closeTag (fst nameAndAttrs)
+  eTag n
   closeEndPos <- getOffset (-1)
   -- Note: (-1) for the position of tags' ends, because the ending
   -- character was consumed by the parser. Follows, that when ever we
   -- calculate the length of a tag, it is _EndPos - _StartPos + 1
-  return $ NT.NTree (Element (fst nameAndAttrs) (snd nameAndAttrs) openStartPos openEndPos closeStartPos closeEndPos) inner
+  return $ NT.NTree (Element n as openStartPos openEndPos closeStartPos closeEndPos) inner
 
 emptyElementNode :: XmlParsec s XMLTree'
 emptyElementNode = do
@@ -131,30 +134,19 @@ emptyElementNode = do
   endPos <- getOffset (-1)
   return $ NT.NTree (EmptyElement elName attrs startPos endPos) []
 
-escape :: XmlParsec s String
-escape = do
-  d <- char '\\'
-  c <- oneOf "\\\"\0\n\r\v\t\b\f"
-  return [d, c]
-
-nonEscape :: XmlParsec s Char
-nonEscape = noneOf "\\\"\0\n\r\v\t\b\f"
-
-quoteChar :: XmlParsec s String
-quoteChar = fmap return nonEscape <|> escape <|> (many1 space)
-
-attributeNode :: XmlParsec s Attribute
+attributeNode :: XmlParsec s Attribute'
 attributeNode = do
-  spaces
-  attrName <- many1 (noneOf "= />")
-  spaces
+  skipMany1 space
+  attrName <- name
+  skipMany space
   char '='
-  spaces
-  char '"'
-  value <- many $ try quoteChar
-  char '"'
-  spaces -- Why is this needed?
-  return $ Attribute (attrName, (concat value))
+  skipMany space
+  -- We do not expand references in attribute values. So we allow the
+  -- ampersand in it.
+  value <- ((try $ between dq dq (many $ noneOf "\"<"))
+            <|> (try $ between sq sq (many $ noneOf "'<")))
+  return $ Attribute attrName value
+
 
 textNode :: XmlParsec s XMLTree'
 textNode = do
