@@ -10,6 +10,7 @@ import {-@ HTF_TESTS @-} Test.StandOff.TextRange
 import {-@ HTF_TESTS @-} Test.StandOff.XmlParsec
 import {-@ HTF_TESTS @-} Test.StandOff.EquidistantText
 import {-@ HTF_TESTS @-} Test.StandOff.SourcePosMapping
+import {-@ HTF_TESTS @-} Test.StandOff.MarkupTree
 -- import {-@ HTF_TESTS @-} Test.StandOff.External.StandoffModeDump
 
 main = htfMain htf_importedTests
