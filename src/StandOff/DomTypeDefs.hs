@@ -4,9 +4,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 module StandOff.DomTypeDefs
-  ( AttrName
-  , AttrVal
-  , Attribute(..)
+  ( Attribute(..)
   , XmlNode(..)
   , NodeType(..)
   , nodeType
@@ -52,10 +50,8 @@ import StandOff.StringLike (StringLike)
 import qualified StandOff.StringLike as SL
 import StandOff.MarkupTree
 
-type AttrName = String
-type AttrVal  = String
-
-data Attribute = Attribute (AttrName, AttrVal) deriving (Show)
+-- | An attribute is a name value pair
+data Attribute n v = Attribute n v deriving (Show)
 
 -- | For representind XML nodes 'XmlNode' is parametrized with a
 -- position @p@, a node name type @n@ and a string-like type for text
@@ -64,7 +60,7 @@ data XmlNode p n s
   -- | an element node with text or element children
   = Element
     { name :: n
-    , attributes ::  [Attribute]
+    , attributes ::  [Attribute n s]
     , startOpenTag :: p
     , endOpenTag :: p
     , startCloseTag :: p
@@ -75,13 +71,13 @@ data XmlNode p n s
   -- up processing.
   | EmptyElement
     { name :: n
-    , attributes :: [Attribute]
+    , attributes :: [Attribute n s]
     , start :: p
     , end :: p
     }
   -- | an XML declaration (leaf)
   | XMLDeclaration
-    { declaration :: [Attribute]
+    { declaration :: [Attribute n s]
     , start :: p
     , end :: p
     }
