@@ -4,6 +4,7 @@ module Test.StandOff.TextRange (htf_thisModulesTests) where
 import Test.Framework
 
 import StandOff.TextRange
+import StandOff.Splitting
 import StandOff.DomTypeDefs
 
 import Test.StandOff.TestSetup
