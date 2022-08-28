@@ -38,3 +38,9 @@ mRng rid mid typ s e = (A.MarkupRange { A.rangeId = Just $ mkTestUUID rid
                                       , A.endOffset = e
                                       , A.text = Just ""
                                       , A.attributes = Map.empty })
+
+getNthNode :: [Int] -> XMLTrees p n s -> XMLTree p n s
+getNthNode [] ts = head ts
+getNthNode (n:[]) ts = ts !! n
+getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
+

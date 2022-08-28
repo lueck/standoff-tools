@@ -18,6 +18,7 @@ import StandOff.SourcePosMapping
 import qualified StandOff.StringLike as SL
 import StandOff.XTraverse
 import StandOff.TextRange
+import Test.StandOff.TestSetup
 
 
 -- * Helpers
@@ -85,11 +86,6 @@ validatePositionsForFile fPath = do
   r <- xtraverseWithState (const (return ())) (validatePositions c) (validatePositions c) xml (Right True)
   return r
 
-
-getNthNode :: [Int] -> XMLTrees p n s -> XMLTree p n s
-getNthNode [] ts = head ts
-getNthNode (n:[]) ts = ts !! n
-getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
 
 
 myMapTuple :: (a -> b) -> (a, a) -> (b, b)
