@@ -2,9 +2,13 @@
 module Test.StandOff.DataXML (htf_thisModulesTests) where
 
 import Test.Framework
+import Data.Tree.Class (getNode)
 
-import StandOff.DomTypeDefs (XmlNode, XMLTrees, getNode)
+import StandOff.DomTypeDefs (XmlNode, XMLTrees)
 import StandOff.TextRange
+import StandOff.XmlParsec
+import StandOff.SourcePosMapping
+import StandOff.Splitting
 
 import Test.StandOff.TestSetup
 
@@ -34,3 +38,16 @@ test_elementImplementsTextRange = do
   where
     d :: XmlNode Int String String
     d = getNode $ elm "div" 100 200 ([]::XMLTrees Int String String)
+
+
+mergeCase internal' s e = map spans $ merge internal' (mRng "a" "a" "a" s e)
+
+indexed = 0
+
+test_splitSimple = do
+  let fPath = "testsuite/simple.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  assertEqual [(0x68, 0x72)] $ mergeCase xml 0x68 0x72
+  assertEqual [(0x68, 0x72)] $ mergeCase xml 0x65 0x72
