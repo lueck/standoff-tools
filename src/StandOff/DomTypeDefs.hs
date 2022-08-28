@@ -10,7 +10,6 @@ module StandOff.DomTypeDefs
   , nodeType
   , XMLTree
   , XMLTrees
-  , getNode
   , positionHeader
   , isElementP
   , isXMLDeclarationP
@@ -29,7 +28,6 @@ import qualified Data.Tree.NTree.TypeDefs as NT
 import Text.XML.HXT.DOM.QualifiedName (QName, XName)
 import qualified Text.XML.HXT.DOM.QualifiedName as QN
 import qualified Text.XML.HXT.DOM.TypeDefs as XNT
-import Data.Tree.Class hiding (getNode)
 import qualified Data.Csv as Csv
 import Data.Csv ((.=))
 import qualified Data.Vector as V
@@ -171,10 +169,6 @@ type XMLTree p n s = NT.NTree (XmlNode p n s)
 -- | Forest of 'XMLTree'
 type XMLTrees p n s = NT.NTrees (XmlNode p n s)
 
--- | Get the (current) root node of a 'NTree' subtree.
-getNode :: NT.NTree a -> a
-getNode (NT.NTree n _) = n
-
 
 instance TR.TextRange ((XmlNode Int) n s) where
   start x = fst $ nodeRange x
@@ -189,11 +183,22 @@ instance TR.TextRange ((XmlNode Int) n s) where
       (so, eo) = openTagRange x
       (sc, ec) = closeTagRange x
 
+  -- | A text node does not have any restricted text ranges; an
+  -- non-empty element node has two restricted ranges namely the tags;
+  -- all other nodes are completely restricted.
+  restrictedRanges n@(Element _ _ _ _ _ _) = [(openTagRange n), (closeTagRange n)]
+  restrictedRanges (TextNode _ _ _) = []
+  restrictedRanges n = [(TR.spans n)]
+
+  -- prohibited (Element _ _ _ _ _ _) = False
+  -- prohibited (TextNode _ _ _) = False
+  -- probibited _ = True
+
   split _ _ = error "Cannot split internal markup"
 
-instance MarkupTree (XMLTree p n s) where
-  getMarkupChildren (NT.NTree (Element _ _ _ _ _ _) cs) = cs
-  getMarkupChildren (NT.NTree _ _) = []
+instance MarkupTree NT.NTree (XmlNode Int n s) where
+  getChildren (NT.NTree _ cs) = cs
+  getNode (NT.NTree n _) = n
 
 instance (Show n, Show p) => Csv.ToNamedRecord (XmlNode p n s) where
   toNamedRecord n = Csv.namedRecord
