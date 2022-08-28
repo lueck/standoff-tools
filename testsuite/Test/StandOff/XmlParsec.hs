@@ -117,6 +117,9 @@ test_positionsComment = do
 test_positionsCData = do
   assertEqual (Right True) =<< validatePositionsForFile "testsuite/cdata.xml"
 
+test_positionsAttributes = do
+  assertEqual (Right True) =<< validatePositionsForFile "testsuite/attributes.xml"
+
 
 test_forrestSimple = do
   unitTestPending "Is there a trailing white space text node?"
@@ -314,3 +317,17 @@ test_advancedNodesWithoutTabs = do
     replaceTab :: Char -> Char
     replaceTab '\t' = ' '
     replaceTab c = c
+
+test_attributes = do
+  let fPath = "testsuite/attributes.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  assertEqual "document" $ name $ getNode $ getNthNode [2] xml
+  assertEqual 4 $ length $ attributes $ getNode $ getNthNode [2] xml
+  assertEqual "head" $ name $ getNode $ getNthNode [2,1] xml
+  assertEqual 2 $ length $ attributes $ getNode $ getNthNode [2,1] xml
+  assertEqual "u:body" $ name $ getNode $ getNthNode [2,3] xml
+  assertEqual 1 $ length $ attributes $ getNode $ getNthNode [2,3] xml
+  assertEqual "lb" $ name $ getNode $ getNthNode [2,3,1] xml
+  assertEqual 1 $ length $ attributes $ getNode $ getNthNode [2,3,1] xml

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<document xmlns="https:example.com/test"
+	  xmlns:u='https://example.com/unittest'
+	  fire="true" H2O='steam'>
+  <head content="high &amp; dry" oil='down'
+	/>
+  <u:body  xmlns="http://hide.com">
+    <lb class="duck &#x26; hide" />
+    <u:h1
+	>First Head</u:h1>
+    <p indent="noindent" class="bagel">Paragraph with lor&#x72;y</p>
+  </u:body>
+</document>
