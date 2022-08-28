@@ -96,7 +96,7 @@ sTag :: XmlParsec s (String, [Attribute'])
 sTag = do
   char '<'
   elName <- name
-  attrs <- many $ try attributeNode
+  attrs <- many $ try (skipMany1 space >> attributeNode)
   skipMany space
   char '>'
   return (elName, attrs)
@@ -128,7 +128,7 @@ emptyElementNode = do
   startPos <- getOffset 0
   char '<'
   elName <- name
-  attrs <- many $ try attributeNode
+  attrs <- many $ try (skipMany1 space >> attributeNode)
   spaces
   string "/>"
   endPos <- getOffset (-1)
@@ -136,7 +136,6 @@ emptyElementNode = do
 
 attributeNode :: XmlParsec s Attribute'
 attributeNode = do
-  skipMany1 space
   attrName <- name
   skipMany space
   char '='
@@ -209,7 +208,7 @@ xmlDecl :: XmlParsec s XMLTree'
 xmlDecl = do
   s <- getOffset 0
   string "<?xml"
-  attrs <- many1 $ try attributeNode
+  attrs <- many1 $ try (skipMany1 space >> attributeNode)
   spaces
   string "?>"
   e <- getOffset (-1)
