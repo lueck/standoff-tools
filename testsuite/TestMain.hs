@@ -5,6 +5,7 @@ import Test.Framework
 import Test.Framework.BlackBoxTest
 import {-@ HTF_TESTS @-} Test.StandOff.MarkupRange
 import {-@ HTF_TESTS @-} Test.StandOff.TagSerializer
+import {-@ HTF_TESTS @-} Test.StandOff.External.GenericCsv
 import {-@ HTF_TESTS @-} Test.StandOff.TextRange
 import {-@ HTF_TESTS @-} Test.StandOff.XmlParsec
 import {-@ HTF_TESTS @-} Test.StandOff.EquidistantText
