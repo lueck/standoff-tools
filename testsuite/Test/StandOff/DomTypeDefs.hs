@@ -3,12 +3,17 @@ module Test.StandOff.DomTypeDefs (htf_thisModulesTests) where
 
 import Test.Framework
 import Data.Tree.Class (getNode)
+import System.IO
+import Data.Text.Encoding (decodeUtf8)
 
 import StandOff.DomTypeDefs (XmlNode, XMLTrees)
 import StandOff.TextRange
 import StandOff.XmlParsec
 import StandOff.SourcePosMapping
 import StandOff.Splitting
+import StandOff.MarkupTree hiding (getNode)
+import StandOff.External.GenericCsv
+import StandOff.Internalize
 
 import Test.StandOff.TestSetup
 
@@ -41,6 +46,9 @@ test_elementImplementsTextRange = do
 
 
 mergeCase internal' s e = map spans $ merge internal' (mRng "a" "a" "a" s e)
+
+mergeCases :: (MarkupTree t a, TextRange a) => [t a] -> [(Int, Int)] -> [(Int, Int)]
+mergeCases internal' annots = map spans $ splitOverlapping internal' $ map (uncurry (mRng "a" "a" "a")) annots
 
 indexed = 0
 
@@ -100,3 +108,38 @@ test_splitEntityRefStartOnRef = do
   assertEqual [(0x37, 0x3b)] $ mergeCase xml 0x36 0x3b
   assertEqual [(0x37, 0x3b)] $ mergeCase xml 0x37 0x3b
   assertEqual [(0x38, 0x3b)] $ mergeCase xml 0x38 0x3b
+
+
+test_splitSimpleMerge = do
+  let fPath = "testsuite/charref.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  assertEqual [(0x0a, 0x1f)] $ mergeCase xml 0x0a 0x1f
+  assertEqual [(0x0a, 0x1f)] $ mergeCases xml [(0x0a, 0x1f)]
+
+test_splitSimpleSplitOverlapping = do
+  let fPath = "testsuite/charref.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  assertEqual [(0x0a, 0x1f)] $ map spans $ splitOverlapping xml [mRng "a" "a" "a" 0x0a 0x1f]
+
+test_splitSimpleSplitOverlappingCSV = do
+  let fPath = "testsuite/charref.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.01.csv.annot" ReadMode
+  ans <- runCsvParser startEndMarkup decodeUtf8 anh
+  assertEqual [(0x0a, 0x1f)] $ map spans $ splitOverlapping xml ans
+
+test_splitSimpleInternalizeCSV = do
+  let fPath = "testsuite/simple.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.01.csv.annot" ReadMode
+  ans <- runCsvParser startEndMarkup decodeUtf8 anh
+  assertEqual "<document id=\"i1\"><A>\n  </A><head id=\"i2\"/>\n  " $
+    take 46 $ internalize c xml ans aTagSerializer

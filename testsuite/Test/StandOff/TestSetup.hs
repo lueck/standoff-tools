@@ -8,6 +8,7 @@ import Data.UUID.Types (UUID, fromString, toString)
 import StandOff.AnnotationTypeDefs as A
 import StandOff.DomTypeDefs as X
 import StandOff.LineOffsets as L
+import StandOff.Tag
 
 pos :: Int -> Int
 pos p = p -- L.Position {L.pos_offset=p, L.pos_line=1, L.pos_column=1}
@@ -44,3 +45,8 @@ getNthNode [] ts = head ts
 getNthNode (n:[]) ts = ts !! n
 getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
 
+
+aTagSerializer :: TagType -> a -> String
+aTagSerializer (Open) _ = "<A>"
+aTagSerializer (Close) _ = "</A>"
+aTagSerializer (Empty) _ = "<A/>"
