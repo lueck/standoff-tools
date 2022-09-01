@@ -389,7 +389,6 @@ run (GlobalOptions input output
   let tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
 
   inputH <- streamableInputHandle input
-  outputH <- streamableOutputHandle output
   xmlContents <- hGetContents inputH
   offsetMapping <- parsecOffsetMapping indexed (show inputH) xmlContents
   xml <- runXmlParser offsetMapping (show inputH) xmlContents
@@ -398,8 +397,10 @@ run (GlobalOptions input output
   annotsH <- openFile annFile ReadMode
   external <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping offsetMapping) decodeUtf8 annotsH
 
+  outputH <- streamableOutputHandle output
   let internalzd = internalize xmlContents internal external tagSlizer'
   hPutStr outputH internalzd -- $ postProcess xml internalzd
+  hClose outputH
   -- FIXME: postProcess again
   -- where
   --   postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
