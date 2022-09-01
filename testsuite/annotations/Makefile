@@ -48,7 +48,7 @@ xml: annots $(INTERNALIZED_XML)
 
 %.internalized.xml: %.csv.annot
 	$(SOT) -i ../$(shell f=$@; echo $${f%.*.*.*.*}).xml -o $@ \
-	internalize --csv-start-end -c an $<
+	internalize --csv-start-end -c ANNOT $<
 
 %.cases: %.csv
 	ls -1 $(shell f=$@; echo $${f%.*}.*.csv.annot) > $@
@@ -59,6 +59,9 @@ rm_00:
 	rm -f *.00.csv.annot
 
 clean:
+	rm -f *.internalized.xml
+
+clean*:
 	rm -f *.csv.split
 	rm -f *.csv.annot
 	rm -f *.internalized.xml
