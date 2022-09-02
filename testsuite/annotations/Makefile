@@ -58,10 +58,10 @@ rm_00:
 	rm -f *.00.csv.split
 	rm -f *.00.csv.annot
 
-clean:
+clean**:
 	rm -f *.internalized.xml
 
-clean*:
+clean:
 	rm -f *.csv.split
 	rm -f *.csv.annot
 	rm -f *.internalized.xml
