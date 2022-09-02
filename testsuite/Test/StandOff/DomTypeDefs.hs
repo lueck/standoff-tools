@@ -79,7 +79,6 @@ test_splitCharRefEndOnRef = do
   assertEqual [(0x0a, 0x1c)] $ mergeCase xml 0x0a 0x1c
 
 test_splitCharRefStartOnRef = do
-  --unitTestPending "something wrong when moved over charref border"
   let fPath = "testsuite/charref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
@@ -91,7 +90,6 @@ test_splitCharRefStartOnRef = do
   assertEqual [(0x1d, 0x1f)] $ mergeCase xml 0x1d 0x1f
 
 test_splitEntityRefEndOnRef = do
-  --unitTestPending "end on false position"
   let fPath = "testsuite/entityref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
@@ -103,7 +101,6 @@ test_splitEntityRefEndOnRef = do
   -- assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x1f
 
 test_splitEntityRefStartOnRef = do
-  --unitTestPending "something wrong when moved over entity ref border"
   let fPath = "testsuite/entityref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
@@ -254,47 +251,37 @@ test_mergeCSVElementEndRightForbidden = validateMergeCasesFromCSV "element" "end
 
 
 test_internalizeCSVElementStartRightForbidden = do
-  -- unitTestPending "Test case 2 ranging from 0x132 to 0x138 fails, and breaks the markup! Annotation starting on '>'"
   validateCsvCases "element" "start-right-forbidden"
 
 test_mergeCSVElementStartRightForbidden = do
-  -- unitTestPending "Test case 2 ranging from 0x132 to 0x138 fails, and breaks the markup! Annotation starting on '>'"
   validateMergeCasesFromCSV "element" "start-right-forbidden"
 
 -- ** Character references
 
 test_internalizeCSVCharRefEndForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
   validateCsvCases "charref" "end-forbidden"
 
 test_mergeCSVCharRefEndForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
   validateMergeCasesFromCSV "charref" "end-forbidden"
 
 
 test_internalizeCSVCharRefStartForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation starting on ';'"
   validateCsvCases "charref" "start-forbidden"
 
 test_mergeCSVCharRefStartForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation starting on ';'"
   validateMergeCasesFromCSV "charref" "start-forbidden"
 
 
 -- ** entity references
 
 test_internalizeCSVEnityRefEndForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
   validateCsvCases "entityref" "end-forbidden"
 
 test_mergeCSVEnityRefEndForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
   validateMergeCasesFromCSV "entityref" "end-forbidden"
 
 test_internalizeCSVEntityRefStartForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation starting on ';'"
   validateCsvCases "entityref" "start-forbidden"
 
 test_mergeCSVEntityRefStartForbidden = do
-  -- unitTestPending "Test case 3 breaks the markup! Annotation starting on ';'"
   validateMergeCasesFromCSV "entityref" "start-forbidden"
