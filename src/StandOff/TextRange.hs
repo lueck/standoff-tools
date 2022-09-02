@@ -100,11 +100,11 @@ rightOverlaps x y = (start x > start y) && (end x > end y) && (start x < end y)
 
 -- | before
 before :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
-before x y = (end x <= start y)
+before x y = (end x < start y)
 
 -- | behind
 behind :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
-behind x y = (start x >= end y)
+behind x y = (start x > end y)
 
 -- | starts before
 startsBefore :: (TextRange a1, TextRange a2) => a1 -> a2 -> Bool
