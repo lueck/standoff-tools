@@ -98,7 +98,7 @@ test_splitEntityRefEndOnRef = do
   -- assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x1f
 
 test_splitEntityRefStartOnRef = do
-  unitTestPending "something wrong when moved over charref border"
+  unitTestPending "something wrong when moved over entity ref border"
   let fPath = "testsuite/charref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
