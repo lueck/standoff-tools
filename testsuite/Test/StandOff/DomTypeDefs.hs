@@ -141,5 +141,5 @@ test_splitSimpleInternalizeCSV = do
   xml <- runXmlParser offsetMapping (show fPath) c
   anh <- openFile "testsuite/annotations/simple.end-left-forbidden.01.csv.annot" ReadMode
   ans <- runCsvParser startEndMarkup decodeUtf8 anh
-  assertEqual "<document id=\"i1\"><A>\n  </A><head id=\"i2\"/>\n  " $
-    take 46 $ internalize c xml ans aTagSerializer
+  assertEqual "<document id=\"i1\"><ANNOT>\n  </ANNOT><head id=\"i2\"/>\n  " $
+    take 54 $ internalize c xml ans aTagSerializer

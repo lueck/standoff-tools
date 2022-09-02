@@ -46,7 +46,10 @@ getNthNode (n:[]) ts = ts !! n
 getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
 
 
+-- | Simple tag serializer for testing purpose. The tag name is
+-- related to the constant tag name defined in
+-- testsuite/annotations/Makefile!
 aTagSerializer :: TagType -> a -> String
-aTagSerializer (Open) _ = "<A>"
-aTagSerializer (Close) _ = "</A>"
-aTagSerializer (Empty) _ = "<A/>"
+aTagSerializer (Open) _ = "<ANNOT>"
+aTagSerializer (Close) _ = "</ANNOT>"
+aTagSerializer (Empty) _ = "<ANNOT/>"
