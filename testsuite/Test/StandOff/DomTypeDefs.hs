@@ -5,6 +5,7 @@ import Test.Framework
 import Data.Tree.Class (getNode)
 import System.IO
 import Data.Text.Encoding (decodeUtf8)
+import GHC.Stack (HasCallStack)
 
 import StandOff.DomTypeDefs (XmlNode, XMLTrees)
 import StandOff.TextRange
@@ -130,16 +131,58 @@ test_splitSimpleSplitOverlappingCSV = do
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
   xml <- runXmlParser offsetMapping (show fPath) c
-  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.01.csv.annot" ReadMode
+  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.csv" ReadMode
   ans <- runCsvParser startEndMarkup decodeUtf8 anh
-  assertEqual [(0x0a, 0x1f)] $ map spans $ splitOverlapping xml ans
+  assertEqual [(0x0a, 0x1f)] $ map spans $ splitOverlapping xml $ [head ans]
 
 test_splitSimpleInternalizeCSV = do
   let fPath = "testsuite/simple.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
   xml <- runXmlParser offsetMapping (show fPath) c
-  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.01.csv.annot" ReadMode
+  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.csv" ReadMode
   ans <- runCsvParser startEndMarkup decodeUtf8 anh
   assertEqual "<document id=\"i1\"><ANNOT>\n  </ANNOT><head id=\"i2\"/>\n  " $
-    take 54 $ internalize c xml ans aTagSerializer
+    take 54 $ internalize c xml [head ans] aTagSerializer
+
+
+-- * Validatations based on testsuite/annotations/*.csv
+
+-- | Test helper for validating the tests from
+-- testsuite/annotations/BASE.TEST-NAME.csv. Also see
+-- testsuite/annotations/Makefile.
+validateCsvCases
+  :: HasCallStack =>
+     String -- ^ the name of the XML base file (BASE)
+  -> String -- ^ the name of the test (TEST-NAME)
+  -> IO ()
+validateCsvCases base testName = do
+  let fPath = "testsuite/" ++ base ++ ".xml"
+  let aPath = "testsuite/annotations/" ++ base ++ "." ++ testName
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  anh <- openFile (aPath  ++ ".csv") ReadMode
+  ans <- runCsvParser startEndMarkup decodeUtf8 anh
+  mapM_ (uncurry (validateInternalizedXML c xml aPath)) (zip [1..] ans)
+
+-- | Helper function for validating a single CSV test case.
+validateInternalizedXML
+  :: (HasCallStack, MarkupTree t a, TextRange a) =>
+     String
+  -> [t a]
+  -> String
+  -> Int
+  -> GenericCsvMarkup
+  -> IO ()
+validateInternalizedXML xmlString xmlDom aPath caseNum annot = do
+  let internalizedPath = aPath ++ "." ++ (leftFillZero 2 caseNum) ++ ".internalized.xml"
+  expected <- readFile internalizedPath
+  assertEqual expected $ internalize xmlString xmlDom [annot] aTagSerializer
+  where
+    leftFillZero :: Int -> Int -> String
+    leftFillZero l i = (replicate (l - length (show i)) '0') ++ show i
+
+
+
+test_internalizeCSVElementEndLeftForbidden = validateCsvCases "element" "end-left-forbidden"
