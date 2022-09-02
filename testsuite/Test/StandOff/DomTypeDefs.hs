@@ -79,7 +79,7 @@ test_splitCharRefEndOnRef = do
   assertEqual [(0x0a, 0x1c)] $ mergeCase xml 0x0a 0x1c
 
 test_splitCharRefStartOnRef = do
-  unitTestPending "something wrong when moved over charref border"
+  --unitTestPending "something wrong when moved over charref border"
   let fPath = "testsuite/charref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
@@ -91,7 +91,7 @@ test_splitCharRefStartOnRef = do
   assertEqual [(0x1d, 0x1f)] $ mergeCase xml 0x1d 0x1f
 
 test_splitEntityRefEndOnRef = do
-  unitTestPending "end on false position"
+  --unitTestPending "end on false position"
   let fPath = "testsuite/entityref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
@@ -99,12 +99,12 @@ test_splitEntityRefEndOnRef = do
   assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2e
   assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2d
   assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2c
-  assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2b
+  assertEqual [(0x29, 0x2b)] $ mergeCase xml 0x29 0x2b
   -- assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x1f
 
 test_splitEntityRefStartOnRef = do
-  unitTestPending "something wrong when moved over entity ref border"
-  let fPath = "testsuite/charref.xml"
+  --unitTestPending "something wrong when moved over entity ref border"
+  let fPath = "testsuite/entityref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
   xml <- runXmlParser offsetMapping (show fPath) c
