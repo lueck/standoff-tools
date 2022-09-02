@@ -4,11 +4,13 @@ import qualified Data.Tree.NTree.TypeDefs as NT
 import Data.Tree.Class hiding (getNode)
 import Data.Map as Map hiding (drop)
 import Data.UUID.Types (UUID, fromString, toString)
+import Data.Maybe
 
 import StandOff.AnnotationTypeDefs as A
 import StandOff.DomTypeDefs as X
 import StandOff.LineOffsets as L
 import StandOff.Tag
+import StandOff.External.GenericCsv
 
 pos :: Int -> Int
 pos p = p -- L.Position {L.pos_offset=p, L.pos_line=1, L.pos_column=1}
@@ -49,7 +51,11 @@ getNthNode (n:ns) ts = getNthNode ns (getChildren $ ts !! n)
 -- | Simple tag serializer for testing purpose. The tag name is
 -- related to the constant tag name defined in
 -- testsuite/annotations/Makefile!
-aTagSerializer :: TagType -> a -> String
-aTagSerializer (Open) _ = "<ANNOT>"
+aTagSerializer :: TagType -> GenericCsvMarkup -> String
+aTagSerializer (Open) annot = "<ANNOT" ++ caseAttributeSerializer annot ++ ">"
 aTagSerializer (Close) _ = "</ANNOT>"
-aTagSerializer (Empty) _ = "<ANNOT/>"
+aTagSerializer (Empty) annot = "<ANNOT" ++ caseAttributeSerializer annot ++ "/>"
+
+caseAttributeSerializer :: GenericCsvMarkup -> String
+caseAttributeSerializer markup =
+  fromMaybe "" $ fmap (\c -> " case=\"" ++ c ++ "\"") $ Map.lookup "case" $ ncsv_features markup
