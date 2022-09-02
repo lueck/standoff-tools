@@ -25,7 +25,7 @@ testsuite/annotations/*.cases
 testsuite/annotations/*.play.*
 
 # special test cases not used for mass testing
-#testsuite/annotations/simple.*
+testsuite/annotations/simple.*
 
 
 # project's examples
