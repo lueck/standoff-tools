@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
+{-# LANGUAGE TupleSections #-}
 module Test.StandOff.DomTypeDefs (htf_thisModulesTests) where
 
 import Test.Framework
@@ -6,6 +7,10 @@ import Data.Tree.Class (getNode)
 import System.IO
 import Data.Text.Encoding (decodeUtf8)
 import GHC.Stack (HasCallStack)
+import qualified Data.Map as Map
+import Data.Maybe
+import Numeric
+import Control.Monad
 
 import StandOff.DomTypeDefs (XmlNode, XMLTrees)
 import StandOff.TextRange
@@ -183,11 +188,62 @@ validateInternalizedXML xmlString xmlDom aPath caseNum annot = do
     leftFillZero :: Int -> Int -> String
     leftFillZero l i = (replicate (l - length (show i)) '0') ++ show i
 
+-- | A helper function to run test cases from
+-- testsuite/annoations/BASE.TEST-NAME.csv on the merge function.
+--
+-- The expected value is of a test case is of type (Int, [(Position,
+-- Position)]), where the Int is the case number (CASE-NUMBER).
+validateMergeCasesFromCSV
+  :: HasCallStack =>
+     String -- ^ the name of the XML base file (BASE)
+  -> String -- ^ the name of the test (TEST-NAME)
+  -> IO ()
+validateMergeCasesFromCSV base testName = do
+  let fPath = "testsuite/" ++ base ++ ".xml"
+  let aPath = "testsuite/annotations/" ++ base ++ "." ++ testName
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  anh <- openFile (aPath  ++ ".csv") ReadMode
+  ans <- runCsvParser startEndMarkup decodeUtf8 anh
+  mapM_ (uncurry (validateCsvMergeCase xml)) (zip [1..] ans)
+
+-- | Helper function for validating a single CSV test case.
+validateCsvMergeCase
+  :: (HasCallStack, MarkupTree t a, TextRange a) =>
+     [t a]
+  -> Int
+  -> GenericCsvMarkup
+  -> IO ()
+validateCsvMergeCase xmlDom caseNum annot = do
+  assertEqual expected $ (caseNum,) $ map spans $ merge xmlDom annot
+  where
+    expected :: (Int, [(Int, Int)])
+    expected
+      | isJust $ maybeExpectedStart = (caseNum, [(fromMaybe (-1) maybeExpectedStart, annotEnd)])
+      | isJust $ maybeExpectedEnd = (caseNum, [(annotStart, fromMaybe (-2) maybeExpectedEnd)])
+      | otherwise = (caseNum, [])
+    maybeExpectedStart = join $ fmap myReadHex $ Map.lookup "expected-start" features
+    maybeExpectedEnd = join $ fmap myReadHex $ Map.lookup "expected-end" features
+    features = ncsv_features annot
+    myReadHex s
+      | length s == 0 = Nothing
+      | take 2 s == "0x" = Just $ fst $ head $ readHex $ drop 2 s
+      | otherwise = Just $ fst $ head $ readDec s
+    annotStart = fst $ spans annot
+    annotEnd = snd $ spans annot
+
 
 
 test_internalizeCSVElementEndLeftForbidden = validateCsvCases "element" "end-left-forbidden"
 
+test_mergeCSVElementEndLeftForbidden = validateMergeCasesFromCSV "element" "end-left-forbidden"
+
+
 test_internalizeCSVElementStartLeftForbidden = validateCsvCases "element" "start-left-forbidden"
+
+test_mergeCSVElementStartLeftForbidden = validateMergeCasesFromCSV "element" "start-left-forbidden"
+
 
 test_internalizeCSVElementEndRightForbidden = validateCsvCases "element" "end-right-forbidden"
 
