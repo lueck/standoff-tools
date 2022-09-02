@@ -247,6 +247,9 @@ test_mergeCSVElementStartLeftForbidden = validateMergeCasesFromCSV "element" "st
 
 test_internalizeCSVElementEndRightForbidden = validateCsvCases "element" "end-right-forbidden"
 
+test_mergeCSVElementEndRightForbidden = validateMergeCasesFromCSV "element" "end-right-forbidden"
+
+
 test_internalizeCSVElementStartRightForbidden = do
   unitTestPending "Test ranging from 0x132 to 0x138 fails, and breaks the markup! Annotation starting on '>'"
   validateCsvCases "element" "start-right-forbidden"
