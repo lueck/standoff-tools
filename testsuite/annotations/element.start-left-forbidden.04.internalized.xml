@@ -4,7 +4,7 @@
     <h1 xml:id="i4">First Heading</h1>
     <p xml:id="i5">Lorem ipsum dolor sit amet, consetetur sadipscing
     elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore
-    magna aliquyam erat, <em xml:id="i6"><ANNOT>sed</ANNOT> diam voluptua</em>. At
+    magna aliquyam erat, <em xml:id="i6"><ANNOT case="4">sed</ANNOT> diam voluptua</em>. At
     vero eos et accusam et justo duo dolores et ea rebum. Stet clita
     kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit
     amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed
