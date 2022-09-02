@@ -278,10 +278,20 @@ test_mergeCSVCharRefStartForbidden = do
   validateMergeCasesFromCSV "charref" "start-forbidden"
 
 
+-- ** entity references
+
 test_internalizeCSVEnityRefEndForbidden = do
   unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
   validateCsvCases "entityref" "end-forbidden"
 
+test_mergeCSVEnityRefEndForbidden = do
+  unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
+  validateMergeCasesFromCSV "entityref" "end-forbidden"
+
 test_internalizeCSVEntityRefStartForbidden = do
   unitTestPending "Test case 3 breaks the markup! Annotation starting on ';'"
   validateCsvCases "entityref" "start-forbidden"
+
+test_mergeCSVEntityRefStartForbidden = do
+  unitTestPending "Test case 3 breaks the markup! Annotation starting on ';'"
+  validateMergeCasesFromCSV "entityref" "start-forbidden"
