@@ -186,3 +186,5 @@ validateInternalizedXML xmlString xmlDom aPath caseNum annot = do
 
 
 test_internalizeCSVElementEndLeftForbidden = validateCsvCases "element" "end-left-forbidden"
+
+test_internalizeCSVElementStartLeftForbidden = validateCsvCases "element" "start-left-forbidden"
