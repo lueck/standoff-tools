@@ -194,3 +194,7 @@ test_internalizeCSVElementEndRightForbidden = validateCsvCases "element" "end-ri
 test_internalizeCSVElementStartRightForbidden = do
   unitTestPending "Test ranging from 0x132 to 0x138 fails, and breaks the markup! Annotation starting on '>'"
   validateCsvCases "element" "start-right-forbidden"
+
+test_internalizeCSVCharRefEndForbidden = do
+  unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
+  validateCsvCases "charref" "end-forbidden"
