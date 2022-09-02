@@ -15,4 +15,19 @@ cabal.sandbox.config
 .stack-work
 *.lock
 
+# intermediate artefacts in the testsuite
+testsuite/annotations/*.csv.annot
+testsuite/annotations/*.csv.split
+testsuite/annotations/*.header
+testsuite/annotations/*.cases
+
+# test cases for playing around
+testsuite/annotations/*.play.*
+
+# special test cases not used for mass testing
+testsuite/annotations/simple.*
+
+
+# project's examples
+
 doc/examples/*.TEI-P5.xml

@@ -48,7 +48,7 @@ xml: annots $(INTERNALIZED_XML)
 
 %.internalized.xml: %.csv.annot
 	$(SOT) -i ../$(shell f=$@; echo $${f%.*.*.*.*}).xml -o $@ \
-	internalize --csv-start-end -c ANNOT $<
+	internalize --csv-start-end -c ANNOT --mapping "feature-mapping.yaml" $<
 
 %.cases: %.csv
 	ls -1 $(shell f=$@; echo $${f%.*}.*.csv.annot) > $@

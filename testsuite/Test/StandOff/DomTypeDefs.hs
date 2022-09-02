@@ -1,10 +1,16 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
+{-# LANGUAGE TupleSections #-}
 module Test.StandOff.DomTypeDefs (htf_thisModulesTests) where
 
 import Test.Framework
 import Data.Tree.Class (getNode)
 import System.IO
 import Data.Text.Encoding (decodeUtf8)
+import GHC.Stack (HasCallStack)
+import qualified Data.Map as Map
+import Data.Maybe
+import Numeric
+import Control.Monad
 
 import StandOff.DomTypeDefs (XmlNode, XMLTrees)
 import StandOff.TextRange
@@ -31,10 +37,10 @@ test_elementImplementsTextRange = do
   assertEqual True (d <<>> (getNode $ elm "span" 120 200 []))
   assertEqual False (d <<>> (getNode $ elm "span" 120 210 []))
   assertEqual True (d `before` (getNode $ elm "div" 210 300 []))
-  assertEqual True (d `before` (getNode $ elm "div" 200 300 []))
+  --assertEqual True (d `before` (getNode $ elm "div" 200 300 []))
   assertEqual False (d `before` (getNode $ elm "div" 10 30 []))
   assertEqual True (d `behind` (getNode $ elm "div" 10 30 []))
-  assertEqual True (d `behind` (getNode $ elm "div" 10 100 []))
+  --assertEqual True (d `behind` (getNode $ elm "div" 10 100 []))
   assertEqual False (d `behind` (getNode $ elm "div" 210 300 []))
   assertEqual True (d `leftOverlaps` (getNode $ elm "div" 190 300 []))
   assertEqual False (d `leftOverlaps` (getNode $ elm "div" 90 130 []))
@@ -73,7 +79,6 @@ test_splitCharRefEndOnRef = do
   assertEqual [(0x0a, 0x1c)] $ mergeCase xml 0x0a 0x1c
 
 test_splitCharRefStartOnRef = do
-  unitTestPending "something wrong when moved over charref border"
   let fPath = "testsuite/charref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
@@ -85,7 +90,6 @@ test_splitCharRefStartOnRef = do
   assertEqual [(0x1d, 0x1f)] $ mergeCase xml 0x1d 0x1f
 
 test_splitEntityRefEndOnRef = do
-  unitTestPending "end on false position"
   let fPath = "testsuite/entityref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
@@ -93,12 +97,11 @@ test_splitEntityRefEndOnRef = do
   assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2e
   assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2d
   assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2c
-  assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x2b
+  assertEqual [(0x29, 0x2b)] $ mergeCase xml 0x29 0x2b
   -- assertEqual [(0x29, 0x2c)] $ mergeCase xml 0x29 0x1f
 
 test_splitEntityRefStartOnRef = do
-  unitTestPending "something wrong when moved over charref border"
-  let fPath = "testsuite/charref.xml"
+  let fPath = "testsuite/entityref.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
   xml <- runXmlParser offsetMapping (show fPath) c
@@ -130,16 +133,155 @@ test_splitSimpleSplitOverlappingCSV = do
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
   xml <- runXmlParser offsetMapping (show fPath) c
-  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.01.csv.annot" ReadMode
+  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.csv" ReadMode
   ans <- runCsvParser startEndMarkup decodeUtf8 anh
-  assertEqual [(0x0a, 0x1f)] $ map spans $ splitOverlapping xml ans
+  assertEqual [(0x0a, 0x1f)] $ map spans $ splitOverlapping xml $ [head ans]
 
 test_splitSimpleInternalizeCSV = do
   let fPath = "testsuite/simple.xml"
   c <- readFile fPath
   offsetMapping <- parsecOffsetMapping indexed (show fPath) c
   xml <- runXmlParser offsetMapping (show fPath) c
-  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.01.csv.annot" ReadMode
+  anh <- openFile "testsuite/annotations/simple.end-left-forbidden.csv" ReadMode
   ans <- runCsvParser startEndMarkup decodeUtf8 anh
   assertEqual "<document id=\"i1\"><ANNOT>\n  </ANNOT><head id=\"i2\"/>\n  " $
-    take 54 $ internalize c xml ans aTagSerializer
+    take 54 $ internalize c xml [head ans] aTagSerializer
+
+
+-- * Validatations based on testsuite/annotations/*.csv
+
+-- ** Helper functions
+
+-- | Test helper for validating the tests from
+-- testsuite/annotations/BASE.TEST-NAME.csv. Also see
+-- testsuite/annotations/Makefile.
+validateCsvCases
+  :: HasCallStack =>
+     String -- ^ the name of the XML base file (BASE)
+  -> String -- ^ the name of the test (TEST-NAME)
+  -> IO ()
+validateCsvCases base testName = do
+  let fPath = "testsuite/" ++ base ++ ".xml"
+  let aPath = "testsuite/annotations/" ++ base ++ "." ++ testName
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  anh <- openFile (aPath  ++ ".csv") ReadMode
+  ans <- runCsvParser startEndMarkup decodeUtf8 anh
+  mapM_ (uncurry (validateInternalizedXML c xml aPath)) (zip [1..] ans)
+
+-- | Helper function for validating a single CSV test case.
+validateInternalizedXML
+  :: (HasCallStack, MarkupTree t a, TextRange a) =>
+     String
+  -> [t a]
+  -> String
+  -> Int
+  -> GenericCsvMarkup
+  -> IO ()
+validateInternalizedXML xmlString xmlDom aPath caseNum annot = do
+  let internalizedPath = aPath ++ "." ++ (leftFillZero 2 caseNum) ++ ".internalized.xml"
+  expected <- readFile internalizedPath
+  assertEqual expected $ internalize xmlString xmlDom [annot] aTagSerializer
+  where
+    leftFillZero :: Int -> Int -> String
+    leftFillZero l i = (replicate (l - length (show i)) '0') ++ show i
+
+-- | A helper function to run test cases from
+-- testsuite/annoations/BASE.TEST-NAME.csv on the merge function.
+--
+-- The expected value is of a test case is of type (Int, [(Position,
+-- Position)]), where the Int is the case number (CASE-NUMBER).
+validateMergeCasesFromCSV
+  :: HasCallStack =>
+     String -- ^ the name of the XML base file (BASE)
+  -> String -- ^ the name of the test (TEST-NAME)
+  -> IO ()
+validateMergeCasesFromCSV base testName = do
+  let fPath = "testsuite/" ++ base ++ ".xml"
+  let aPath = "testsuite/annotations/" ++ base ++ "." ++ testName
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  anh <- openFile (aPath  ++ ".csv") ReadMode
+  ans <- runCsvParser startEndMarkup decodeUtf8 anh
+  mapM_ (uncurry (validateCsvMergeCase xml)) (zip [1..] ans)
+
+-- | Helper function for validating a single CSV test case.
+validateCsvMergeCase
+  :: (HasCallStack, MarkupTree t a, TextRange a) =>
+     [t a]
+  -> Int
+  -> GenericCsvMarkup
+  -> IO ()
+validateCsvMergeCase xmlDom caseNum annot = do
+  assertEqual expected $ (caseNum,) $ map spans $ merge xmlDom annot
+  where
+    expected :: (Int, [(Int, Int)])
+    expected
+      | isJust $ maybeExpectedStart = (caseNum, [(fromMaybe (-1) maybeExpectedStart, annotEnd)])
+      | isJust $ maybeExpectedEnd = (caseNum, [(annotStart, fromMaybe (-2) maybeExpectedEnd)])
+      | otherwise = (caseNum, [])
+    maybeExpectedStart = join $ fmap myReadHex $ Map.lookup "expected-start" features
+    maybeExpectedEnd = join $ fmap myReadHex $ Map.lookup "expected-end" features
+    features = ncsv_features annot
+    myReadHex s
+      | length s == 0 = Nothing
+      | take 2 s == "0x" = Just $ fst $ head $ readHex $ drop 2 s
+      | otherwise = Just $ fst $ head $ readDec s
+    annotStart = fst $ spans annot
+    annotEnd = snd $ spans annot
+
+
+-- ** Elements
+
+test_internalizeCSVElementEndLeftForbidden = validateCsvCases "element" "end-left-forbidden"
+
+test_mergeCSVElementEndLeftForbidden = validateMergeCasesFromCSV "element" "end-left-forbidden"
+
+
+test_internalizeCSVElementStartLeftForbidden = validateCsvCases "element" "start-left-forbidden"
+
+test_mergeCSVElementStartLeftForbidden = validateMergeCasesFromCSV "element" "start-left-forbidden"
+
+
+test_internalizeCSVElementEndRightForbidden = validateCsvCases "element" "end-right-forbidden"
+
+test_mergeCSVElementEndRightForbidden = validateMergeCasesFromCSV "element" "end-right-forbidden"
+
+
+test_internalizeCSVElementStartRightForbidden = do
+  validateCsvCases "element" "start-right-forbidden"
+
+test_mergeCSVElementStartRightForbidden = do
+  validateMergeCasesFromCSV "element" "start-right-forbidden"
+
+-- ** Character references
+
+test_internalizeCSVCharRefEndForbidden = do
+  validateCsvCases "charref" "end-forbidden"
+
+test_mergeCSVCharRefEndForbidden = do
+  validateMergeCasesFromCSV "charref" "end-forbidden"
+
+
+test_internalizeCSVCharRefStartForbidden = do
+  validateCsvCases "charref" "start-forbidden"
+
+test_mergeCSVCharRefStartForbidden = do
+  validateMergeCasesFromCSV "charref" "start-forbidden"
+
+
+-- ** entity references
+
+test_internalizeCSVEnityRefEndForbidden = do
+  validateCsvCases "entityref" "end-forbidden"
+
+test_mergeCSVEnityRefEndForbidden = do
+  validateMergeCasesFromCSV "entityref" "end-forbidden"
+
+test_internalizeCSVEntityRefStartForbidden = do
+  validateCsvCases "entityref" "start-forbidden"
+
+test_mergeCSVEntityRefStartForbidden = do
+  validateMergeCasesFromCSV "entityref" "start-forbidden"

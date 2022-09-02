@@ -91,7 +91,7 @@ test_mergeBefore = do
 
 -- test merge before at
 test_mergeNextBefore = do
-  assertEqual [(0,1)] (mergeCase 0 1)
+  assertEqual [(0,0)] (mergeCase 0 1) -- 1 is already on the start tag, in the forbidden range
 
 -- test end extends into open tag
 test_mergeEndIntoOpening = do
