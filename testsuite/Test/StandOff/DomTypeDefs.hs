@@ -258,10 +258,16 @@ test_mergeCSVElementStartRightForbidden = do
   unitTestPending "Test case 2 ranging from 0x132 to 0x138 fails, and breaks the markup! Annotation starting on '>'"
   validateMergeCasesFromCSV "element" "start-right-forbidden"
 
+-- ** Character references
 
 test_internalizeCSVCharRefEndForbidden = do
   unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
   validateCsvCases "charref" "end-forbidden"
+
+test_mergeCSVCharRefEndForbidden = do
+  unitTestPending "Test case 3 breaks the markup! Annotation ending on '&'"
+  validateMergeCasesFromCSV "charref" "end-forbidden"
+
 
 test_internalizeCSVCharRefStartForbidden = do
   unitTestPending "Test case 3 breaks the markup! Annotation starting on ';'"
