@@ -11,6 +11,8 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Numeric
 import Control.Monad
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Binary as Bin
 
 import StandOff.DomTypeDefs (XmlNode, XMLTrees)
 import StandOff.TextRange
@@ -20,6 +22,7 @@ import StandOff.Splitting
 import StandOff.MarkupTree hiding (getNode)
 import StandOff.External.GenericCsv
 import StandOff.Internalize
+import StandOff.ShrinkedText
 
 import Test.StandOff.TestSetup
 
@@ -235,6 +238,29 @@ validateCsvMergeCase xmlDom caseNum annot = do
     annotEnd = snd $ spans annot
 
 
+-- | Test helper for validating the tests from
+-- testsuite/annotations-shrinked/BASE.TEST-NAME.csv. Also see
+-- testsuite/annotations-shrinked/Makefile.
+validateShrinkedInternalizationCases
+  :: HasCallStack =>
+     String -- ^ the name of the XML base file (BASE)
+  -> String -- ^ the name of the test (TEST-NAME)
+  -> IO ()
+validateShrinkedInternalizationCases base testName = do
+  let fPath = "testsuite/" ++ base ++ ".xml"
+  let aPath = "testsuite/annotations-shrinked/" ++ base ++ "." ++ testName
+  let offsetsFile = "testsuite/annotations-shrinked/" ++ base ++ ".offsets.dat"
+  offsetMapping <- BL.readFile offsetsFile >>= return . Bin.decode
+  c <- readFile fPath
+  sourcePosMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser sourcePosMapping (show fPath) c
+  anh <- openFile (aPath  ++ ".csv") ReadMode
+  ans <- runCsvParser startEndMarkup decodeUtf8 anh
+  ans' <- either fail return $ traverse (inflate offsetMapping) ans
+  mapM_ (uncurry (validateInternalizedXML c xml aPath)) (zip [1..] ans')
+
+
+
 -- ** Elements
 
 test_internalizeCSVElementEndLeftForbidden = validateCsvCases "element" "end-left-forbidden"
@@ -258,6 +284,11 @@ test_internalizeCSVElementStartRightForbidden = do
 test_mergeCSVElementStartRightForbidden = do
   validateMergeCasesFromCSV "element" "start-right-forbidden"
 
+
+test_internalizeShrinkedElementMove16 = do
+  validateShrinkedInternalizationCases "element" "move16"
+
+
 -- ** Character references
 
 test_internalizeCSVCharRefEndForbidden = do
@@ -274,6 +305,12 @@ test_mergeCSVCharRefStartForbidden = do
   validateMergeCasesFromCSV "charref" "start-forbidden"
 
 
+test_internalizeShrinkedCharRefMove16 = do
+  unitTestPending "charref in internalizing from shrinked: should be included if annotations starts or ends on this character. See cases 3 and 19."
+  validateShrinkedInternalizationCases "charref" "move16"
+
+
+
 -- ** entity references
 
 test_internalizeCSVEnityRefEndForbidden = do
@@ -287,3 +324,14 @@ test_internalizeCSVEntityRefStartForbidden = do
 
 test_mergeCSVEntityRefStartForbidden = do
   validateMergeCasesFromCSV "entityref" "start-forbidden"
+
+
+
+-- ** comment
+
+test_internalizeShrinkedCommentMove16 = do
+  -- Seems like the space in cases 3 and 5 is broken. But it is
+  -- correct, because the annotation spans 3 characters outside of the
+  -- comment.
+  validateShrinkedInternalizationCases "comment" "move3"
+

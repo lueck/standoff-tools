@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hello -->
+<document id="i1">
+  <head id="i2"/>
+  <body id="i3">
+    <h1 id="i4">First Heading</h1>
+   <ANNOT case="4"> <!--Why-? --> 
+</ANNOT>    <p id="i5">Lorem ipsum dolor sit amet, consetetur sadipscing
+    elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore
+    magna aliquyam erat, <em id="i6">sed diam voluptua</em>. At vero
+    eos et accusam et justo duo dolores et ea rebum. Stet clita kasd
+    gubergren, no sea takimata sanctus est Lorem ipsum dolor sit
+    amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed
+    diam nonumy eirmod tempor invidunt ut labore et dolore magna
+    aliquyam erat, sed diam voluptua. At vero eos et accusam et justo
+    duo dolores et ea rebum. Stet clita kasd gubergren, no sea
+    takimata sanctus est Lorem ipsum dolor sit amet.</p>
+  </body>
+</document>
+<!--More-->
+<!--PS-/- -->

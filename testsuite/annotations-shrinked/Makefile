@@ -46,9 +46,17 @@ xml: annots $(INTERNALIZED_XML)
 %.csv.annot: %.csv.split
 	cat $(shell f=$@; echo $${f%.*.*.*}.header) $< > $@
 
+%.shrinked.txt: ../%.xml
+	$(SOT) -i $< -o $@ shrink \
+	--offsets $(shell f=$@; echo $${f%.*.*}).offsets.dat \
+	--config shrink.yaml
+
 %.internalized.xml: %.csv.annot
 	$(SOT) -i ../$(shell f=$@; echo $${f%.*.*.*.*}).xml -o $@ \
-	internalize --csv-start-end -c ANNOT --attributes "feature-mapping.yaml" $<
+	internalize --csv-start-end \
+	--offset-mapping $(shell f=$@; echo $${f%.*.*.*.*}).offsets.dat \
+	--const ANNOT --attributes "feature-mapping.yaml" \
+	$<
 
 %.cases: %.csv
 	ls -1 $(shell f=$@; echo $${f%.*}.*.csv.annot) > $@

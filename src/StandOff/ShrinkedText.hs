@@ -5,6 +5,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 module StandOff.ShrinkedText
   ( OffsetMapping
+  , InflatableMarkup(..)
   , ShrinkingNodeConfig(..)
   , ShrinkingNodeReplacements
   , ShrinkingNodeReplacement(..)
@@ -76,6 +77,17 @@ type OffsetMapping = [Int]
 initialOffsetMapping :: OffsetMapping
 -- initialOffsetMapping = OffsetMapping [] []
 initialOffsetMapping = []
+
+
+-- | 'InflatableMarkup' is an interface for annotations, the positions
+-- of which must be mapped to positions in the source test using an
+-- 'OffsetMapping'.
+class InflatableMarkup a where
+  -- | 'inflate' applies an offset mapping to a markup element
+  -- (annotation) and maps the position in the shrinked text to the
+  -- position in the source text. If the positions in a exceeds the
+  -- domain of the mapping, 'Left' is returned.
+  inflate :: OffsetMapping -> a -> Either String a
 
 
 -- * Generate shrinked text

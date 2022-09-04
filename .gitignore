@@ -16,13 +16,13 @@ cabal.sandbox.config
 *.lock
 
 # intermediate artefacts in the testsuite
-testsuite/annotations/*.csv.annot
-testsuite/annotations/*.csv.split
-testsuite/annotations/*.header
-testsuite/annotations/*.cases
+testsuite/annotations*/*.csv.annot
+testsuite/annotations*/*.csv.split
+testsuite/annotations*/*.header
+testsuite/annotations*/*.cases
 
 # test cases for playing around
-testsuite/annotations/*.play.*
+testsuite/annotations*/*.play.*
 
 # special test cases not used for mass testing
 testsuite/annotations/simple.*
