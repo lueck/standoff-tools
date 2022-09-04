@@ -12,8 +12,11 @@ where
 -- | Functions common to external markup.
 
 import qualified Data.Map as Map
+import Data.Maybe
+import Control.Lens
 
 import StandOff.TextRange
+import StandOff.ShrinkedText
 
 
 type ExternalAttributes = Map.Map String String
@@ -39,7 +42,7 @@ class IdentifiableSplit e where
 -- 'IdentifiableSplit'.
 data ExternalMarkup
   where
-    MkExternalMarkup :: (TextRange a, ToAttributes a, IdentifiableSplit a) => a -> ExternalMarkup
+    MkExternalMarkup :: (TextRange a, ToAttributes a, IdentifiableSplit a, InflatableMarkup a) => a -> ExternalMarkup
 
 instance TextRange ExternalMarkup where
   start (MkExternalMarkup e) = start e
@@ -77,6 +80,20 @@ instance IdentifiableSplit GenericMarkup where
   markupId = Map.lookup "id" . genmrkp_features
   splitNum = genmrkp_splitNum
   updSplitNum r i = r { genmrkp_splitNum = Just i }
+
+instance InflatableMarkup GenericMarkup where
+  inflate offsets annot = GenericMarkup
+    <$> (mapOffsets $ genmrkp_start annot)
+    <*> (mapOffsets $ genmrkp_end annot)
+    <*> (Right $ genmrkp_features annot)
+    <*> (Right $ genmrkp_splitNum annot)
+    where
+      mapOffsets :: Int -> Either String Int
+      mapOffsets pos = fromMaybe
+        (Left $ "Position " ++ show pos ++
+         " in annotation " ++ show annot ++
+         " exceeds the domain of the offset mapping") $
+        fmap Right $ offsets ^? element pos
 
 
 genMrkp :: (TextRange a, ToAttributes a, IdentifiableSplit a) => a -> GenericMarkup
