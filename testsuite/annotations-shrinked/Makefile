@@ -54,7 +54,7 @@ xml: annots $(INTERNALIZED_XML)
 %.internalized.xml: %.csv.annot
 	$(SOT) -i ../$(shell f=$@; echo $${f%.*.*.*.*}).xml -o $@ \
 	internalize --csv-start-end \
-	--offset-mapping $(shell f=$; echo $${f%.*.*.*.*}).shrinked.txt \
+	--offset-mapping $(shell f=$@; echo $${f%.*.*.*.*}).offsets.dat \
 	--const ANNOT --attributes "feature-mapping.yaml" \
 	$<
 
