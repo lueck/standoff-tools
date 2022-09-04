@@ -24,10 +24,12 @@ import qualified Data.Text as T
 import Data.Maybe
 import Text.Read (readMaybe)
 import Control.Monad
+import Control.Lens
 
 import StandOff.TextRange
 import StandOff.External
 import StandOff.SourcePosMapping
+import StandOff.ShrinkedText
 
 -- * Type definitions
 
@@ -53,6 +55,20 @@ instance IdentifiableSplit GenericCsvMarkup where
   markupId = Map.lookup "id" . ncsv_features
   splitNum = ncsv_splitNum
   updSplitNum r i = r { ncsv_splitNum = Just i }
+
+instance InflatableMarkup GenericCsvMarkup where
+  inflate offsets annot = NamedGenericCsvMarkup
+    <$> (mapOffsets $ ncsv_start annot)
+    <*> (mapOffsets $ ncsv_end annot)
+    <*> (Right $ ncsv_features annot)
+    <*> (Right $ ncsv_splitNum annot)
+    where
+      mapOffsets :: Int -> Either String Int
+      mapOffsets pos = fromMaybe
+        (Left $ "Position " ++ show pos ++
+         " in annotation " ++ show annot ++
+         " exceeds the domain of the offset mapping") $
+        fmap Right $ offsets ^? element pos
 
 
 -- * Parse CSV
