@@ -406,12 +406,12 @@ run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedSingleCSV integer
 run (GlobalOptions input output
      (Internalize
      tagSlizer
-     mappingFile
+     featureMappingFile
      procInstr
      annFormat
      annFile
      offsetMappingFile)) = do
-  attrsMapping <- readAttrsMapping mappingFile
+  attrsMapping <- readAttrsMapping featureMappingFile
   let tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
 
   inputH <- streamableInputHandle input
