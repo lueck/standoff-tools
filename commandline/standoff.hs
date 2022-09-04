@@ -416,12 +416,12 @@ run (GlobalOptions input output
 
   inputH <- streamableInputHandle input
   xmlContents <- hGetContents inputH
-  offsetMapping <- parsecOffsetMapping indexed (show inputH) xmlContents
-  xml <- runXmlParser offsetMapping (show inputH) xmlContents
+  sourcePosMapping <- parsecOffsetMapping indexed (show inputH) xmlContents
+  xml <- runXmlParser sourcePosMapping (show inputH) xmlContents
   let internal = xml --filter isElementP xml  -- FIXME: do we have to filter?
 
   annotsH <- openFile annFile ReadMode
-  external <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping offsetMapping) decodeUtf8 annotsH
+  external <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping sourcePosMapping) decodeUtf8 annotsH
 
   external' <- maybeApplyOffsetMapping offsetMappingFile external
 
