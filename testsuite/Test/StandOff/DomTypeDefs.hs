@@ -324,3 +324,14 @@ test_internalizeCSVEntityRefStartForbidden = do
 
 test_mergeCSVEntityRefStartForbidden = do
   validateMergeCasesFromCSV "entityref" "start-forbidden"
+
+
+
+-- ** comment
+
+test_internalizeShrinkedCommentMove16 = do
+  -- Seems like the space in cases 3 and 5 is broken. But it is
+  -- correct, because the annotation spans 3 characters outside of the
+  -- comment.
+  validateShrinkedInternalizationCases "comment" "move3"
+
