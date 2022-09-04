@@ -305,6 +305,11 @@ test_mergeCSVCharRefStartForbidden = do
   validateMergeCasesFromCSV "charref" "start-forbidden"
 
 
+test_internalizeCSVCharRefMove7 = do
+  unitTestPending "We cannot yust include the charref. See case 8 and 9."
+  validateCsvCases "charref" "move7"
+
+
 test_internalizeShrinkedCharRefMove16 = do
   unitTestPending "charref in internalizing from shrinked: should be included if annotations starts or ends on this character. See cases 3 and 19."
   validateShrinkedInternalizationCases "charref" "move16"
