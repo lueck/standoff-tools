@@ -47,6 +47,8 @@ merge (x:xs) a
   | a `before` (getNode x) = [a]
   -- Forward xml horizontally when a is behind x
   | a `behind` (getNode x) = (merge xs a)
+  -- a contains x and x is completely prohibited, like a character reference in XML
+  | a `contains` (getNode x) && prohibited (getNode x) = merge xs a
   -- a is in a single tag of x: drop it
   | a `inTag` (getNode x) = []
   -- a contained in x and it starts in a forbidden position, i.e. in
