@@ -285,6 +285,14 @@ test_mergeCSVElementStartRightForbidden = do
   validateMergeCasesFromCSV "element" "start-right-forbidden"
 
 
+test_internalizeCSVElement2RightOverlapping = do
+  validateCsvCases "element2" "right-overlapping"
+
+test_internalizeCSVElement2LeftOverlapping = do
+  validateCsvCases "element2" "left-overlapping"
+
+
+
 test_internalizeShrinkedElementMove16 = do
   validateShrinkedInternalizationCases "element" "move16"
 

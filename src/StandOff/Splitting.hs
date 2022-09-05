@@ -47,30 +47,43 @@ merge (x:xs) a
   | a `before` (getNode x) = [a]
   -- Forward xml horizontally when a is behind x
   | a `behind` (getNode x) = (merge xs a)
+
   -- a contains x and x is completely prohibited, like a character reference in XML
-  | a `contains` (getNode x) && prohibited (getNode x) = merge xs a
-  -- a is in a single tag of x: drop it
-  | a `inTag` (getNode x) = []
-  -- a contained in x and it starts in a forbidden position, i.e. in
-  -- the opening tag of x (lost tag):
-  | (getNode x) `contains` a && a `startLeftForbidden` (getNode x) = merge (x:xs) $ snd $ leftSplit SndSplit a (getNode x)
-  -- a contained in x and it ends in a forbidden position, i.e. in the
-  -- closing tag of x (lost tag):
-  | (getNode x) `contains` a && a `endRightForbidden` (getNode x) = merge (x:xs) $ fst $ rightSplit FstSplit a (getNode x)
-  -- a's end extends into a closing tag
-  | a `endLeftForbidden` (getNode x) = merge (x:xs) $ fst $ leftSplit FstSplit a (getNode x)
-  -- a's start extends into an opening tag
-  | a `startRightForbidden` (getNode x) = merge (x:xs) $ snd $ rightSplit SndSplit a (getNode x)
-  -- Split a when a right-overlaps x.
-  | a `rightOverlaps` (getNode x) =
-    (merge (getMarkupChildren x) (fst rightSplit')) ++ (merge xs (snd rightSplit'))
-  -- Split a when a left-overlaps x.
-  | a `leftOverlaps` (getNode x) =
-    (fst leftSplit') : (merge (getMarkupChildren x) (snd leftSplit'))
-  -- Forward xml vertically when x contains a
-  | (getNode x) `contains` a = merge (getMarkupChildren x) a
+  --  | a `contains` (getNode x) && prohibited (getNode x) = merge xs a
   -- If a contains x, proceed with xs:
   | a `contains` (getNode x) = merge xs a
+
+  -- a is in a single tag of x: drop it
+  | a `inTag` (getNode x) = []
+
+  -- these rules cannot be reached:
+  -- -- a contained in x and it starts in a forbidden position, i.e. in
+  -- -- the opening tag of x (lost tag):
+  -- | (getNode x) `contains` a && a `startLeftForbidden` (getNode x) = merge (x:xs) $ snd $ leftSplit SndSplit a (getNode x)
+  -- -- a contained in x and it ends in a forbidden position, i.e. in the
+  -- -- closing tag of x (lost tag):
+  -- | (getNode x) `contains` a && a `endRightForbidden` (getNode x) = merge (x:xs) $ fst $ rightSplit FstSplit a (getNode x)
+
+  -- a's end extends into a opening tag
+  | a `endLeftForbidden` (getNode x) = merge (x:xs) $ fst $ leftSplit FstSplit a (getNode x)
+  -- a's end extends into a closing tag
+  | a `endRightForbidden` (getNode x) && not (a `leftOverlaps` (getNode x))
+  = merge (x:xs) $ fst $ rightSplit FstSplit a (getNode x)
+  -- a's start extends into an closing tag
+  | a `startRightForbidden` (getNode x) = merge (x:xs) $ snd $ rightSplit SndSplit a (getNode x)
+  -- a's start extends into an opening tag
+  | a `startLeftForbidden` (getNode x) && not (a `rightOverlaps` (getNode x))
+  = merge (x:xs) $ snd $ leftSplit SndSplit a (getNode x)
+
+  -- Split a when a right-overlaps x.
+  | a `rightOverlaps` (getNode x) =
+    (merge [x] (fst rightSplit')) ++ (merge xs (snd rightSplit'))
+  -- Split a when a left-overlaps x.
+  | a `leftOverlaps` (getNode x) =
+    (fst leftSplit') : (merge [x] (snd leftSplit'))
+
+  -- Forward xml vertically when x contains a
+  | (getNode x) `contains` a = merge (getMarkupChildren x) a
   | otherwise = error "Could not resolve overlapping!"
   where
     rightSplit' = rightSplit FstSplit a (getNode x)
