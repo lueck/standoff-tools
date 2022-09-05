@@ -80,7 +80,7 @@ test_splitCharRefEndOnRef = do
   assertEqual [(0x0a, 0x15)] $ mergeCase xml 0x0a 0x18
   assertEqual [(0x0a, 0x15)] $ mergeCase xml 0x0a 0x19
   assertEqual [(0x0a, 0x15)] $ mergeCase xml 0x0a 0x1a
-  assertEqual [(0x0a, 0x15)] $ mergeCase xml 0x0a 0x1b
+  assertEqual [(0x0a, 0x1b)] $ mergeCase xml 0x0a 0x1b -- semicolon last char of charref, so contain it!
   assertEqual [(0x0a, 0x1c)] $ mergeCase xml 0x0a 0x1c
 
 test_splitCharRefStartOnRef = do
@@ -305,8 +305,13 @@ test_mergeCSVCharRefStartForbidden = do
   validateMergeCasesFromCSV "charref" "start-forbidden"
 
 
+test_internalizeCSVCharRefMove7 = do
+  -- unitTestPending "We cannot yust include the charref. See case 8 and 9."
+  validateCsvCases "charref" "move7"
+
+
 test_internalizeShrinkedCharRefMove16 = do
-  unitTestPending "charref in internalizing from shrinked: should be included if annotations starts or ends on this character. See cases 3 and 19."
+  unitTestPending "charref in internalizing from shrinked: should be included if annotation starts this character. See cases 3."
   validateShrinkedInternalizationCases "charref" "move16"
 
 
