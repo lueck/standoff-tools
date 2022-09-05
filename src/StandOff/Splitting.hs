@@ -56,12 +56,13 @@ merge (x:xs) a
   -- a is in a single tag of x: drop it
   | a `inTag` (getNode x) = []
 
-  -- a contained in x and it starts in a forbidden position, i.e. in
-  -- the opening tag of x (lost tag):
-  | (getNode x) `contains` a && a `startLeftForbidden` (getNode x) = merge (x:xs) $ snd $ leftSplit SndSplit a (getNode x)
-  -- a contained in x and it ends in a forbidden position, i.e. in the
-  -- closing tag of x (lost tag):
-  | (getNode x) `contains` a && a `endRightForbidden` (getNode x) = merge (x:xs) $ fst $ rightSplit FstSplit a (getNode x)
+  -- these rules cannot be reached:
+  -- -- a contained in x and it starts in a forbidden position, i.e. in
+  -- -- the opening tag of x (lost tag):
+  -- | (getNode x) `contains` a && a `startLeftForbidden` (getNode x) = merge (x:xs) $ snd $ leftSplit SndSplit a (getNode x)
+  -- -- a contained in x and it ends in a forbidden position, i.e. in the
+  -- -- closing tag of x (lost tag):
+  -- | (getNode x) `contains` a && a `endRightForbidden` (getNode x) = merge (x:xs) $ fst $ rightSplit FstSplit a (getNode x)
 
   -- a's end extends into a opening tag
   | a `endLeftForbidden` (getNode x) = merge (x:xs) $ fst $ leftSplit FstSplit a (getNode x)
