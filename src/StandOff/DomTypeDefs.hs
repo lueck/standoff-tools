@@ -207,7 +207,7 @@ instance (Show n, Show p) => Csv.ToNamedRecord (XmlNode p n s) where
     , "end" .= (show $ snd $ openTagRange n)
     , "startClose" .= (show $ fst $ closeTagRange n)
     , "endClose" .= (show $ snd $ closeTagRange n)
-    , "lname" .= tagName n
+    , "name" .= tagName n
     ]
     where
       tagName :: Show k => XmlNode p k s -> Maybe String
