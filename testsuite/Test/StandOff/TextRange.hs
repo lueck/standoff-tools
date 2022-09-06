@@ -4,6 +4,7 @@ module Test.StandOff.TextRange (htf_thisModulesTests) where
 import Test.Framework
 
 import StandOff.TextRange
+import StandOff.Splitting
 import StandOff.DomTypeDefs
 
 import Test.StandOff.TestSetup
@@ -90,7 +91,7 @@ test_mergeBefore = do
 
 -- test merge before at
 test_mergeNextBefore = do
-  assertEqual [(0,1)] (mergeCase 0 1)
+  assertEqual [(0,0)] (mergeCase 0 1) -- 1 is already on the start tag, in the forbidden range
 
 -- test end extends into open tag
 test_mergeEndIntoOpening = do
@@ -140,7 +141,7 @@ test_mergeCrossOverTags = do
 -- corner case: test markup in a single closing tag
 test_mergeIntoPlaintext = do
   assertEqual [(10, 20)] (map spans resolved)
-  where resolved = merge ([]::[XML]) (mRng "a" "a" "a" 10 20)
+  where resolved = merge ([]::XMLTrees Int String String) (mRng "a" "a" "a" 10 20)
 
 
 external = [ (mRng "a1" "m1" "root" 1 100)

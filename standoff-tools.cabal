@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dca7cb8bddb74568c0ebecaa79b805dda7365cffab2deaaddeff3c85a8b75cfa
+-- hash: 2c773d77c0e38bd97d8b50d7a71717c1e55792c575661644081e246cbb45f9dc
 
 name:           standoff-tools
 version:        0.1.1.2
@@ -32,6 +32,7 @@ library
       StandOff.AttributeSerializer
       StandOff.AttributesMap
       StandOff.DomTypeDefs
+      StandOff.EquidistantText
       StandOff.External
       StandOff.External.GenericCsv
       StandOff.External.StandoffModeDump
@@ -40,23 +41,32 @@ library
       StandOff.MarkupTree
       StandOff.Owl
       StandOff.ResolveOverlapping
+      StandOff.ShrinkedText
+      StandOff.SourcePosMapping
+      StandOff.Splitting
+      StandOff.StringLike
       StandOff.Tag
       StandOff.TagSerializer
       StandOff.TagTypeDefs
       StandOff.TextRange
+      StandOff.Utils
       StandOff.XmlParsec
+      StandOff.XTraverse
   other-modules:
       Paths_standoff_tools
   hs-source-dirs:
       src
   build-depends:
-      aeson >=1.1
+      HsYAML
+    , aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1
     , hxt
     , lens
+    , mtl
     , parsec
     , text
     , time
@@ -73,14 +83,17 @@ executable standoff
       commandline
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson >=1.1
+      HsYAML
+    , aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1
     , directory >=1.2.0.1
     , hxt
     , lens
+    , mtl
     , optparse-applicative >=0.12.1.0
     , parsec
     , standoff-tools
@@ -97,23 +110,32 @@ test-suite unit-tests
   type: exitcode-stdio-1.0
   main-is: TestMain.hs
   other-modules:
-      Test.StandOff.DataXML
+      Test.StandOff.DomTypeDefs
+      Test.StandOff.EquidistantText
+      Test.StandOff.External.GenericCsv
       Test.StandOff.MarkupRange
+      Test.StandOff.MarkupTree
+      Test.StandOff.ShrinkedText
+      Test.StandOff.SourcePosMapping
       Test.StandOff.TagSerializer
       Test.StandOff.TestSetup
       Test.StandOff.TextRange
+      Test.StandOff.XmlParsec
       Paths_standoff_tools
   hs-source-dirs:
       testsuite
   build-depends:
       HTF >=0.10.1
+    , HsYAML
     , aeson >=1.1
     , base >=4.9 && <5
+    , binary
     , bytestring
     , cassava
     , containers >=0.5.8.1
     , hxt
     , lens
+    , mtl
     , parsec
     , standoff-tools
     , template-haskell

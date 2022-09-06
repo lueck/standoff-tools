@@ -4,8 +4,9 @@ module StandOff.Internalize
   , insClose
   ) where
 
-import StandOff.TextRange
 import StandOff.MarkupTree
+import StandOff.TextRange
+import StandOff.Splitting
 import StandOff.Tag
 import StandOff.ResolveOverlapping
 import StandOff.AttributesMap
@@ -37,9 +38,9 @@ import StandOff.External
 -- This implementation does not need a look-ahead parser. Instead all
 -- work is done with lists, which is the strength of lispy
 -- haskell. All can be done with pure functions--nice for testing.
-internalize :: (TextRange a, IdentifiableSplit a, TextRange b, MarkupTree b) =>
+internalize :: (MarkupTree t b, TextRange a, IdentifiableSplit a, TextRange b) =>
                String  -- ^ the document
-               -> [b]  -- ^ the parsed xml tree of the document
+               -> [t b]  -- ^ the parsed xml tree of the document
                -> [a]  -- ^ the annotations to be internalized
                -> (TagType -> a -> String) -- ^ the serializer for
                                            -- tags
@@ -114,7 +115,7 @@ insClose (a@(tagTyp, annot):as) endTag
 -- valid xml.
 --
 -- Internalize external markup into a document.
-internalize' :: (TextRange a, TextRange b, MarkupTree b) => String -> [b] -> [a] -> (TagType -> a -> String) -> String
+internalize' :: (MarkupTree t b, TextRange a, TextRange b) => String -> [t b] -> [a] -> (TagType -> a -> String) -> String
 internalize' doc internal external serializer =
   insertTags' serializer (concatMap (merge internal) nestedInternal) doc 0
   where

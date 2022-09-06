@@ -24,10 +24,12 @@ import qualified Data.Text as T
 import Data.Maybe
 import Text.Read (readMaybe)
 import Control.Monad
+import Control.Lens
 
 import StandOff.TextRange
 import StandOff.External
-import StandOff.LineOffsets (offset)
+import StandOff.SourcePosMapping
+import StandOff.ShrinkedText
 
 -- * Type definitions
 
@@ -53,6 +55,20 @@ instance IdentifiableSplit GenericCsvMarkup where
   markupId = Map.lookup "id" . ncsv_features
   splitNum = ncsv_splitNum
   updSplitNum r i = r { ncsv_splitNum = Just i }
+
+instance InflatableMarkup GenericCsvMarkup where
+  inflate offsets annot = NamedGenericCsvMarkup
+    <$> (mapOffsets $ ncsv_start annot)
+    <*> (mapOffsets $ ncsv_end annot)
+    <*> (Right $ ncsv_features annot)
+    <*> (Right $ ncsv_splitNum annot)
+    where
+      mapOffsets :: Int -> Either String Int
+      mapOffsets pos = fromMaybe
+        (Left $ "Position " ++ show pos ++
+         " in annotation " ++ show annot ++
+         " exceeds the domain of the offset mapping") $
+        fmap Right $ offsets ^? element pos
 
 
 -- * Parse CSV
@@ -114,31 +130,35 @@ startEndMarkup line = NamedGenericCsvMarkup
 -- of line and column. "startline", "startcolumn", "endline", and
 -- "endcolumn" must be present in the CSV header and the values must
 -- be integrals.
-lineColumnMarkup :: [Int] -> Map.Map String String -> Maybe GenericCsvMarkup
-lineColumnMarkup offsets line = NamedGenericCsvMarkup
+lineColumnMarkup :: LineColumnOffsetMapping -> Map.Map String String -> Maybe GenericCsvMarkup
+lineColumnMarkup offsetMapping line = NamedGenericCsvMarkup
   <$> start'
   <*> end'
   <*> Just line
   <*> Just Nothing
   where
-    start' = join $ offset offsets
+    start' = join $ getOffset
       <$> (join $ fmap readMaybe $ Map.lookup "startline" line)
       <*> (join $ fmap readMaybe $ Map.lookup "startcolumn" line)
-    end' = join $ offset offsets
+    end' = join $ getOffset
       <$> (join $ fmap readMaybe $ Map.lookup "endline" line)
       <*> (join $ fmap readMaybe $ Map.lookup "endcolumn" line)
+    getOffset :: Int -> Int -> Maybe Int
+    getOffset l c = Map.lookup (lineColumnKey l c) offsetMapping
 
 -- | Make markup from CSV with the start expressed by a tuple of line
 -- and column and the length of the range given. "line", "column", and
 -- "length" must be present in the CSV header and the values must be
 -- integrals.
-lineColumnLengthMarkup :: [Int] -> Map.Map String String -> Maybe GenericCsvMarkup
-lineColumnLengthMarkup offsets line = NamedGenericCsvMarkup
+lineColumnLengthMarkup :: LineColumnOffsetMapping -> Map.Map String String -> Maybe GenericCsvMarkup
+lineColumnLengthMarkup offsetMapping line = NamedGenericCsvMarkup
   <$> start'
   <*> ((+) <$> start' <*> (join $ fmap readMaybe $ Map.lookup "length" line))
   <*> Just line
   <*> Just Nothing
   where
-    start' = join $ offset offsets
+    start' = join $ getOffset
       <$> (join $ fmap readMaybe $ Map.lookup "line" line)
       <*> (join $ fmap readMaybe $ Map.lookup "column" line)
+    getOffset :: Int -> Int -> Maybe Int
+    getOffset l c = Map.lookup (lineColumnKey l c) offsetMapping

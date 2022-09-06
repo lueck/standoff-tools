@@ -50,6 +50,7 @@ data AttributeMap = AttributeMap
   { attrm_prefix :: Maybe String
   , attrm_ns :: Maybe String
   , attrm_name :: String
+  , attrm_valuePrefix :: Maybe String
   , attrm_values :: Maybe ValueMap
   } deriving (Eq, Show, Generic)
 
@@ -99,7 +100,7 @@ mapExternal mapping external =
       { attr_prefix = attrm_prefix m
       , attr_ns = attrm_ns m
       , attr_name = attrm_name m
-      , attr_value = fromMaybe v $ join $ fmap (Map.lookup v) $ attrm_values m
+      , attr_value = (fromMaybe "" $ attrm_valuePrefix m) ++ (fromMaybe v $ join $ fmap (Map.lookup v) $ attrm_values m)
       }
 
 -- | Serialize an 'Attribute' to XML.
@@ -132,7 +133,7 @@ appendSplitId tag attrs
 appendPrevId :: IdentifiableSplit a => a -> ExternalAttributes -> ExternalAttributes
 appendPrevId tag attrs
   | fmap (>0) (splitNum tag) == (Just True)
-  = Map.insert "__standoff_special__prevId" ("#" <> splitIdValue (markupId tag) (fmap (\x -> x - 1) $ splitNum tag)) attrs
+  = Map.insert "__standoff_special__prevId" (splitIdValue (markupId tag) (fmap (\x -> x - 1) $ splitNum tag)) attrs
   | otherwise = attrs
 
 splitIdValue :: Maybe String -> Maybe Int -> String

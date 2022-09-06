@@ -1,25 +1,38 @@
+{-# LANGUAGE OverloadedStrings #-}
 import System.IO
 import Options.Applicative
 import Data.Monoid ((<>))
 import Data.Char
 import qualified Data.Csv as Csv
-import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as BS
 import qualified Data.Map as Map
+import Data.Tree.Class
+import Data.Foldable
+import Data.Traversable
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
+import qualified Data.Binary as Bin
+import Control.Monad.Writer
+import Data.Maybe
+import Numeric (showInt, showHex)
 
 import Data.Version (showVersion)
 import Paths_standoff_tools (version)
 
 import StandOff.XmlParsec (runXmlParser)
-import StandOff.LineOffsets (runLineOffsetParser, Position, posOffset)
+import StandOff.SourcePosMapping
 import StandOff.Internalize (internalize)
-import StandOff.DomTypeDefs (XML, isXMLDeclarationP, isElementP, xmlSpanning)
+import StandOff.DomTypeDefs hiding (Attribute)
 import StandOff.Owl
 import StandOff.External
 import StandOff.AttributesMap
 import StandOff.Tag
+import StandOff.EquidistantText
+import StandOff.ShrinkedText hiding (OffsetMapping)
+import qualified StandOff.ShrinkedText as ShrT
+import qualified StandOff.StringLike as SL
+import StandOff.MarkupTree
 
 import StandOff.External.StandoffModeDump
 import StandOff.External.GenericCsv
@@ -37,7 +50,7 @@ version_ = abortOption (InfoMsg $ showVersion version) $ mconcat
 
 -- ** Parser for the annotations' input format
 
-type AnnotationsParser = [Int] -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
+type AnnotationsParser = LineColumnOffsetMapping -> (BS.ByteString -> T.Text) -> Handle -> IO [GenericMarkup]
 
 -- | Formats of annotations
 data AnnotationFormat
@@ -88,7 +101,7 @@ annotationFormat_ =
   <|>
   (flag' GenericCsvLineColumnLength
     (long "csv-line-column-length"
-      <> help "Annotations in CSV referencing the start by a line/column-tuple and giving the length of the text annotated range. There must be columns named \"line\", \"column\", and \"length\", and their values must be integers."))  
+      <> help "Annotations in CSV referencing the start by a line/column-tuple and giving the length of the text annotated range. There must be columns named \"line\", \"column\", and \"length\", and their values must be integers."))
 
 
 readAttrsMapping :: Maybe FilePath -> IO AttributesMap
@@ -99,36 +112,96 @@ readAttrsMapping (Just fname) = do
     Left err -> fail $ show err
     Right m -> return m
 
+
+
+data GlobalOptions = GlobalOptions
+  { _globOpts_input :: StreamableInput
+  , _globOpts_output :: StreamableOutput
+  , _globOpts_command :: Command
+  }
+
+
 -- | Commands and their commandline options.
 data Command
-  = Offsets String
+  = Offsets
+  | EquidistantText
+    { equidist_fillChar :: Int
+    }
+  | ShrinkedText
+    { shrinked_cfgFile :: FilePath
+    , shrinked_outputMode :: ShrinkedOutputMode
+    }
   | Internalize
     { intlz_tagSrlzr :: TagSerializerType
     , intlz_attrMapping :: Maybe FilePath
     , intlz_pi :: Maybe String
     , intlz_annFormat :: AnnotationFormat
     , intlz_ann :: FilePath
-    , intlz_src :: FilePath
+    , intlz_offsetMapping :: Maybe FilePath
     }
-  | Owl2Csv
-    { ontologyFilter :: OntologyFilter
-    , csvDelimiter :: String
-    , inFile :: String }
   deriving (Eq, Show)
+
+
+-- * Parsers for CLI
+
 
 -- | Parser for the commands of the standoff commandline program.
 command_ :: Parser Command
 command_ = subparser
   ( command "internalize" internalizeInfo_
     <> command "offsets" offsetsInfo_
-    <> command "owl2csv" owl2csvInfo_
+    <> command "equidist" equidistantInfo_
+    <> command "shrink" shrinkInfo_
   )
+
+-- * Parsers for input and output file
+
+data StreamableInput = Stdin | InputFile FilePath
+  deriving (Eq, Show)
+
+data StreamableOutput = Stdout | OutputFile FilePath
+  deriving (Eq, Show)
+
+streamableInput_ :: Parser StreamableInput
+streamableInput_ = fromMaybe Stdin <$> optional
+  (InputFile <$> strOption
+   (long "input"
+     <> short 'i'
+     <> help "The input file. If this is not given, the program reads from stdin."
+     <> metavar "INFILE"))
+
+streamableOutput_ :: Parser StreamableOutput
+streamableOutput_ = fromMaybe Stdout <$> optional
+  (OutputFile <$> strOption
+   (long "output"
+     <> short 'o'
+     <> help "The output file. If this not given, the program writes to stdout."
+     <> metavar "OUTFILE"))
+
+streamableInputHandle :: StreamableInput -> IO Handle
+streamableInputHandle Stdin = return stdin
+streamableInputHandle (InputFile fname) = openFile fname ReadMode
+
+streamableOutputHandle :: StreamableOutput -> IO Handle
+streamableOutputHandle Stdout = return stdout
+streamableOutputHandle (OutputFile fname) = openFile fname WriteMode
+
+
+-- * Parsers for the integer format
+
+data IntegerFormat = Decimal | Hex deriving (Eq, Show)
+
+integerFormat_ =
+  (flag Decimal Hex
+    (long "hex"
+     <> help "Hexadecimal numbers instead of decimals."))
+
 
 
 -- * Options for the @offset@ command.
 
 offsets_ :: Parser Command
-offsets_ = Offsets <$> argument str (metavar "FILE")
+offsets_ = pure Offsets
 
 offsetsInfo_ :: ParserInfo Command
 offsetsInfo_ =
@@ -136,6 +209,79 @@ offsetsInfo_ =
     (fullDesc
      <> progDesc "Returns the character offsets, lines and columns of the nodes of an XML file."
      <> header "standoff offsets - an xml parser returning node positions."))
+
+
+-- * Options for the @equidist@ command.
+
+equidistant_ :: Parser Command
+equidistant_ = EquidistantText
+  <$> option auto (long "fill"
+                   <> short 'f'
+                   <> metavar "CODEPOINT"
+                   <> help "The character used to fill/replace tags with. A code point has to be given. Defaults to 0x20 (space)."
+                   <> value 0x20
+                   <> showDefault)
+
+
+equidistantInfo_ :: ParserInfo Command
+equidistantInfo_ =
+  (info (equidistant_ <**> version_ <**> helper)
+    (fullDesc
+     <> progDesc "Generates equidistant plain text from an XML input file."
+     <> header "standoff equidist - generate equidistant text."))
+
+
+-- * Options for the @shrink@ command.
+
+shrinkInfo_ :: ParserInfo Command
+shrinkInfo_ =
+  (info (shrink_ <**> version_ <**> helper)
+    (fullDesc
+     <> progDesc "Generates shrinked plain text from an XML input file. If no mapping of tags to replacement characters is given, the default mapping will replace every character inside a tag or processing instruction with the empty string."
+     <> header "standoff shrink - generate shrinked text."))
+
+shrink_ :: Parser Command
+shrink_ = ShrinkedText
+  <$> strOption
+  (long "config"
+    <> metavar "CONFIG_FILE"
+    <> help "Shrinking configuration in yaml format.")
+  <*> shrinkedOutputMode_
+
+
+data ShrinkedOutputMode
+  = ShrinkedOffsetMapping
+    { shrinked_offsetsOut :: FilePath
+    }
+  | ShrinkedSingleCSV
+    { shrinkedSingle_integerFormat :: IntegerFormat
+    , shrinkedSingle_newlineRepl :: Char
+    }
+  deriving (Eq, Show)
+
+
+shrinkedOutputMode_ :: Parser ShrinkedOutputMode
+shrinkedOutputMode_ =
+  fromMaybe defaultFormat <$> optional
+  (ShrinkedOffsetMapping <$> strOption
+    (long "offsets"
+     <> short 'f'
+     <> help "Output the offset mapping into an extra file."
+     <> metavar "OFFSET_MAPPING"))
+  <|>
+  (flag' defaultFormat
+    (long "csv"
+     <> short 'c'
+     <> help "Output the offset mapping and the shrinked text as CSV. (Default)")
+    *> (ShrinkedSingleCSV
+        <$> integerFormat_
+        <*> ((head . (<> "!")) <$> strOption -- ++"!" : assert that 'head' does not fail
+             (long "newline-replacement"
+              <> help "Replace newline characters with this one."
+              <> value ['\n']
+              <> metavar "CHARACTER"))))
+  where
+    defaultFormat = (ShrinkedSingleCSV Decimal '\n')
 
 
 -- * Options for the internalize command
@@ -157,107 +303,152 @@ internalize_ = Internalize
            <> help "Serialize tags setting the tag name variably from the tag's feature named ATTRIBUTE. If ATTRIBUTE is not among the tag's features, FALLBACK is used as tag name.")
          <*> argument str (metavar "")))
   <*> optional (strOption
-                (short 'm'
-                 <> long "mapping"
+                (short 'a'
+                 <> long "attributes"
                  <> help "A mapping file of the external markup's features to tag attributes that will be internalized into the source. If not mapping is given, an empty mapping is used, which means, that no attributes are serialized."
-                 <> metavar "MAPPING"))
+                 <> metavar "FILE"))
   <*> optional (strOption
                 (short 'i'
                  <> long "processing-instruction"
                  <> help "Insert a processing instruction into the result."))
   <*> annotationFormat_
   <*> argument str (metavar "EXTERNAL")
-  <*> argument str (metavar "SOURCE")
+  <*> optional (strOption
+                (short 's'
+                 <> long "offset-mapping"
+                 <> metavar "FILE"
+                 <> help "A file with offset mappings generated by the 'shrink' command. If this is not given, no mapping is applied to the annotations' offsets."))
 
 internalizeInfo_ :: ParserInfo Command
 internalizeInfo_ =
   (info (internalize_ <**> version_ <**> helper)
     (fullDesc
-     <> progDesc "Internalize external annotations given in EXTERNAL into SOURCE.  SOURCE must be a valid XML file, at least it must contain a root node.  EXTERNAL can have different formats.  The MAPPING file controls how the annotated features are serialized to XML."
+     <> progDesc "Internalize external annotations given in EXTERNAL into an XML input file.  EXTERNAL can have different formats.  The MAPPING file controls how the annotated features are serialized to XML."
      <> header "standoff internalize - internalize standoff markup into an xml file."))
 
 
--- * The @owl2csv@ command.
 
-data OntologyFilter = Ontology' | OntologyResource'
-  deriving (Show, Eq)
 
-owl2csv_ :: Parser Command
-owl2csv_ = Owl2Csv
-  <$> (flag' OntologyResource'
-        (long "resource"
-          <> short 'r'
-          <> help "Parse the owl:Class, owl:ObjectProperty and owl:DatatypeProperty to ontology resources.")
-       <|>
-       flag OntologyResource' Ontology'
-        (long "ontology"
-          <> short 'o'
-          <> help "Parse the whole ontology to single CSV line."))
-  <*> strOption (long "csv-delimiter"
-                  <> help "Delimiter for CSV output. Defaults to ',' (comma)."
-                  <> value ","
-                  <> metavar "CHAR")
-  <*> argument str (metavar "INFILE")
+printCSV :: (SL.StringLike s, Show s, Show p) => XmlNode p s s -> IO ()
+printCSV xml =  BL.putStr $ Csv.encodeByNameWith (csvEncodeOptions {Csv.encIncludeHeader = False}) positionHeader [xml]
 
-owl2csvInfo_ :: ParserInfo Command
-owl2csvInfo_ =
-  info (owl2csv_ <**> version_ <**> helper)
-  ( fullDesc
-    <> progDesc "Minimalistic conversion from OWL to CSV for standoff database."
-    <> header "standoff owl2csv - Converts OWL to CSV as needed by standoff database.")
+csvEncodeOptions :: Csv.EncodeOptions
+csvEncodeOptions = Csv.defaultEncodeOptions
+
+offsetsToBinary :: FilePath -> ShrT.OffsetMapping -> IO ()
+offsetsToBinary fName offsets = do
+  BL.writeFile fName (Bin.encode offsets)
+
+offsetsFromBinary :: FilePath -> IO (ShrT.OffsetMapping)
+offsetsFromBinary fName = do
+  c <- BL.readFile fName
+  return $ Bin.decode c
+
+maybeApplyOffsetMapping :: (InflatableMarkup a, Traversable t) => Maybe FilePath -> t a -> IO (t a)
+maybeApplyOffsetMapping (Nothing) annots = return annots
+maybeApplyOffsetMapping (Just fName) annots = do
+  offsetMapping <- offsetsFromBinary fName
+  either fail return $ traverse (ShrT.inflate offsetMapping) annots
 
 
 -- * The @standoff@ commandline program.
 
-run :: Command -> IO ()
-run (Offsets fileName) = do
-  c <- readFile fileName
-  lOffsets <- runLineOffsetParser fileName c
-  nOffsets <- runXmlParser lOffsets fileName c
-  print nOffsets
-run (Internalize
+indexed = 0
+
+run :: GlobalOptions -> IO ()
+run (GlobalOptions input output Offsets) = do
+  inputH <- streamableInputHandle input
+  outputH <- streamableOutputHandle output
+  c <- hGetContents inputH
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  nOffsets <- runXmlParser offsetMapping (show inputH) c
+  BL.hPutStr outputH $ Csv.encodeByNameWith csvEncodeOptions positionHeader ([]::[XmlNode Int String String])
+  mapM_ (traverse_ printCSV ) nOffsets
+run (GlobalOptions input output (EquidistantText fillChar)) = do
+  inputH <- streamableInputHandle input
+  outputH <- streamableOutputHandle output
+  c <- hGetContents inputH
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  xml <- runXmlParser offsetMapping (show inputH) c
+  s <- equidistantText (hPutStr outputH) (chr fillChar) xml c
+  hClose outputH
+  return ()
+run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedOffsetMapping offsetOut))) = do
+  shrinkingCfg <- BL.readFile cfgFile >>=
+    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
+  inputH <- streamableInputHandle input
+  outputH <- streamableOutputHandle output
+  c <- hGetContents inputH
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  xml <- runXmlParser offsetMapping (show inputH) c
+  offsets <- shrinkedText (hPutStr outputH) shrinkingCfg xml c
+  hClose outputH
+  offsetsToBinary offsetOut offsets
+  return ()
+run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedSingleCSV integerFormat newlineRepl))) = do
+  shrinkingCfg <- BL.readFile cfgFile >>=
+    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
+  inputH <- streamableInputHandle input
+  outputH <- streamableOutputHandle output
+  c <- hGetContents inputH
+  offsetMapping <- parsecOffsetMapping indexed (show inputH) c
+  xml <- runXmlParser offsetMapping (show inputH) c
+  (offsets, txt) <- runWriterT (shrinkedText tell shrinkingCfg xml c)
+  BL.hPut outputH $ Csv.encode $
+    zip3 (map formatInt offsets) (map replaceNewlines $ SL.unpack txt) (map formatInt ([1 ..] :: [Int]))
+  hClose outputH
+  return ()
+  where
+    replaceNewlines '\n' = newlineRepl
+    replaceNewlines c = c
+    formatInt i
+      | integerFormat == Hex = showHex i ""
+      | otherwise = showInt i ""
+run (GlobalOptions input output
+     (Internalize
      tagSlizer
-     mappingFile
+     featureMappingFile
      procInstr
      annFormat
      annFile
-     xmlFile) = do
-  attrsMapping <- readAttrsMapping mappingFile
+     offsetMappingFile)) = do
+  attrsMapping <- readAttrsMapping featureMappingFile
   let tagSlizer' = ((getTagSerializer tagSlizer) (mapExternal attrsMapping))
 
-  xmlContents <- readFile xmlFile
-  lOffsets <- runLineOffsetParser xmlFile xmlContents
-  xml <- runXmlParser lOffsets xmlFile xmlContents
-  let internal = filter isElementP xml
+  inputH <- streamableInputHandle input
+  xmlContents <- hGetContents inputH
+  sourcePosMapping <- parsecOffsetMapping indexed (show inputH) xmlContents
+  xml <- runXmlParser sourcePosMapping (show inputH) xmlContents
+  let internal = xml --filter isElementP xml  -- FIXME: do we have to filter?
 
   annotsH <- openFile annFile ReadMode
-  external <- (getAnnotationsParser annFormat) lOffsets decodeUtf8 annotsH
+  external <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping sourcePosMapping) decodeUtf8 annotsH
 
-  let internalzd = internalize xmlContents internal external tagSlizer'
-  putStr $ postProcess xml internalzd
-  where
-    postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
-    insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
-    insertAt s Nothing _ = s
-    behindXMLDeclOrTop x
-      | length decl == 1 = (posOffset $ snd $ xmlSpanning $ head decl) - 1
-      | otherwise = 0
-      where decl = filter isXMLDeclarationP x
-run (Owl2Csv ontFilter csvDelimiter inFile) = do
-  parsed <- runOwlParser inFile
-  B.putStr $ Csv.encodeWith csvOpts $ map ReadOwl $ filter (predicate ontFilter) parsed
-  where
-    csvOpts = Csv.defaultEncodeOptions {
-      Csv.encDelimiter = fromIntegral $ ord $ head csvDelimiter
-      }
-    predicate :: OntologyFilter -> (Ontology -> Bool)
-    predicate (Ontology') = isOntology
-    predicate (OntologyResource') = isOntologyResource
+  external' <- maybeApplyOffsetMapping offsetMappingFile external
+
+  either fail return $ annotationsOnRestrictedTrees external' xml
+
+  outputH <- streamableOutputHandle output
+  let internalzd = internalize xmlContents internal external' tagSlizer'
+  hPutStr outputH internalzd -- $ postProcess xml internalzd
+  hClose outputH
+  -- FIXME: postProcess again
+  -- where
+  --   postProcess x rs = insertAt rs procInstr (behindXMLDeclOrTop x)
+  --   insertAt s (Just new) pos = (take pos s) ++ "\n" ++ new ++ (drop (pos) s)
+  --   insertAt s Nothing _ = s
+  --   behindXMLDeclOrTop x
+  --     | length decl == 1 = (posOffset $ snd $ nodeRange $ head decl) - 1
+  --     | otherwise = 0
+  --     where decl = filter isXMLDeclarationP x
 
 
-opts :: ParserInfo Command
+globalOpts_ :: Parser GlobalOptions
+globalOpts_ = GlobalOptions <$> streamableInput_ <*> streamableOutput_ <*> command_
+
+opts :: ParserInfo GlobalOptions
 opts = info
-       (command_  <**> version_ <**> helper)
+       (globalOpts_ <**> version_ <**> helper)
        (fullDesc <>
          header "standoff - a tool for handling standoff annotations (aka external markup)." <>
          progDesc "standoff offers commands for parsing a dump file that contains external markup and for internalizing such external markup into an xml file. There is also a command for getting the positions of the tags of an xml file." <>
