@@ -18,6 +18,8 @@ module StandOff.TextRange
   , endRightForbidden
   , forbidden
   , inTag
+  , touches
+  , touchesAny
   -- * Splitting
   , leftSplit
   , rightSplit
@@ -149,6 +151,16 @@ forbidden' :: (TextRange a1, TextRange a2) =>
            -> a1 -> a2 -> Bool
 forbidden' xPt ySplPts x y = xPt x > fst spltPts && xPt x < snd spltPts
   where spltPts = ySplPts $ splitPoints y
+
+-- | Returns True if a extends into the span of b.
+touches :: (TextRange n1, TextRange n2) => n1 -> n2 -> Bool
+touches a b = not (a `before` b || a `behind` b)
+
+-- | Returns True if a extends into the span of any b.
+touchesAny :: (TextRange n1, TextRange n2) => n1 -> [n2] -> Bool
+touchesAny _a [] = False
+touchesAny a (b:bs) = a `touches` b || a `touchesAny` bs
+
 
 -- | left-split first range by second range
 leftSplit :: (TextRange a1, TextRange a2) => MainSplit -> a1 -> a2 -> (a1, a1)
