@@ -19,7 +19,10 @@ module StandOff.DomTypeDefs
   , mkNsEnv
   , mkQNameWithNsEnv
   , validateQName
-  , mkShrinkingNodeConfig
+  , shrinkOpenNode
+  , shrinkCloseNode
+  , XmlShrinkingConfig
+  , mkXmlShrinkingConfig
   , nodeRange
   , openTagRange
   , closeTagRange
@@ -273,24 +276,38 @@ instance StringLike s => EquidistantNode (XmlNode Int n) s where
 
 -- * Shrinked text
 
-instance (Eq n, Ord n, StringLike s) => ShrinkingNode (XmlNode Int) n s where
-  shrinkOpen _ n@(TextNode _ _ _) s offsets =
-    (SL.take l s, (SL.drop l s, offsets <> mapOpenOffsets n l))
-    where
-      l = openTagLength id n
-  -- TODO: char refs and entity refs
-  -- use replacements for all other kinds of nodes
-  shrinkOpen cfg n s offsets =
-    (txt, (SL.drop seen s, offsets <> mapOpenOffsets n l))
-    where
-      txt = replaceOpen cfg n
-      l = SL.length txt
-      seen = openTagLength id n -- length of input seen
-  shrinkClose cfg n s offsets = (txt, (SL.drop seen s, offsets <> mapCloseOffsets n l))
-    where
-      txt = replaceClose cfg n
-      l = SL.length txt
-      seen = closeTagLength id n -- length of input seen
+-- | Function to be used with 'shrinkedText''.
+shrinkOpenNode
+  :: (Eq n, Ord n, StringLike s) =>
+     (XmlShrinkingConfig n s) -- ^ the config
+  -> (XmlNode Int n s)        -- ^ a node
+  -> s                        -- ^ the document as a string, rest to be processed
+  -> (s,                      -- ^ output string for this open tag
+      s,                      -- ^ rest of the doc after processing this open tag
+      OffsetMapping)          -- ^ offset mapping for the characters in the output string
+shrinkOpenNode _ n@(TextNode _ _ _) doc = (SL.take l doc, SL.drop l doc, mapOpenOffsets n l)
+  where
+    l = openTagLength id n
+shrinkOpenNode cfg node doc = (txt, SL.drop seen doc, mapOpenOffsets node l)
+  where
+    txt = shrinkingOpenNodeReplacement cfg node
+    l = SL.length txt
+    seen = openTagLength id node -- length of input seen
+
+-- | Function to be used with 'shrinkedText''.
+shrinkCloseNode
+  :: (Eq n, Ord n, StringLike s) =>
+     (XmlShrinkingConfig n s) -- ^ the config
+  -> (XmlNode Int n s)        -- ^ a node
+  -> s                        -- ^ the document as a string, rest to be processed
+  -> (s,                      -- ^ output string for this open tag
+      s,                      -- ^ rest of the doc after processing this open tag
+      OffsetMapping)          -- ^ offset mapping for the characters in the output string
+shrinkCloseNode cfg node doc = (txt, SL.drop seen doc, mapCloseOffsets node l)
+  where
+    txt = shrinkingCloseNodeReplacement cfg node
+    l = SL.length txt
+    seen = closeTagLength id node -- length of input seen
 
 
 -- | How to map the offsets of an open tag to a count of new offsets.
@@ -370,12 +387,6 @@ data ShrinkingNodeReplacement s = ShrinkingNodeReplacement
 -- | A mapping of entity names to resolved strings.
 type EntityResolver s = Map String s
 
-
--- This does not work, because the compiler wants it for all node
--- which are a ShrinkingNode!
-instance (Ord k, StringLike s) => ShrinkingNodeConfig (XmlShrinkingConfig k s) where
-  replaceOpen cfg node = shrinkingOpenNodeReplacement cfg node
-  replaceClose cfg node = shrinkingCloseNodeReplacement cfg node
 
 -- ** Parsing the config from yaml
 
