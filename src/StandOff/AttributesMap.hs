@@ -133,7 +133,7 @@ appendSplitId tag attrs
 appendPrevId :: IdentifiableSplit a => a -> ExternalAttributes -> ExternalAttributes
 appendPrevId tag attrs
   | fmap (>0) (splitNum tag) == (Just True)
-  = Map.insert "__standoff_special__prevId" ("#" <> splitIdValue (markupId tag) (fmap (\x -> x - 1) $ splitNum tag)) attrs
+  = Map.insert "__standoff_special__prevId" (splitIdValue (markupId tag) (fmap (\x -> x - 1) $ splitNum tag)) attrs
   | otherwise = attrs
 
 splitIdValue :: Maybe String -> Maybe Int -> String
