@@ -336,7 +336,8 @@ shrinkingOpenNodeReplacement cfg (EmptyElement name' _ _ _) =
   _shrinkRepl_empty $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
 shrinkingOpenNodeReplacement _ (TextNode txt _ _) = txt
 shrinkingOpenNodeReplacement _ (CharRef c _ _) = SL.singleton $ chr c
-shrinkingOpenNodeReplacement cfg (EntityRef entity _ _) = SL.empty -- TODO / FIXME
+shrinkingOpenNodeReplacement cfg (EntityRef ent _ _) =
+  fromMaybe (_shrinkCfg_defaultEntityReplacement cfg) $ Map.lookup ent $ _shrinkCfg_entityReplacements cfg
 -- all other types of nodes are muted
 shrinkingOpenNodeReplacement _ _ = SL.empty
 
@@ -366,9 +367,11 @@ data XmlShrinkingConfig k s = XmlShrinkingConfig
   { _shrinkCfg_tagReplacements :: (ShrinkingNodeReplacements k s)
   , _shrinkCfg_defaultTagReplacement :: ShrinkingNodeReplacement s
   , _shrinkCfg_defaultPiReplacement :: s
-  -- replacing entities should be done by the parser!?
+  -- replacing entities should be done by the parser!?  No! But
+  -- parsing internal entities should be done.  Then they should go
+  -- here and be applied for shrinked text only.
   , _shrinkCfg_entityReplacements :: EntityResolver s
-  , _shrinkCfg_defaultEntityReplacements :: s
+  , _shrinkCfg_defaultEntityReplacement :: s
   }
   deriving (Show, Generic)
 
@@ -387,6 +390,14 @@ data ShrinkingNodeReplacement s = ShrinkingNodeReplacement
 -- | A mapping of entity names to resolved strings.
 type EntityResolver s = Map String s
 
+builtinEntities :: (StringLike s) => EntityResolver s
+builtinEntities = Map.fromList
+  [ ("lt", SL.singleton '<')
+  , ("gt", SL.singleton '>')
+  , ("amp", SL.singleton '&')
+  , ("apos", SL.singleton '\'')
+  , ("quot", SL.singleton '"')
+  ]
 
 -- ** Parsing the config from yaml
 
@@ -440,8 +451,8 @@ adaptShrinkingConfig nameFun sFun cfg = XmlShrinkingConfig
        _shrinkCfg_tagReplacements cfg)
   <*> (adaptShrinkingNodeReplacement sFun $ _shrinkCfg_defaultTagReplacement cfg)
   <*> (sFun $ _shrinkCfg_defaultPiReplacement cfg)
-  <*> (pure Map.empty)
-  <*> (sFun $ _shrinkCfg_defaultEntityReplacements cfg)
+  <*> (traverse sFun $ (Map.union builtinEntities $ _shrinkCfg_entityReplacements cfg))
+  <*> (sFun $ _shrinkCfg_defaultEntityReplacement cfg)
 
 
 adaptShrinkingNodeReplacement
