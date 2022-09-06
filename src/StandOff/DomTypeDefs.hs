@@ -200,6 +200,14 @@ instance MarkupTree NT.NTree (XmlNode Int n s) where
   getChildren (NT.NTree _ cs) = cs
   getNode (NT.NTree n _) = n
 
+instance RestrictedForrest NT.NTree (XmlNode Int n a) where
+  treeConditions trees = map mkElementAnnotatable trees
+    where
+      mkElementAnnotatable :: NT.NTree (XmlNode Int n a) -> AnnotationCond (NT.NTree (XmlNode Int n a))
+      mkElementAnnotatable t
+        | (==ElementNode) $ nodeType $ getNode t = Annotatable t
+        | otherwise = Restricted t
+
 instance (Show n, Show p) => Csv.ToNamedRecord (XmlNode p n s) where
   toNamedRecord n = Csv.namedRecord
     [ "type" .= (show $ nodeType n)
