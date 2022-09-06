@@ -32,6 +32,7 @@ import StandOff.EquidistantText
 import StandOff.ShrinkedText hiding (OffsetMapping)
 import qualified StandOff.ShrinkedText as ShrT
 import qualified StandOff.StringLike as SL
+import StandOff.MarkupTree
 
 import StandOff.External.StandoffModeDump
 import StandOff.External.GenericCsv
@@ -424,6 +425,8 @@ run (GlobalOptions input output
   external <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping sourcePosMapping) decodeUtf8 annotsH
 
   external' <- maybeApplyOffsetMapping offsetMappingFile external
+
+  either fail return $ annotationsOnRestrictedTrees external' xml
 
   outputH <- streamableOutputHandle output
   let internalzd = internalize xmlContents internal external' tagSlizer'
