@@ -112,6 +112,16 @@ test_charrefMappedChars = do
   validateMappedCharacters "charref"
 
 
+test_entityrefShrinkedTXT = do
+  validateShrinkedTXT "entityref"
+
+test_entityrefOffsetMapping = do
+  validateOffsetMapping "entityref"
+
+test_entityrefMappedEntitys = do
+  validateMappedCharacters "entityref"
+
+
 test_advancedShrinkedTXT = do
   validateShrinkedTXT "advanced"
 
