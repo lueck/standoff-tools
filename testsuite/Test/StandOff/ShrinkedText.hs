@@ -34,11 +34,11 @@ validateShrinkedTXT base = do
   let cfgFile = "testsuite/annotations-shrinked/shrink.yaml"
   expected <- readFile shrinkedTxtPath
   shrinkingCfg <- BL.readFile cfgFile >>=
-    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
+    mkXmlShrinkingConfig (const (Right . T.unpack)) (Right . T.unpack)
   c <- readFile xmlFile
   offsetMapping <- parsecOffsetMapping indexed xmlFile c
   xml <- runXmlParser offsetMapping xmlFile c
-  (_offsets, txt) <- runWriterT (shrinkedText tell shrinkingCfg xml c)
+  (_offsets, txt) <- runWriterT (shrinkedText' tell (shrinkOpenNode shrinkingCfg) (shrinkCloseNode shrinkingCfg) xml c)
   assertEqual expected txt
 
 -- | Validate that the produced offset mapping for BASE xml equals to
@@ -51,11 +51,11 @@ validateOffsetMapping base = do
   let cfgFile = "testsuite/annotations-shrinked/shrink.yaml"
   expected <- BL.readFile offsetsPath
   shrinkingCfg <- BL.readFile cfgFile >>=
-    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
+    mkXmlShrinkingConfig (const (Right . T.unpack)) (Right . T.unpack)
   c <- readFile xmlFile
   offsetMapping <- parsecOffsetMapping indexed xmlFile c
   xml <- runXmlParser offsetMapping xmlFile c
-  (offsets, _txt) <- runWriterT (shrinkedText tell shrinkingCfg xml c)
+  (offsets, _txt) <- runWriterT (shrinkedText' tell (shrinkOpenNode shrinkingCfg) (shrinkCloseNode shrinkingCfg) xml c)
   assertEqual (Bin.decode expected) offsets
 
 -- | Validate that all characters' offsets in the given shrinked text
@@ -68,11 +68,11 @@ validateMappedCharacters base = do
   let cfgFile = "testsuite/annotations-shrinked/shrink.yaml"
   expected <- readFile shrinkedTxtPath
   shrinkingCfg <- BL.readFile cfgFile >>=
-    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
+    mkXmlShrinkingConfig (const (Right . T.unpack)) (Right . T.unpack)
   xmlString :: String <- readFile xmlFile
   offsetMapping <- parsecOffsetMapping indexed xmlFile xmlString
   xml <- runXmlParser offsetMapping xmlFile xmlString
-  (offsets, _txt) <- runWriterT (shrinkedText tell shrinkingCfg xml xmlString)
+  (offsets, _txt) <- runWriterT (shrinkedText' tell (shrinkOpenNode shrinkingCfg) (shrinkCloseNode shrinkingCfg) xml xmlString)
 
   mapM_ (uncurry (validateSingleMappedChar xmlString offsets)) $ zip [indexed ..] expected
 
