@@ -153,6 +153,27 @@ test_splitSimpleInternalizeCSV = do
     take 54 $ internalize c xml [head ans] aTagSerializer
 
 
+test_prologRestricted = do
+  let fPath = "testsuite/pi.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  assertLeft $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 1 10]
+  assertLeft $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 0x4a 100]
+  assertLeft $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 0x4b 100]
+  assertRight $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 0x4c 100]
+
+test_epilogRestricted = do
+  let fPath = "testsuite/comment.xml"
+  c <- readFile fPath
+  offsetMapping <- parsecOffsetMapping indexed (show fPath) c
+  xml <- runXmlParser offsetMapping (show fPath) c
+  assertRight $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 100 0x34e]
+  assertLeft $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 100 0x34f]
+  assertLeft $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 0x34f 0x360]
+  assertLeft $ flip annotationsOnRestrictedTrees xml $ [mRng "a" "a" "a" 0x360 0x380]
+
+
 -- * Validatations based on testsuite/annotations/*.csv
 
 -- ** Helper functions
