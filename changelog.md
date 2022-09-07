@@ -1,5 +1,9 @@
 # Changes #
 
+- 0.2.1.0
+  - fixed issue #6
+  - changed `OffsetMapping` data structure
+
 - 0.2.0.0
   - extended the design for annotation pipelines around existing tools
     for plain text analysis

@@ -1,5 +1,5 @@
 name:                standoff-tools
-version:             0.2.0.0
+version:             0.2.1.0
 synopsis:            Tools for managing stand-off markup.
 github:		     "lueck/standoff-tools"
 license:             GPL-3
