@@ -359,6 +359,9 @@ test_mergeCSVEntityRefStartForbidden = do
   validateMergeCasesFromCSV "entityref" "start-forbidden"
 
 
+test_internalizeShrinkedEntityRefMove4 = do
+  validateShrinkedInternalizationCases "entityref" "move4"
+
 
 -- ** comment
 
