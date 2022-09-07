@@ -315,6 +315,7 @@ shrinkCloseNode cfg node doc = (txt, SL.drop seen doc, mapCloseOffsets node l)
 mapOpenOffsets :: (XmlNode Int n s) -> Int -> OffsetMapping
 mapOpenOffsets n@(TextNode _ _ _) len = map ((\i -> (i,i)) . (+ (TR.start n))) $ take len [0..]
 mapOpenOffsets (CharRef _ s e) _len = [(s,e)] -- (s,e) for including charref in annot, see #6
+mapOpenOffsets (EntityRef _ s e) _len = [(s,e)]
 mapOpenOffsets node len = map (\i -> (i,i)) $ take len $ repeat $ TR.start node
 -- mapOffsets strt len = map (+ (TR.start node)) $ take len [0..]
 
