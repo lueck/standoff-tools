@@ -340,7 +340,6 @@ test_internalizeCSVCharRefMove7 = do
 
 
 test_internalizeShrinkedCharRefMove16 = do
-  unitTestPending "charref in internalizing from shrinked: should be included if annotation starts this character. See cases 3."
   validateShrinkedInternalizationCases "charref" "move16"
 
 
