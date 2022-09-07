@@ -58,17 +58,17 @@ instance IdentifiableSplit GenericCsvMarkup where
 
 instance InflatableMarkup GenericCsvMarkup where
   inflate offsets annot = NamedGenericCsvMarkup
-    <$> (mapOffsets $ ncsv_start annot)
-    <*> (mapOffsets $ ncsv_end annot)
+    <$> (mapOffsets fst $ ncsv_start annot)
+    <*> (mapOffsets snd $ ncsv_end annot)
     <*> (Right $ ncsv_features annot)
     <*> (Right $ ncsv_splitNum annot)
     where
-      mapOffsets :: Int -> Either String Int
-      mapOffsets pos = fromMaybe
+      mapOffsets :: ((Int, Int) -> Int) -> Int -> Either String Int
+      mapOffsets fstOrSnd pos = fromMaybe
         (Left $ "Position " ++ show pos ++
          " in annotation " ++ show annot ++
          " exceeds the domain of the offset mapping") $
-        fmap Right $ offsets ^? element pos
+        fmap (Right . fstOrSnd) $ offsets ^? element pos
 
 
 -- * Parse CSV

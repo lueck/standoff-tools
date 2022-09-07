@@ -87,7 +87,7 @@ validateMappedCharacters base = do
         | otherwise = return ()
       validateChar :: HasCallStack => String -> OffsetMapping -> Int -> Char -> IO ()
       validateChar xmlString offsets pos c = do
-        assertEqual c $ head $ drop (offsets !! pos) xmlString
+        assertEqual c $ head $ drop (fst (offsets !! pos)) xmlString
 
 
 -- * Run the tests on testsuite/annotations-shrinked/BASE.shrinked.txt

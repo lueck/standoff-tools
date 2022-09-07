@@ -16,6 +16,7 @@ import qualified Data.Binary as Bin
 import Control.Monad.Writer
 import Data.Maybe
 import Numeric (showInt, showHex)
+import Data.List
 
 import Data.Version (showVersion)
 import Paths_standoff_tools (version)
@@ -394,8 +395,11 @@ run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedSingleCSV integer
   offsetMapping <- parsecOffsetMapping indexed (show inputH) c
   xml <- runXmlParser offsetMapping (show inputH) c
   (offsets, txt) <- runWriterT (shrinkedText' tell (shrinkOpenNode shrinkingCfg) (shrinkCloseNode shrinkingCfg) xml c)
-  BL.hPut outputH $ Csv.encode $
-    zip3 (map formatInt offsets) (map replaceNewlines $ SL.unpack txt) (map formatInt ([1 ..] :: [Int]))
+  BL.hPut outputH $ Csv.encode $ zip4
+    (map (formatInt . fst) offsets)
+    (map (formatInt . snd) offsets)
+    (map replaceNewlines $ SL.unpack txt)
+    (map formatInt ([1 ..] :: [Int]))
   hClose outputH
   return ()
   where
