@@ -312,15 +312,16 @@ shrinkCloseNode cfg node doc = (txt, SL.drop seen doc, mapCloseOffsets node l)
 
 -- | How to map the offsets of an open tag to a count of new offsets.
 -- Should it be [666, 667, 668] or [666, 666, 666] ?
-mapOpenOffsets :: (XmlNode Int n s) -> Int -> [Int]
-mapOpenOffsets n@(TextNode _ _ _) len = map (+ (TR.start n)) $ take len [0..]
-mapOpenOffsets node len = take len $ repeat $ TR.start node
+mapOpenOffsets :: (XmlNode Int n s) -> Int -> OffsetMapping
+mapOpenOffsets n@(TextNode _ _ _) len = map ((\i -> (i,i)) . (+ (TR.start n))) $ take len [0..]
+mapOpenOffsets (CharRef _ s e) _len = [(s,e)] -- (s,e) for including charref in annot, see #6
+mapOpenOffsets node len = map (\i -> (i,i)) $ take len $ repeat $ TR.start node
 -- mapOffsets strt len = map (+ (TR.start node)) $ take len [0..]
 
 -- | How to map the offsets of a close tag to a count of new offsets.
 -- Should it be [666, 667, 668] or [666, 666, 666] ?
-mapCloseOffsets :: (XmlNode Int n s) -> Int -> [Int]
-mapCloseOffsets node len = take len $ repeat $ TR.end node
+mapCloseOffsets :: (XmlNode Int n s) -> Int -> OffsetMapping
+mapCloseOffsets node len = take len $ map (\i -> (i,i)) $ repeat $ TR.end node
 -- mapOffsets strt len = map (+ (TR.close node)) $ take len [0..]
 
 

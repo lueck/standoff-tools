@@ -83,17 +83,17 @@ instance IdentifiableSplit GenericMarkup where
 
 instance InflatableMarkup GenericMarkup where
   inflate offsets annot = GenericMarkup
-    <$> (mapOffsets $ genmrkp_start annot)
-    <*> (mapOffsets $ genmrkp_end annot)
+    <$> (mapOffsets fst $ genmrkp_start annot)
+    <*> (mapOffsets snd $ genmrkp_end annot)
     <*> (Right $ genmrkp_features annot)
     <*> (Right $ genmrkp_splitNum annot)
     where
-      mapOffsets :: Int -> Either String Int
-      mapOffsets pos = fromMaybe
+      mapOffsets :: ((Int, Int) -> Int) -> Int -> Either String Int
+      mapOffsets fstOrSnd pos = fromMaybe
         (Left $ "Position " ++ show pos ++
          " in annotation " ++ show annot ++
          " exceeds the domain of the offset mapping") $
-        fmap Right $ offsets ^? element pos
+        fmap (Right . fstOrSnd) $ offsets ^? element pos
 
 
 genMrkp :: (TextRange a, ToAttributes a, IdentifiableSplit a) => a -> GenericMarkup

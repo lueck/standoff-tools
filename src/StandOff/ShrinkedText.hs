@@ -22,7 +22,7 @@ import StandOff.XTraverse
 -- | A mapping of offsets in the XML file to offsets in the generated
 -- plain text file. The list index represents the XML offset, the
 -- element value the offset in the plain text file.
-type OffsetMapping = [Int]
+type OffsetMapping = [(Int, Int)]
 
 -- data OffsetMapping = OffsetMapping
 --   { offsetMap_offsetMapping :: [Int] -- ^ mapping of character offsets
