@@ -16,6 +16,7 @@ import qualified Data.Binary as Bin
 import Control.Monad.Writer
 import Data.Maybe
 import Numeric (showInt, showHex)
+import Data.List
 
 import Data.Version (showVersion)
 import Paths_standoff_tools (version)
@@ -375,27 +376,30 @@ run (GlobalOptions input output (EquidistantText fillChar)) = do
   return ()
 run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedOffsetMapping offsetOut))) = do
   shrinkingCfg <- BL.readFile cfgFile >>=
-    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
+    mkXmlShrinkingConfig (const (Right . T.unpack)) (Right . T.unpack)
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
   offsetMapping <- parsecOffsetMapping indexed (show inputH) c
   xml <- runXmlParser offsetMapping (show inputH) c
-  offsets <- shrinkedText (hPutStr outputH) shrinkingCfg xml c
+  offsets <- shrinkedText' (hPutStr outputH) (shrinkOpenNode shrinkingCfg) (shrinkCloseNode shrinkingCfg) xml c
   hClose outputH
   offsetsToBinary offsetOut offsets
   return ()
 run (GlobalOptions input output (ShrinkedText cfgFile (ShrinkedSingleCSV integerFormat newlineRepl))) = do
   shrinkingCfg <- BL.readFile cfgFile >>=
-    mkShrinkingNodeConfig (const (Right . T.unpack)) (Right . T.unpack)
+    mkXmlShrinkingConfig (const (Right . T.unpack)) (Right . T.unpack)
   inputH <- streamableInputHandle input
   outputH <- streamableOutputHandle output
   c <- hGetContents inputH
   offsetMapping <- parsecOffsetMapping indexed (show inputH) c
   xml <- runXmlParser offsetMapping (show inputH) c
-  (offsets, txt) <- runWriterT (shrinkedText tell shrinkingCfg xml c)
-  BL.hPut outputH $ Csv.encode $
-    zip3 (map formatInt offsets) (map replaceNewlines $ SL.unpack txt) (map formatInt ([1 ..] :: [Int]))
+  (offsets, txt) <- runWriterT (shrinkedText' tell (shrinkOpenNode shrinkingCfg) (shrinkCloseNode shrinkingCfg) xml c)
+  BL.hPut outputH $ Csv.encode $ zip4
+    (map (formatInt . fst) offsets)
+    (map (formatInt . snd) offsets)
+    (map replaceNewlines $ SL.unpack txt)
+    (map formatInt ([1 ..] :: [Int]))
   hClose outputH
   return ()
   where

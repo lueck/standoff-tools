@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -18,7 +19,10 @@ module StandOff.DomTypeDefs
   , mkNsEnv
   , mkQNameWithNsEnv
   , validateQName
-  , mkShrinkingNodeConfig
+  , shrinkOpenNode
+  , shrinkCloseNode
+  , XmlShrinkingConfig
+  , mkXmlShrinkingConfig
   , nodeRange
   , openTagRange
   , closeTagRange
@@ -31,6 +35,7 @@ import qualified Text.XML.HXT.DOM.TypeDefs as XNT
 import qualified Data.Csv as Csv
 import Data.Csv ((.=))
 import qualified Data.Vector as V
+import Data.Map.Strict (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Monoid ((<>))
@@ -40,6 +45,8 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.YAML as Y
 import Data.YAML ((.!=), (.:?))
 import Data.Char (chr)
+import GHC.Generics
+import Control.Monad
 
 import qualified StandOff.TextRange as TR
 import StandOff.EquidistantText
@@ -47,6 +54,7 @@ import StandOff.ShrinkedText
 import StandOff.StringLike (StringLike)
 import qualified StandOff.StringLike as SL
 import StandOff.MarkupTree
+import StandOff.Utils
 
 -- | An attribute is a name value pair
 data Attribute n v = Attribute n v deriving (Show)
@@ -268,44 +276,60 @@ instance StringLike s => EquidistantNode (XmlNode Int n) s where
 
 -- * Shrinked text
 
-instance (Eq n, Ord n, StringLike s) => ShrinkingNode (XmlNode Int) n s where
-  shrinkOpen _ n@(TextNode _ _ _) s offsets =
-    (SL.take l s, (SL.drop l s, offsets <> mapOpenOffsets n l))
-    where
-      l = openTagLength id n
-  -- TODO: char refs and entity refs
-  -- use replacements for all other kinds of nodes
-  shrinkOpen cfg n s offsets =
-    (txt, (SL.drop seen s, offsets <> mapOpenOffsets n l))
-    where
-      txt = shrinkingOpenNodeReplacement cfg n
-      l = SL.length txt
-      seen = openTagLength id n -- length of input seen
-  shrinkClose cfg n s offsets = (txt, (SL.drop seen s, offsets <> mapCloseOffsets n l))
-    where
-      txt = shrinkingCloseNodeReplacement cfg n
-      l = SL.length txt
-      seen = closeTagLength id n -- length of input seen
+-- | Function to be used with 'shrinkedText''.
+shrinkOpenNode
+  :: (Eq n, Ord n, StringLike s) =>
+     (XmlShrinkingConfig n s) -- ^ the config
+  -> (XmlNode Int n s)        -- ^ a node
+  -> s                        -- ^ the document as a string, rest to be processed
+  -> (s,                      -- ^ output string for this open tag
+      s,                      -- ^ rest of the doc after processing this open tag
+      OffsetMapping)          -- ^ offset mapping for the characters in the output string
+shrinkOpenNode _ n@(TextNode _ _ _) doc = (SL.take l doc, SL.drop l doc, mapOpenOffsets n l)
+  where
+    l = openTagLength id n
+shrinkOpenNode cfg node doc = (txt, SL.drop seen doc, mapOpenOffsets node l)
+  where
+    txt = shrinkingOpenNodeReplacement cfg node
+    l = SL.length txt
+    seen = openTagLength id node -- length of input seen
+
+-- | Function to be used with 'shrinkedText''.
+shrinkCloseNode
+  :: (Eq n, Ord n, StringLike s) =>
+     (XmlShrinkingConfig n s) -- ^ the config
+  -> (XmlNode Int n s)        -- ^ a node
+  -> s                        -- ^ the document as a string, rest to be processed
+  -> (s,                      -- ^ output string for this open tag
+      s,                      -- ^ rest of the doc after processing this open tag
+      OffsetMapping)          -- ^ offset mapping for the characters in the output string
+shrinkCloseNode cfg node doc = (txt, SL.drop seen doc, mapCloseOffsets node l)
+  where
+    txt = shrinkingCloseNodeReplacement cfg node
+    l = SL.length txt
+    seen = closeTagLength id node -- length of input seen
 
 
 -- | How to map the offsets of an open tag to a count of new offsets.
 -- Should it be [666, 667, 668] or [666, 666, 666] ?
-mapOpenOffsets :: (XmlNode Int n s) -> Int -> [Int]
-mapOpenOffsets n@(TextNode _ _ _) len = map (+ (TR.start n)) $ take len [0..]
-mapOpenOffsets node len = take len $ repeat $ TR.start node
+mapOpenOffsets :: (XmlNode Int n s) -> Int -> OffsetMapping
+mapOpenOffsets n@(TextNode _ _ _) len = map ((\i -> (i,i)) . (+ (TR.start n))) $ take len [0..]
+mapOpenOffsets (CharRef _ s e) _len = [(s,e)] -- (s,e) for including charref in annot, see #6
+mapOpenOffsets (EntityRef _ s e) _len = [(s,e)]
+mapOpenOffsets node len = map (\i -> (i,i)) $ take len $ repeat $ TR.start node
 -- mapOffsets strt len = map (+ (TR.start node)) $ take len [0..]
 
 -- | How to map the offsets of a close tag to a count of new offsets.
 -- Should it be [666, 667, 668] or [666, 666, 666] ?
-mapCloseOffsets :: (XmlNode Int n s) -> Int -> [Int]
-mapCloseOffsets node len = take len $ repeat $ TR.end node
+mapCloseOffsets :: (XmlNode Int n s) -> Int -> OffsetMapping
+mapCloseOffsets node len = take len $ map (\i -> (i,i)) $ repeat $ TR.end node
 -- mapOffsets strt len = map (+ (TR.close node)) $ take len [0..]
 
 
 -- | Get the replacement for a node's open tag from the config.
 shrinkingOpenNodeReplacement
   :: (StringLike s, Ord k) =>
-     ShrinkingNodeConfig k s
+     XmlShrinkingConfig k s
   -> (XmlNode p k s)
   -> s
 shrinkingOpenNodeReplacement cfg (Element name' _ _ _ _ _) =
@@ -314,7 +338,8 @@ shrinkingOpenNodeReplacement cfg (EmptyElement name' _ _ _) =
   _shrinkRepl_empty $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
 shrinkingOpenNodeReplacement _ (TextNode txt _ _) = txt
 shrinkingOpenNodeReplacement _ (CharRef c _ _) = SL.singleton $ chr c
-shrinkingOpenNodeReplacement cfg (EntityRef entity _ _) = SL.empty -- TODO / FIXME
+shrinkingOpenNodeReplacement cfg (EntityRef ent _ _) =
+  fromMaybe (_shrinkCfg_defaultEntityReplacement cfg) $ Map.lookup ent $ _shrinkCfg_entityReplacements cfg
 -- all other types of nodes are muted
 shrinkingOpenNodeReplacement _ _ = SL.empty
 
@@ -322,12 +347,124 @@ shrinkingOpenNodeReplacement _ _ = SL.empty
 -- | Get the replacement for a node's close tag from the config.
 shrinkingCloseNodeReplacement
   :: (StringLike s, Ord k) =>
-     ShrinkingNodeConfig k s
+     XmlShrinkingConfig k s
   -> (XmlNode p k s)
   -> s
 shrinkingCloseNodeReplacement cfg (Element name' _ _ _ _ _) =
   _shrinkRepl_close $ fromMaybe (_shrinkCfg_defaultTagReplacement cfg) $ Map.lookup name' $ _shrinkCfg_tagReplacements cfg
 shrinkingCloseNodeReplacement _ _ = SL.empty
+
+
+-- * Shrinking Configuration
+
+-- Maybe the configuration types etc. should be move to XmlNode and
+-- we should only use @c k s@ as an abstract configuration with type
+-- parameters.
+
+-- ** Types
+
+-- | A record for the configuration that determines shrinking of
+-- all kinds of nodes.
+data XmlShrinkingConfig k s = XmlShrinkingConfig
+  { _shrinkCfg_tagReplacements :: (ShrinkingNodeReplacements k s)
+  , _shrinkCfg_defaultTagReplacement :: ShrinkingNodeReplacement s
+  , _shrinkCfg_defaultPiReplacement :: s
+  -- replacing entities should be done by the parser!?  No! But
+  -- parsing internal entities should be done.  Then they should go
+  -- here and be applied for shrinked text only.
+  , _shrinkCfg_entityReplacements :: EntityResolver s
+  , _shrinkCfg_defaultEntityReplacement :: s
+  }
+  deriving (Show, Generic)
+
+-- | A config of nodes to replacement strings. There are type
+-- parameters for the nodes' names (@k@) and the replacement strings
+-- (@s@).
+type ShrinkingNodeReplacements k s = Map k (ShrinkingNodeReplacement s)
+
+data ShrinkingNodeReplacement s = ShrinkingNodeReplacement
+  { _shrinkRepl_open :: s
+  , _shrinkRepl_close :: s
+  , _shrinkRepl_empty :: s
+  }
+  deriving (Show, Generic)
+
+-- | A mapping of entity names to resolved strings.
+type EntityResolver s = Map String s
+
+builtinEntities :: (StringLike s) => EntityResolver s
+builtinEntities = Map.fromList
+  [ ("lt", SL.singleton '<')
+  , ("gt", SL.singleton '>')
+  , ("amp", SL.singleton '&')
+  , ("apos", SL.singleton '\'')
+  , ("quot", SL.singleton '"')
+  ]
+
+-- ** Parsing the config from yaml
+
+-- Note: There is no instance FromYAML String!
+instance Y.FromYAML (XmlShrinkingConfig T.Text T.Text) where
+  parseYAML = Y.withMap "shrink" $ \m -> XmlShrinkingConfig
+    <$> m .:? "tags" .!= Map.empty
+    <*> m .:? "tagDefault" .!= defaultShrinkingNodeReplacement
+    <*> m .:? "piDefault" .!= ""
+    <*> (fmap (Map.mapKeys T.unpack) $ m .:? "entities" .!= Map.empty)
+    <*> m .:? "entityDefault" .!= ""
+    where
+      defaultShrinkingNodeReplacement = ShrinkingNodeReplacement "" "" ""
+
+instance Y.FromYAML (ShrinkingNodeReplacement T.Text) where
+  parseYAML = Y.withMap "element" $ \m -> ShrinkingNodeReplacement
+    <$> m .:? "open" .!= ""
+    <*> m .:? "close" .!= ""
+    <*> m .:? "empty" .!= ""
+
+-- | Parse the configuration from yaml. Use 'adaptShrinkingConfig' to
+-- get a configuration parametrized with the correct types.
+--
+-- USAGE:
+--
+-- > do { BL.readFile "mappings/shrink-tei.yaml" >>= parseShrinkingConfig }
+parseShrinkingConfig :: Monad m => BL.ByteString -> m (XmlShrinkingConfig T.Text T.Text)
+parseShrinkingConfig c = do
+  case Y.decode c of
+    Left (pos, err) -> do
+      fail $ show pos ++ " " ++ show err
+    Right cfg -> do
+      return $ head cfg
+
+
+-- | Make a 'XmlShrinkingConfig' with the right types from the one
+-- parsed with 'parseShrinkingConfig'.
+adaptShrinkingConfig
+  :: (Ord n) =>
+     (T.Text -> Either String n) -- ^ function for making the right
+                                 -- node name type from 'Text'
+  -> (T.Text -> Either String s) -- ^ function for making the right
+                                 -- replacement string type from
+                                 -- 'Text'
+  -> XmlShrinkingConfig T.Text T.Text -- ^ the parsed config
+  -> Either String (XmlShrinkingConfig n s)
+adaptShrinkingConfig nameFun sFun cfg = XmlShrinkingConfig
+  <$> (join $
+       fmap (traverseKeys nameFun) $
+       traverse (adaptShrinkingNodeReplacement sFun) $
+       _shrinkCfg_tagReplacements cfg)
+  <*> (adaptShrinkingNodeReplacement sFun $ _shrinkCfg_defaultTagReplacement cfg)
+  <*> (sFun $ _shrinkCfg_defaultPiReplacement cfg)
+  <*> (traverse sFun $ (Map.union builtinEntities $ _shrinkCfg_entityReplacements cfg))
+  <*> (sFun $ _shrinkCfg_defaultEntityReplacement cfg)
+
+
+adaptShrinkingNodeReplacement
+  :: (T.Text -> Either String s)
+  -> ShrinkingNodeReplacement T.Text
+  -> Either String (ShrinkingNodeReplacement s)
+adaptShrinkingNodeReplacement f rpl = ShrinkingNodeReplacement
+  <$> (f $ _shrinkRepl_open rpl)
+  <*> (f $ _shrinkRepl_close rpl)
+  <*> (f $ _shrinkRepl_empty rpl)
 
 
 -- * Qualified names
@@ -341,7 +478,7 @@ shrinkingCloseNodeReplacement _ _ = SL.empty
 --
 -- @validateQName . mkQNameWithNsEnv (mkNsEnv nsDecl)@ where
 -- @nsDecl::NamespaceDecl@ can be composed this way to make qualified
--- names in a 'ShrinkingNodeConfig' using 'adaptShrinkingConfig'.
+-- names in a 'XmlShrinkingConfig' using 'adaptShrinkingConfig'.
 
 
 -- | A type for namespace declarations. It has a default namespace and
@@ -389,13 +526,13 @@ validateQName qn
   | otherwise = Right qn
 
 
-mkShrinkingNodeConfig
+mkXmlShrinkingConfig
   :: (Ord n, Monad m) =>
      (NamespaceDecl Text -> Text -> Either String n)
   -> (Text -> Either String s)
   -> BL.ByteString
-  -> m (ShrinkingNodeConfig n s)
-mkShrinkingNodeConfig nameFun textFun c = do
+  -> m (XmlShrinkingConfig n s)
+mkXmlShrinkingConfig nameFun textFun c = do
   nsDecl <- parseNamespaceDecl c
   shrinkCfg <- parseShrinkingConfig c
   case adaptShrinkingConfig (nameFun nsDecl) textFun shrinkCfg of
