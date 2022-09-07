@@ -1,5 +1,25 @@
 # Changes #
 
+- 0.2.0.0
+  - extended the design for annotation pipelines around existing tools
+    for plain text analysis
+	- command for generating **equidistant text**
+	- command for generating **shrinked text**
+  - enhancements to the many modules of the library
+	- enhancements to the XML parser, implement XML 1.0 spec (but DTD
+      still missing)
+	- unit testing throughout the parser and the positions it provides
+	- systematic unit tests for splitting annotations on overlapping
+      all kinds of nodes has led to bug fixes in the splitting
+      algorithm
+    - Check if annotations extend the prolog or epilog of an XML
+      document. Make the internalizer fail if so.
+	- introduced functions for making XML parsing namespace aware (not
+      yet used)
+	- introduced `valuePrefix` to the mapping of features to
+      attributes in order to deal with IDs that follow the XML rules
+      for IDs, like in the case of UUIDs.
+
 - 0.1.1.2
   - parse external markup from CSV with several referencing methods:
   - referencing by start character offset and end character offset,
