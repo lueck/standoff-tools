@@ -9,7 +9,7 @@ pipelines for enriching XML, e.g. [TEI-XML](https://www.tei-c.org),
 using taggers for plain text analysis. They help to bridge between the
 land of XML hierarchies and the land of processing a stream of tokens.
 
-![](doc/images/standoff-pipeline-generic-i-e.jpg)
+![](doc/images/standoff-pipeline-generic-e-i.jpg)
 
 In detail, Stand*Off* offer two services, that are concerted to each other.
 
