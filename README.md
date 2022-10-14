@@ -1,6 +1,6 @@
 [![License
 GPLv3](https://img.shields.io/badge/license-GPL_3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.txt)
-[test status](https://github.com/lueck/standoff-tools/actions/workflows/test-main.yml/badge.svg?branch=master)
+![test status](https://github.com/lueck/standoff-tools/actions/workflows/test-main.yml/badge.svg?branch=master)
 
 # Stand*off* Tools - tools for handling standoff annotations #
 
