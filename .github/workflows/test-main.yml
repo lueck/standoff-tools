@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+    pull_request:
+      branches:
+        - master
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-lastest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: setup stack
+        uses: haskell/actions/setup@v2
+        with:
+          ghc-version: '8.2.2'
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: build project
+        run: stack build
+
+      - name: run unit tests
+        run: stack test
