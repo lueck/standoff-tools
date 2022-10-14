@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:lang="de">
+   <teiHeader>
+      <fileDesc>
+         <titleStmt>
+            <title>Trawr-Gesant von der noth Christi am Oelberg in dem Garten</title>
+            <author>Friedrich Spee</author>
+         </titleStmt>
+         <publicationStmt>
+            <p>1649</p>
+         </publicationStmt>
+         <sourceDesc>
+            <p>taken from <ptr target="https://de.wikipedia.org/wiki/Z%C3%A4sur"/></p>
+         </sourceDesc>
+      </fileDesc>
+   </teiHeader>
+   <text>
+      <body>
+         <lg>
+            <head>Trawr-Gesang von der noth Christi am &#xd6;lberg in dem Garten</head>
+            <lg>
+               <l>Bey stiller nacht<caesura/> zur ersten wacht</l>
+               <l>Ein <hi>stimm sich gund</hi> zu klagen.</l>
+               <l>Jch nam in acht <caesura/> waß die doch sagt;</l>
+               <l>That hin mit augen schlagen.</l>
+            </lg>
+         </lg>
+      </body>
+   </text>
+</TEI>
+<?ASM MV DR7 AR0 ?>
+<!-- epilog -->

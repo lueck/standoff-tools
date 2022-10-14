@@ -79,7 +79,7 @@ data TagSerializerType
 getTagSerializer :: (ToAttributes a, IdentifiableSplit a) =>
                     TagSerializerType -> ((ExternalAttributes -> [Attribute]) -> TagSerializer a)
 getTagSerializer (ConstTagSerializer el) = constTagSerializer el
-getTagSerializer (VarTagSerializer attr el) = fail "This serializer is still undefined"
+getTagSerializer (VarTagSerializer feature fallback) = featureTagSerializer feature fallback
 
 -- | Parser for annotation format command line options
 annotationFormat_ :: Parser AnnotationFormat
@@ -291,18 +291,23 @@ internalize_ :: Parser Command
 internalize_ = Internalize
   <$> ((ConstTagSerializer <$>
          strOption (
-           metavar "ELEMENT"
+           metavar "TAGNAME"
            <> short 'c'
            <> long "const"
-           <> help "Serialize tags into elements of name ELEMENT."))
+           <> help "Serialize tags into elements of name TAGNAME."))
        <|>
        (VarTagSerializer
          <$> strOption (
-           metavar "ATTRIBUTE FALLBACK"
+           metavar "FEATURE"
            <> short 'v'
            <> long "variable"
-           <> help "Serialize tags setting the tag name variably from the tag's feature named ATTRIBUTE. If ATTRIBUTE is not among the tag's features, FALLBACK is used as tag name.")
-         <*> argument str (metavar "")))
+           <> help "Serialize tags setting the tag name variably from the tag's feature named FEATURE. If the feature is not present, a fallback is used as tag name.")
+         <*> strOption (short 'f'
+                         <> long "fallback"
+                         <> help ""
+                         <> metavar "TAGNAME"
+                         <> value "unknown"
+                         <> showDefault)))
   <*> optional (strOption
                 (short 'a'
                  <> long "attributes"

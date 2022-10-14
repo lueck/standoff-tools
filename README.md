@@ -1,58 +1,98 @@
 [![License
 GPLv3](https://img.shields.io/badge/license-GPL_3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.txt)
-[![Build Status](https://app.travis-ci.com/lueck/standoff-tools.svg?branch=master)](https://app.travis-ci.com/lueck/standoff-tools)
+![test status](https://github.com/lueck/standoff-tools/actions/workflows/test-main.yml/badge.svg?branch=master)
 
-# standoff-tools - tools for handling standoff annotations #
+# Stand*off* Tools - tools for handling standoff annotations #
 
-`standoff-tools` offers a command line program for handling standoff
-annotations, i.e. annotations that occur away from the document they
-annotate. In particular, it offers a command to **internalize**
-standoff markup into the source document in such a way, that the
-produced XML is syntactically correct, even when the annotations
-overlap each other and overlap the internal markup of the source
-document. This is done by splitting the external markup; the internal
-markup is never split.
+Stand*off* Tools (`standoff-tools`) offer generic services for
+building annotation pipelines for enriching XML,
+e.g. [TEI-XML](https://www.tei-c.org), using taggers for plain text
+analysis. They help to bridge between the land of XML hierarchies and
+the land of processing a stream of tokens.
 
-[The terms *standoff annotations*, *source document*, *internal
-markup*, *internalize*, etc. that are used here were [defined by the
-TEI
-community](https://www.tei-c.org/release/doc/tei-p5-doc/en/html/SA.html#SASO). We
-add the term *split* (noun), which means a portion of an annotated
-text run. *Splitting* is the action of dividing an annotated text run
-in order to make non-overlapping markup. There's also the term *text
-range* which is widely used in the source code: It means the annotated
-text run.]
+![](doc/images/standoff-pipeline-generic-e-i.jpg)
 
-In addition, `standoff-tools` can also generate a certain flavour of
-plain text from XML, where the text nodes have the same character
-offset from the file's beginning as in the XML file, but tags are
-stripped/replaced by filling characters. This is called equidistant
-plain text. The two programs enable us to use existing tools for text
-analysis that were written for plain text, and to feed back their
-results into the XML document using the internalizer. We can re-use
-these tools in automatic annotation pipelines for XML, e.g. TEI-XML
-documents. (See `dev` branch!)
+In detail, Stand*Off* offer two services, that are concerted to each other.
 
-![Automatic annotation pipeline for TEI](doc/images/standoff-pipeline.jpg)
+- Extractor *E*: extracts plain text from XML
+
+- Internalizer *I*: merges results back into XML so that the result is
+  wellformed XML
+
+![Information flow in a stand*off* pipeline](doc/images/standoff-pipeline.jpg)
+
+
+Slides for the [TEI 2022 conference](https://clueck.zivgitlabpages.uni-muenster.de/tei2022/standoff-tools/slides2.html)
+
+
+## Requirements for the tagger
+
+To use these services, the tagger for plain text analysis has to
+provide records with character offsets. Just a list of strings is not
+enough. E.g. imagine a tagger for named entity recognition (NER), that
+returns CSV, one row for each found name, with offsets of
+the start and end characters of the found names and maybe other
+features like persistent identifiers of the named entities.
+
+```{csv}
+start,end,string,id
+1051,1055,Locke,...
+1073,1082,Descartes,...
+2033,2037,Locke,...
+3451,3455,Wolff,...
+...
+```
+
+CSV files suitable for Stand*off* Tools must provide at least the two
+columns `start` and `end`, or `start` and `length`.
+
+There are many tools and libraries out there, that provide offset
+information: Spacy, ANTLR-based grammar parsers, Python's regex
+library, (WebLicht), ...
+
+Features in the other columns of the CSV can be mapped to attribute
+values in the XML output of the internalizer *I*. You can either
+define a fixed/constant element name, that is used for wrapping tags
+around the portions of the document as described in the CSV file. Or
+you can also define a column to get the element name from.
+
+The spans described in the CSV may overlap each other.
+
+## Usage
+
+[Wiki](https://github.com/lueck/standoff-tools/wiki) is about to come.
+
+## Internalizing Stand*Off* Annotations, e.g. Web Annotations (OA)
+
+The internalizer can also be used stand-alone to **internalize**
+manually produced standoff annotations into the source document. The
+result is wellformed XML even when the annotations overlap each other
+and overlap the internal markup of the source document. If annotation
+start inside an opening or a closing tag or a character reference,
+etc. they are silently repaired.
 
 
 ## Features ##
 
-- command for internalizing standoff annotations into the source document
+- no language model introduced, e.g. the notion of word
+- library abstracts away XML and can be used for every hierarchical
+  markup language
+- no TEI-specific knowledge in the code base, but can be added by config
+- can be used stand-alone for internalizing OA-based standoff
+  annotations into the source document
 - standoff annotations may reference the source document using
-  *character offsets* or *pairs of line and column numbers* (see
-  road-map for other referencing mechanisms)
-  - parse standoff annotations produced with
-    [`standoff-mode`](https://github.com/lueck/standoff-mode)
-  - parse annotations given in CSV using the above mentioned
-    referencing methods and providing arbitrary other features. The
-    CSV header is used to make key-value pairs.
+  *character offsets*, pairs of start offset and length
+- offsets may be given as scalars or *pairs of
+  line and column numbers*
+- define how tags are shrinked by YAML config
 - mappings of annotation features (key-value pairs) to XML attributes
   defined in YAML
   - Special features of each split can be used to provide the
     internalized splits with a unique ID and with a pointer to the
     previous split, e.g. for TEI's `@prev`.
-- define a constant element name for internalized splits or use a
+  - add prefixes to annotation features that go into attribute values,
+    e.g. for making correct `@xml:id`s from UUIDs
+- define a constant element name for internalized splits or use an
   annotation feature to determine the element name
 - commands for inspecting the annotations
 - commands for inspecting the source document
@@ -70,28 +110,19 @@ comments. `standoff-tools` enabled us to
 [visualize](https://github.com/lueck/standoff-viz) our annotations in
 a browser.
 
-The target in 2021 is to use `standoff-tools` in various annotation
-pipelines, either with human or machine-driven annotators, where
-annotations have to be internalized into the TEI source document.
+The aim since spring 2021 is to use `standoff-tools` in various
+annotation pipelines, either with human or machine-driven annotators,
+where annotations have to be internalized into the TEI source
+document.
 
 
 ## Road-map ##
 
-- Add a feature-dependent tag internalizer.
-- Make it a webservice.
-- Add an option to drop splits of external markup that run over
-  whitespace only. That would considerably reduce the amount of
-  schematically invalid internalized splits that fall between
-  `<div>`s and other block elements.
-- Add parsers for other referencing methods, e.g. XPath and XPointer
-  expressions or Web Annotations with offset selectors.
-- Implement a full blown validating internalizer.
-- Re-implement the XML-Parser (that was the first thing I've ever
-  written in Haskell :-))
-- extractor of equidistant plain text (see `dev` branch)
-- shrink equidistant plain text and generate a mapping of positions
-- updater of annotation references based on patches of the source
-  document (very far away)
+- choose tag name from a feature
+- mute output of subtrees in shrinked text, e.g. for `<tei:teiHeader>`
+  or `<tei:rdg>`
+- make it a webservice
+- add support for DTD and entity definition parsing
 
 
 # Installation #

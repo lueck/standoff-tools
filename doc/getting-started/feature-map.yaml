@@ -1,0 +1,16 @@
+# map the wikidata column to the @ref attribute
+wikidata:
+  name: "ref"
+  valuePrefix: "https://m.wikidata.org/wiki/"
+
+# map the phrase column to the @type attribute
+phrase:
+  name: "type"
+
+__standoff_special__splitId:
+  prefix: xml
+  name: xml:id
+
+__standoff_special__prevId:
+  name: prev
+  valuePrefix: "#"
