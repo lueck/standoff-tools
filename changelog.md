@@ -1,5 +1,9 @@
 # Changes #
 
+- 0.2.2.0
+  - tag serializer that gets the tag name from a feature (see
+    `-v|--variable` option of `internalize`)
+
 - 0.2.1.0
   - fixed issue #6
   - changed `OffsetMapping` data structure
