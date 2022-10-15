@@ -94,9 +94,9 @@ etc. they are silently repaired.
     e.g. for making correct `@xml:id`s from UUIDs
 - define a constant element name for internalized splits or use an
   annotation feature to determine the element name
-- commands for inspecting the annotations
-- commands for inspecting the source document
-
+- command for inspecting the annotations
+- command for inspecting the source document
+- command for extracting annotated spans from source document
 
 ## History ##
 
@@ -118,7 +118,6 @@ document.
 
 ## Road-map ##
 
-- choose tag name from a feature
 - mute output of subtrees in shrinked text, e.g. for `<tei:teiHeader>`
   or `<tei:rdg>`
 - make it a webservice
