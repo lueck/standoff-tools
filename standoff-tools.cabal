@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bfabb73788a0b1b0d8176566d8a96ea99482ed25550a56a23880ea50a2c1431e
+-- hash: aa2f66a59429fb42dc1b10cee766fad377cce1b985e671eadb9e17a5e0163b6a
 
 name:           standoff-tools
-version:        0.2.2.0
+version:        0.3.0.0
 synopsis:       Tools for managing stand-off markup.
 description:    Please see the README on GitHub at <https://github.com/clueck/standoff-tools#readme>
 category:       Text
@@ -36,6 +36,7 @@ library
       StandOff.External
       StandOff.External.GenericCsv
       StandOff.External.StandoffModeDump
+      StandOff.Extract
       StandOff.Internalize
       StandOff.LineOffsets
       StandOff.MarkupTree
@@ -70,6 +71,7 @@ library
     , parsec
     , text
     , time
+    , utf8-string
     , uuid-types
     , vector
     , yaml
@@ -101,6 +103,7 @@ executable standoff
     , text
     , time
     , transformers
+    , utf8-string
     , uuid-types
     , vector
     , yaml
@@ -141,6 +144,7 @@ test-suite unit-tests
     , template-haskell
     , text
     , time
+    , utf8-string
     , uuid-types
     , vector
     , yaml

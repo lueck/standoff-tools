@@ -5,7 +5,9 @@ import Data.Monoid ((<>))
 import Data.Char
 import qualified Data.Csv as Csv
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy.UTF8 as BLU
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as BSU
 import qualified Data.Map as Map
 import Data.Tree.Class
 import Data.Foldable
@@ -24,7 +26,7 @@ import Paths_standoff_tools (version)
 import StandOff.XmlParsec (runXmlParser)
 import StandOff.SourcePosMapping
 import StandOff.Internalize (internalize)
-import StandOff.DomTypeDefs hiding (Attribute)
+import StandOff.DomTypeDefs hiding (Attribute, attributes)
 import StandOff.Owl
 import StandOff.External
 import StandOff.AttributesMap
@@ -34,6 +36,8 @@ import StandOff.ShrinkedText hiding (OffsetMapping)
 import qualified StandOff.ShrinkedText as ShrT
 import qualified StandOff.StringLike as SL
 import StandOff.MarkupTree
+import StandOff.Extract
+import StandOff.TextRange
 
 import StandOff.External.StandoffModeDump
 import StandOff.External.GenericCsv
@@ -140,6 +144,12 @@ data Command
     , intlz_ann :: FilePath
     , intlz_offsetMapping :: Maybe FilePath
     }
+  | Extract
+    { extrct_annFormat :: AnnotationFormat
+    , extrct_ann :: FilePath
+    , extrct_textFeature :: String
+    , extrct_mode :: ExtractMode
+    }
   deriving (Eq, Show)
 
 
@@ -153,6 +163,7 @@ command_ = subparser
     <> command "offsets" offsetsInfo_
     <> command "equidist" equidistantInfo_
     <> command "shrink" shrinkInfo_
+    <> command "extract" extractInfo_
   )
 
 -- * Parsers for input and output file
@@ -333,6 +344,63 @@ internalizeInfo_ =
      <> header "standoff internalize - internalize standoff markup into an xml file."))
 
 
+-- * Options for the extract command
+
+extractInfo_ :: ParserInfo Command
+extractInfo_ =
+  (info (extract_ <**> version_ <**> helper)
+    (fullDesc
+     <> progDesc "Extract annotations given in ANNOTATIONS from XML input file. The ANNOTATION file can have different formats. The extraction either contains internal markup of the input file (--markup) or overwrites it with an defined character (--equidist) or shrinks the internal markup away (--shrinked)."
+     <> header "standoff extract - extract annotated spans"))
+
+data ExtractMode
+  = ExtractAll
+  | ExtractEquidist
+    { extrctEq_fillChar :: Int
+    }
+  | ExtractShrinked
+    { extrctShr_cfgFile :: FilePath
+    }
+  deriving (Eq, Show)
+
+extract_ :: Parser Command
+extract_ = Extract
+  <$> annotationFormat_
+  <*> strOption
+  (short 'a'
+    <> long "annotations"
+    <> metavar "ANNOTATIONS"
+    <> help "Annotations file")
+  <*> strOption
+  (long "feature"
+    <> metavar "COLUMN"
+    <> help "Column or feature name of the extracted text."
+    <> value "text"
+    <> showDefault)
+  <*> extractMode_
+
+extractMode_ :: Parser ExtractMode
+extractMode_ =
+  (const ExtractAll
+   <$> flag' False
+   (long "markup"
+     <> short 'm'
+     <> help "Extract annotated spans with markup."))
+  <|>
+  (ExtractEquidist
+   <$> option auto
+    (long "equidist"
+      <> short 'e'
+      <> metavar "CODEPOINT"
+      <> help "Extract annotated spans as equidistand text. A code point has to be given which is used to override tag spans."))
+  <|>
+  (ExtractShrinked
+   <$> strOption
+    (long "shrinked"
+     <> short 's'
+     <> metavar "CONFIG_FILE"
+     <> help "Extract annotated spans as shrinked text. A shrinking configuration in yaml format has to be given."))
+
 
 
 printCSV :: (SL.StringLike s, Show s, Show p) => XmlNode p s s -> IO ()
@@ -355,6 +423,10 @@ maybeApplyOffsetMapping (Nothing) annots = return annots
 maybeApplyOffsetMapping (Just fName) annots = do
   offsetMapping <- offsetsFromBinary fName
   either fail return $ traverse (ShrT.inflate offsetMapping) annots
+
+addTextFeature :: (TextRange a, ToAttributes a, SL.StringLike s) => s -> String -> a -> Map.Map String String
+addTextFeature xmlContents key annot =
+  Map.insert key (SL.unpack $ extractAnnotation xmlContents annot) $ attributes annot
 
 
 -- * The @standoff@ commandline program.
@@ -450,6 +522,39 @@ run (GlobalOptions input output
   --     | length decl == 1 = (posOffset $ snd $ nodeRange $ head decl) - 1
   --     | otherwise = 0
   --     where decl = filter isXMLDeclarationP x
+run (GlobalOptions input output (Extract annFormat annFile textFeature (ExtractAll))) = do
+  inputH <- streamableInputHandle input
+  xmlContents <- hGetContents inputH
+  sourcePosMapping <- parsecOffsetMapping indexed (show inputH) xmlContents
+
+  annotsH <- openFile annFile ReadMode
+  annots <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping sourcePosMapping) decodeUtf8 annotsH
+  let hdr = Csv.header $ map BSU.fromString $ (<> [textFeature]) $ Map.keys $ attributes $ head annots
+
+  outputH <- streamableOutputHandle output
+  BL.hPutStr outputH $
+    Csv.encodeByNameWith Csv.defaultEncodeOptions hdr $
+    map (Csv.toNamedRecord . addTextFeature xmlContents textFeature) annots
+  hClose outputH
+run (GlobalOptions input output (Extract annFormat annFile textFeature (ExtractEquidist fillChar))) = do
+  inputH <- streamableInputHandle input
+  xmlContents <- hGetContents inputH
+  sourcePosMapping <- parsecOffsetMapping indexed (show inputH) xmlContents
+  xml <- runXmlParser sourcePosMapping (show inputH) xmlContents
+
+  (s, txt) <- runWriterT (equidistantText tell (chr fillChar) xml xmlContents)
+
+  annotsH <- openFile annFile ReadMode
+  annots <- (getAnnotationsParser annFormat) (lineColumnOffsetMapping sourcePosMapping) decodeUtf8 annotsH
+  let hdr = Csv.header $ map BSU.fromString $ (<> [textFeature]) $ Map.keys $ attributes $ head annots
+
+  outputH <- streamableOutputHandle output
+  BL.hPutStr outputH $
+    Csv.encodeByNameWith Csv.defaultEncodeOptions hdr $
+    map (Csv.toNamedRecord . addTextFeature txt textFeature) annots
+  hClose outputH
+run (GlobalOptions input output (Extract annFormat annFile textFeature mode)) = do
+  fail "This extraction mode is not yet implemented."
 
 
 globalOpts_ :: Parser GlobalOptions

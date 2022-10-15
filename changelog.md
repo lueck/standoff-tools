@@ -1,5 +1,9 @@
 # Changes #
 
+- 0.3.0.0
+  - introduced `extract` command for extracting annotated spans from
+	the annotated source document
+
 - 0.2.2.0
   - tag serializer that gets the tag name from a feature (see
     `-v|--variable` option of `internalize`)
