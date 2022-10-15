@@ -29,6 +29,7 @@ dependencies:
 - mtl
 - binary
 - HsYAML
+- utf8-string
 
 
 library:
