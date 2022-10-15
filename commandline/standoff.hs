@@ -552,6 +552,7 @@ run (GlobalOptions input output (Extract annFormat annFile textFeature (ExtractE
   BL.hPutStr outputH $
     Csv.encodeByNameWith Csv.defaultEncodeOptions hdr $
     map (Csv.toNamedRecord . addTextFeature txt textFeature) annots
+  hClose outputH
 run (GlobalOptions input output (Extract annFormat annFile textFeature mode)) = do
   fail "This extraction mode is not yet implemented."
 
