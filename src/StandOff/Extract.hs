@@ -15,4 +15,4 @@ extractAnnotation
 extractAnnotation src annot = S.take l $ S.drop strt src
   where
     strt = start annot
-    l = (end annot) - strt
+    l = (end annot) - strt + 1
